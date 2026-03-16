@@ -1,9 +1,23 @@
 """FastAPI application entry point."""
 
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+
+logger = logging.getLogger("buildwise")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup / shutdown lifecycle."""
+    logger.info("BuildWise ERP starting — prototype %s", settings.DEFAULT_PROTOTYPE)
+    yield
+    logger.info("BuildWise ERP shutting down")
+
 
 app = FastAPI(
     title="BuildWise ERP",
@@ -11,12 +25,13 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/api/docs" if settings.APP_DEBUG else None,
     redoc_url="/api/redoc" if settings.APP_DEBUG else None,
+    lifespan=lifespan,
 )
 
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
