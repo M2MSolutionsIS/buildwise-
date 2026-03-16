@@ -37,16 +37,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.get("/api/v1/health")
-async def health_check():
-    return {"status": "ok", "version": "0.1.0", "prototype": settings.DEFAULT_PROTOTYPE}
-
-
-# Import all models so they're registered with SQLAlchemy
+# ─── Import all models so they're registered with SQLAlchemy ─────────────────
 from app.system import models as system_models  # noqa: F401, E402
 from app.crm import models as crm_models  # noqa: F401, E402
 from app.pipeline import models as pipeline_models  # noqa: F401, E402
 from app.pm import models as pm_models  # noqa: F401, E402
 from app.rm import models as rm_models  # noqa: F401, E402
 from app.bi import models as bi_models  # noqa: F401, E402
+
+# ─── Register routers ────────────────────────────────────────────────────────
+from app.system.router import auth_router, health_router, system_router, user_router  # noqa: E402
+
+app.include_router(health_router)
+app.include_router(auth_router)
+app.include_router(user_router)
+app.include_router(system_router)
