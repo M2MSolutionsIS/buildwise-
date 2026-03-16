@@ -2,10 +2,11 @@ FROM python:3.11-bookworm
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Context is repo root when Railway builds, so paths are relative to root
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY backend/ .
 
 EXPOSE 8000
 
