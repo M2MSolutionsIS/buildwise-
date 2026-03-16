@@ -1,49 +1,114 @@
-# BuildWise — Documentație Tehnică
+# BuildWise ERP Platform
 
-Această documentație conține specificațiile complete pentru platforma BuildWise, convertite din fișierele originale (.xlsx/.docx) în format Markdown pentru a fi citite de Claude Code.
+Platformă ERP verticală pentru eficiență energetică a clădirilor, dezvoltată de BAHN S.R.L.
 
-> ⭐ **SURSA DE ADEVĂR pentru implementare este `Centralizator_M2M_ERP_Lite.md`**. Toate celelalte fișiere sunt suport și context. Dacă există contradicții, Centralizatorul câștigă.
+3 prototipuri din același codebase:
+- **P1 — BuildWise TRL5**: Energie + AI
+- **P2 — BAHM Operational**: Construcții + Resource Management
+- **P3 — M2M ERP Lite**: SaaS generic, multi-tenant, white-label
 
-## Specificații Implementare (FOLOSEȘTE ACESTEA)
+## Quick Start
 
-| Fișier | Conținut | Sursa originală |
-|--------|---------|-----------------|
-| `Centralizator_M2M_ERP_Lite.md` | ⭐ **108 funcționalități** cu F-codes, mapping P1/P2/P3, priorități, user stories | M2M_ERP_Lite_Centralizator_V7.xlsx |
-| `Roadmap_TRL5_TRL7.md` | Roadmap tehnic TRL5→TRL7 pe 6 faze / 24 luni | BuildWise_Roadmap_TRL5_TRL7.xlsx |
+```bash
+# 1. Clone & configure
+git clone <repo-url>
+cd buildwise
+cp .env.example .env        # Edit .env if needed
 
-## Wireframes și Ecrane
+# 2. Start all services
+docker-compose up --build
 
-| Fișier | Conținut | Sursa originală |
-|--------|---------|-----------------|
-| `Wireframe_Masterplan.md` | 98 ecrane: ID, modul, tip, complexitate, prioritate, F-codes, navigare (54 flow-uri) | BuildWise_Wireframe_Masterplan_V4.xlsx |
-| `Wireframes_Faza0.md` | 9 ecrane principale (Dashboard, Contacts, Pipeline Kanban, Project Hub, etc.) | BuildWise_Wireframes_Faza0.docx |
-| `Wireframes_Faza1.md` | 8 ecrane P0 critice (Contact Detail completare, WBS, Deviz, Resource Dashboard) | BuildWise_Wireframes_Faza1.docx |
-| `Wireframes_Faza2.md` | 13 ecrane P1 importante (Catalog, Offer, Contract, Activity, Timesheet, etc.) | BuildWise_Wireframes_Faza2.docx |
-| `Wireframes_Faza3.md` | 11 ecrane P2 (Contracts Pipeline, Analytics, Wiki, Settings, AI Assistant) | BuildWise_Wireframes_Faza3.docx |
-| `Wireframes_Faza4.md` | 21 sub-ecrane (tab-uri individuale) | BuildWise_Wireframes_Faza4.docx |
-| `Wireframes_Faza5.md` | 21 modale & overlay-uri | BuildWise_Wireframes_Faza5.docx |
-| `Wireframes_Faza6.md` | 5 componente globale (Toast, Empty State, Skeleton, PDF Preview) | BuildWise_Wireframes_Faza6.docx |
+# 3. Run database migration
+docker-compose exec backend alembic upgrade head
+```
 
-## Flow Diagrams
+## Access Points
 
-| Fișier | Conținut | Sursa originală |
-|--------|---------|-----------------|
-| `FlowDiagrams_BuildWise.md` | Fluxuri operaționale P1 (BuildWise — energie + AI) | BuildWise_FlowDiagrams_V2.xlsx |
-| `FlowDiagrams_BAHM.md` | Fluxuri operaționale P2 (BAHM — construcții) | BAHM_Op_FlowDiagrams_V2.xlsx |
-| `FlowDiagrams_M2M_Lite.md` | Fluxuri operaționale P3 (M2M Lite — SaaS generic) | M2M_Lite_FlowDiagrams_V2.xlsx |
+| Service | URL | Description |
+|---------|-----|-------------|
+| App (nginx) | http://localhost | Frontend via reverse proxy |
+| API Docs | http://localhost:8000/api/docs | Swagger UI |
+| Frontend (direct) | http://localhost:5173 | Vite dev server |
+| Health Check | http://localhost:8000/api/v1/health | Backend status |
 
-## Strategie și Context
+## Services
 
-| Fișier | Conținut | Sursa originală |
-|--------|---------|-----------------|
-| `Strategie_Dezvoltare.md` | Strategie completă: arhitectură, roadmap 24 luni, plan financiar CDI | BuildWise_Strategie_Dezvoltare_Produs.docx |
-| `Cercetare_Piata.md` | Cercetarea de piață PoCIDIF v3: competitori, gap-uri, oportunități | BuildWise_Cercetare_Piata_PoCIDIF_v3.docx |
-| `Fisa_Proiect.md` | Fișa de proiect PoCIDIF Acțiunea 2.1 | BuildWise_Fisa_Proiect_BuildWise_PoCIDIF.docx |
-| `Product_Owner_Guide.md` | Ghidul Product Owner M2M ERP Lite | M2M_ERP_Lite_Product_Owner_Guide.docx |
+| Service | Technology | Port |
+|---------|-----------|------|
+| `db` | PostgreSQL 16 | 5432 |
+| `redis` | Redis 7 | 6379 |
+| `backend` | FastAPI (Python 3.11) | 8000 |
+| `frontend` | React 19 + Vite | 5173 |
+| `nginx` | Nginx (reverse proxy) | 80 |
 
-## Context Strategic (NU pentru implementare directă)
+## Stack
 
-| Fișier | Conținut | De ce e separat |
-|--------|---------|-----------------|
-| `context/Specificatii_TRL5.md` | 58 funcțiuni existente BAHM + mapare date→ML | Informații utile pentru TRL7, dar Centralizatorul e sursa de cod |
-| `context/Functionalitati_TRL7.md` | Target TRL7: module AI, Serviciu Informare, Învățare, Monitorizare | Descrie viitorul, nu ce construim acum. NU implementa din el |
+- **Backend**: FastAPI, SQLAlchemy 2.0 (async), Alembic, Pydantic v2
+- **Frontend**: React 19, TypeScript 5, Ant Design 5, TanStack Query, Zustand
+- **Database**: PostgreSQL 16 (77 tables, 6 modules)
+- **Cache**: Redis 7
+- **Auth**: JWT (access + refresh tokens)
+- **Container**: Docker Compose
+
+## Project Structure
+
+```
+buildwise/
+├── docker-compose.yml         # 5 services: db, redis, backend, frontend, nginx
+├── .env.example               # All environment variables
+├── backend/                   # FastAPI + SQLAlchemy
+│   ├── app/
+│   │   ├── main.py            # App entry point
+│   │   ├── config.py          # pydantic-settings
+│   │   ├── database.py        # Async SQLAlchemy engine
+│   │   ├── core/              # Shared: base models, auth, RBAC, audit
+│   │   ├── crm/               # M1: Contacts, Properties, Products (10F)
+│   │   ├── pipeline/          # M2: Opportunities, Offers, Contracts (26F)
+│   │   ├── pm/                # M3: Projects, WBS, Gantt, Budget (34F)
+│   │   ├── rm/                # M4: HR, Materials, Allocation (16F, P2+P3)
+│   │   ├── bi/                # M5: KPIs, Dashboards, Reports (5F)
+│   │   └── system/            # M6: Users, Roles, Settings (17F)
+│   └── alembic/               # DB migrations
+├── frontend/                  # React 19 + Vite
+│   └── src/
+│       ├── modules/           # Mirror backend: crm, pipeline, pm, rm, bi, system
+│       ├── layouts/           # App shell
+│       ├── services/          # API client (axios)
+│       └── types/             # TypeScript interfaces
+└── nginx/
+    └── nginx.conf             # /api → backend, / → frontend
+```
+
+## Development
+
+```bash
+# Rebuild a single service
+docker-compose up --build backend
+
+# View logs
+docker-compose logs -f backend
+
+# Run alembic migration
+docker-compose exec backend alembic upgrade head
+
+# Create new migration
+docker-compose exec backend alembic revision --autogenerate -m "description"
+
+# Stop everything
+docker-compose down
+
+# Stop and remove volumes (reset DB)
+docker-compose down -v
+```
+
+## Documentation
+
+> **Source of truth**: `Centralizator_M2M_ERP_Lite.md` — 108 functionalities with F-codes
+
+| Document | Content |
+|----------|---------|
+| `Centralizator_M2M_ERP_Lite.md` | 108 functionalities, F-codes, P1/P2/P3 mapping |
+| `Wireframe_Masterplan.md` | 98 screens with priorities |
+| `Wireframes_Faza0.md` — `Faza6.md` | Detailed wireframes |
+| `FlowDiagrams_*.md` | User flows per prototype |
+| `CLAUDE.md` | Development conventions and context |
