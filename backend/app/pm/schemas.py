@@ -882,3 +882,348 @@ class ProjectReportOut(BaseModel):
     completed_tasks: int = 0
     open_risks: int = 0
     open_punch_items: int = 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CLIENT PORTAL — F066
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class ClientPortalOut(BaseModel):
+    """F066: Aggregated client portal — CRM contact, projects, invoices."""
+    project_id: uuid.UUID
+    project_name: str
+    project_status: str
+    # CRM contact data
+    contact_id: uuid.UUID | None = None
+    contact_name: str | None = None
+    contact_email: str | None = None
+    contact_phone: str | None = None
+    # Contract data
+    contract_id: uuid.UUID | None = None
+    contract_number: str | None = None
+    contract_value: float | None = None
+    # Financial summary
+    total_invoiced: float = 0.0
+    total_paid: float = 0.0
+    total_outstanding: float = 0.0
+    # Progress
+    percent_complete: float = 0.0
+    planned_end_date: datetime | None = None
+    # Invoices
+    invoices: list = []
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RESOURCE ALLOCATION — F083
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class ResourceAllocationCreate(BaseModel):
+    """F083: Allocate resource to project (sync with RM)."""
+    resource_type: str  # employee|equipment|material|external
+    employee_id: uuid.UUID | None = None
+    equipment_id: uuid.UUID | None = None
+    wbs_node_id: uuid.UUID | None = None
+    task_id: uuid.UUID | None = None
+    start_date: datetime
+    end_date: datetime
+    allocated_hours: float | None = None
+    planned_cost: float | None = None
+    currency: str = "RON"
+    allocation_percent: float = 100.0
+
+
+class ResourceAllocationOut(BaseModel):
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    resource_type: str
+    employee_id: uuid.UUID | None = None
+    equipment_id: uuid.UUID | None = None
+    project_id: uuid.UUID
+    wbs_node_id: uuid.UUID | None = None
+    task_id: uuid.UUID | None = None
+    start_date: datetime
+    end_date: datetime
+    allocated_hours: float | None = None
+    actual_hours: float | None = None
+    planned_cost: float | None = None
+    actual_cost: float | None = None
+    currency: str
+    status: str
+    has_conflict: bool
+    conflict_details: dict | None = None
+    allocation_percent: float
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ResourceAllocationUpdate(BaseModel):
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    allocated_hours: float | None = None
+    actual_hours: float | None = None
+    planned_cost: float | None = None
+    actual_cost: float | None = None
+    status: str | None = None
+    allocation_percent: float | None = None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INVESTOR DASHBOARD — F100
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class InvestorDashboardOut(BaseModel):
+    """F100: Investor dashboard — aggregated project data + notifications."""
+    total_projects: int = 0
+    active_projects: int = 0
+    completed_projects: int = 0
+    total_budget_allocated: float = 0.0
+    total_budget_actual: float = 0.0
+    total_budget_variance: float = 0.0
+    avg_percent_complete: float = 0.0
+    avg_cpi: float | None = None
+    avg_spi: float | None = None
+    projects_on_track: int = 0
+    projects_at_risk: int = 0
+    projects_delayed: int = 0
+    notifications: list = []
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMPANY CAPACITY DASHBOARD — F130
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class CompanyCapacityOut(BaseModel):
+    """F130: Company capacity — resources available vs allocated."""
+    total_employees: int = 0
+    allocated_employees: int = 0
+    available_employees: int = 0
+    total_equipment: int = 0
+    allocated_equipment: int = 0
+    available_equipment: int = 0
+    total_allocated_hours: float = 0.0
+    total_planned_cost: float = 0.0
+    utilization_rate: float = 0.0  # allocated / total * 100
+    active_projects_count: int = 0
+    allocations_with_conflicts: int = 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROGRESS MONITORING — F078
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class ProgressMonitoringOut(BaseModel):
+    """F078: Detailed progress monitoring with trend data."""
+    project_id: uuid.UUID
+    project_name: str
+    percent_complete: float
+    planned_start: datetime | None = None
+    planned_end: datetime | None = None
+    actual_start: datetime | None = None
+    actual_end: datetime | None = None
+    # EVM
+    cpi: float | None = None
+    spi: float | None = None
+    # Task breakdown
+    total_tasks: int = 0
+    tasks_todo: int = 0
+    tasks_in_progress: int = 0
+    tasks_blocked: int = 0
+    tasks_done: int = 0
+    # Milestones
+    total_milestones: int = 0
+    completed_milestones: int = 0
+    # Delay alerts
+    overdue_tasks: int = 0
+    is_behind_schedule: bool = False
+    schedule_variance_days: int | None = None
+    # Trend data (task completion per week)
+    trend_data: list = []
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUDGET CONTROL — F080
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class BudgetControlOut(BaseModel):
+    """F080: Detailed budget control with variance analysis."""
+    project_id: uuid.UUID
+    project_name: str
+    currency: str
+    # Budget overview
+    budget_allocated: float | None = None
+    budget_committed: float | None = None
+    budget_actual: float | None = None
+    budget_remaining: float | None = None
+    budget_variance: float | None = None
+    budget_variance_percent: float | None = None
+    # EVM
+    cpi: float | None = None
+    spi: float | None = None
+    # Deviz summary
+    total_estimated: float = 0.0
+    total_actual: float = 0.0
+    deviz_variance: float = 0.0
+    items_over_budget: int = 0
+    total_deviz_items: int = 0
+    # Cost breakdown
+    labor_cost_estimated: float = 0.0
+    labor_cost_actual: float = 0.0
+    material_cost_estimated: float = 0.0
+    material_cost_actual: float = 0.0
+    # Alerts
+    is_over_budget: bool = False
+    budget_alert_threshold: float = 0.9  # 90%
+    burn_rate_monthly: float | None = None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ML DATA EXPORT — F105
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class MLExportTriggerRequest(BaseModel):
+    """F105: Trigger ML data export for a project."""
+    mapping_config: dict | None = None
+
+
+class MLExportStatusOut(BaseModel):
+    """F105: ML export status for a project."""
+    project_id: uuid.UUID
+    has_energy_impact: bool = False
+    ml_data_mapping: dict | None = None
+    ml_dataset_exported: bool = False
+    ml_export_date: datetime | None = None
+    is_verified: bool = False
+    validation_errors: list = []
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WORK TRACKER — F125
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class WorkTrackerOut(BaseModel):
+    """F125: Work tracker — quantities/costs estimated vs actual."""
+    project_id: uuid.UUID
+    project_name: str
+    currency: str
+    # Totals
+    total_estimated_quantity: float = 0.0
+    total_actual_quantity: float = 0.0
+    quantity_variance: float = 0.0
+    total_estimated_cost: float = 0.0
+    total_actual_cost: float = 0.0
+    cost_variance: float = 0.0
+    # Per-item breakdown
+    items: list = []
+    items_over_budget: int = 0
+    items_under_budget: int = 0
+    total_items: int = 0
+
+
+class WorkTrackerItemOut(BaseModel):
+    """Individual deviz item in work tracker."""
+    id: uuid.UUID
+    code: str | None = None
+    description: str
+    unit_of_measure: str
+    estimated_quantity: float
+    actual_quantity: float
+    quantity_variance: float
+    estimated_total: float
+    actual_total: float
+    cost_variance: float
+    over_budget: bool
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WARRANTY / RECEPTION — F086 (completion)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class WarrantyCreate(BaseModel):
+    """F086: Create warranty tracking entry."""
+    description: str = Field(..., min_length=1)
+    start_date: datetime
+    end_date: datetime
+    responsible_id: uuid.UUID | None = None
+    alert_before_days: int = 30
+
+
+class WarrantyUpdate(BaseModel):
+    description: str | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    responsible_id: uuid.UUID | None = None
+    alert_before_days: int | None = None
+    is_active: bool | None = None
+    interventions: list | None = None
+
+
+class WarrantyOut(BaseModel):
+    id: uuid.UUID
+    project_id: uuid.UUID
+    organization_id: uuid.UUID
+    description: str
+    start_date: datetime
+    end_date: datetime
+    responsible_id: uuid.UUID | None = None
+    alert_before_days: int
+    is_active: bool
+    interventions: list | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ReceptionCreate(BaseModel):
+    """F086: Formal reception (PV recepție)."""
+    reception_type: str = "partial"  # partial|final
+    reception_date: datetime
+    committee_members: list | None = None
+    observations: str | None = None
+    is_accepted: bool = True
+    conditions: list | None = None
+    documents: list | None = None
+
+
+class ReceptionOut(BaseModel):
+    """F086: Reception record — stored as WikiPost with post_type='document'."""
+    id: uuid.UUID
+    project_id: uuid.UUID | None = None
+    reception_type: str
+    reception_date: datetime | None = None
+    committee_members: list | None = None
+    observations: str | None = None
+    is_accepted: bool = True
+    conditions: list | None = None
+    documents: list | None = None
+    created_by: uuid.UUID | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WIKI — F145, F146 (department files & official docs)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class DepartmentFileListOut(BaseModel):
+    """F145: Files grouped by department."""
+    department: str | None = None
+    files: list = []
+    total: int = 0
+
+
+class OfficialDocumentListOut(BaseModel):
+    """F146: Official documents with badge and versioning."""
+    documents: list = []
+    total: int = 0

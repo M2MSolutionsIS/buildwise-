@@ -731,3 +731,408 @@ async def test_filter_by_status(auth_client, sample_project):
     resp = await auth_client.get("/api/v1/pm/projects?status=draft")
     assert resp.status_code == 200
     assert resp.json()["meta"]["total"] >= 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F066: CLIENT PORTAL
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_client_portal(auth_client, sample_project):
+    """F066: Client portal — aggregated CRM + project + invoice data."""
+    pid = sample_project["id"]
+
+    resp = await auth_client.get(f"/api/v1/pm/projects/{pid}/client-portal")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["project_id"] == pid
+    assert data["project_name"] == "Reabilitare termică Bloc A1"
+    assert data["total_invoiced"] == 0.0
+    assert data["total_outstanding"] == 0.0
+    assert isinstance(data["invoices"], list)
+
+
+@pytest.mark.asyncio
+async def test_client_portal_not_found(auth_client):
+    """F066: Client portal 404 for unknown project."""
+    fake_id = str(uuid.uuid4())
+    resp = await auth_client.get(f"/api/v1/pm/projects/{fake_id}/client-portal")
+    assert resp.status_code == 404
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F083: RESOURCE ALLOCATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_resource_allocation_crud(auth_client, sample_project):
+    """F083: Create and list resource allocations for a project."""
+    pid = sample_project["id"]
+
+    # Create allocation
+    resp = await auth_client.post(f"/api/v1/pm/projects/{pid}/resource-allocations", json={
+        "resource_type": "employee",
+        "start_date": "2026-04-01T00:00:00Z",
+        "end_date": "2026-06-30T00:00:00Z",
+        "allocated_hours": 480.0,
+        "planned_cost": 25000.0,
+        "allocation_percent": 80.0,
+    })
+    assert resp.status_code == 201
+    alloc = resp.json()["data"]
+    assert alloc["resource_type"] == "employee"
+    assert alloc["allocated_hours"] == 480.0
+    assert alloc["allocation_percent"] == 80.0
+
+    # List allocations
+    resp = await auth_client.get(f"/api/v1/pm/projects/{pid}/resource-allocations")
+    assert resp.status_code == 200
+    assert resp.json()["meta"]["total"] == 1
+
+    # Update allocation
+    resp = await auth_client.put(f"/api/v1/pm/resource-allocations/{alloc['id']}", json={
+        "actual_hours": 200.0,
+        "status": "active",
+    })
+    assert resp.status_code == 200
+    updated = resp.json()["data"]
+    assert updated["actual_hours"] == 200.0
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F100: INVESTOR DASHBOARD
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_investor_dashboard(auth_client, sample_project):
+    """F100: Investor dashboard — aggregated data + notifications."""
+    resp = await auth_client.get("/api/v1/pm/investor-dashboard")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["total_projects"] >= 1
+    assert "active_projects" in data
+    assert "completed_projects" in data
+    assert "total_budget_allocated" in data
+    assert "notifications" in data
+    assert isinstance(data["notifications"], list)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F130: COMPANY CAPACITY DASHBOARD
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_company_capacity(auth_client):
+    """F130: Company capacity dashboard — resources vs allocations."""
+    resp = await auth_client.get("/api/v1/pm/company-capacity")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert "total_employees" in data
+    assert "allocated_employees" in data
+    assert "available_employees" in data
+    assert "total_equipment" in data
+    assert "utilization_rate" in data
+    assert "active_projects_count" in data
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F078: PROGRESS MONITORING
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_progress_monitoring(auth_client, sample_project):
+    """F078: Progress monitoring with task breakdown and delay alerts."""
+    pid = sample_project["id"]
+
+    # Create some tasks
+    await auth_client.post(f"/api/v1/pm/projects/{pid}/tasks", json={
+        "title": "Task A — in progress",
+    })
+    resp = await auth_client.post(f"/api/v1/pm/projects/{pid}/tasks", json={
+        "title": "Task B — milestone",
+        "is_milestone": True,
+    })
+    task_b = resp.json()["data"]
+    await auth_client.put(f"/api/v1/pm/tasks/{task_b['id']}", json={
+        "status": "done",
+        "percent_complete": 100.0,
+    })
+
+    resp = await auth_client.get(f"/api/v1/pm/projects/{pid}/progress")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["total_tasks"] == 2
+    assert data["tasks_done"] == 1
+    assert data["total_milestones"] == 1
+    assert data["completed_milestones"] == 1
+    assert "overdue_tasks" in data
+    assert "is_behind_schedule" in data
+
+
+@pytest.mark.asyncio
+async def test_progress_monitoring_not_found(auth_client):
+    """F078: Progress monitoring 404 for unknown project."""
+    fake_id = str(uuid.uuid4())
+    resp = await auth_client.get(f"/api/v1/pm/projects/{fake_id}/progress")
+    assert resp.status_code == 404
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F080: BUDGET CONTROL (dedicated endpoint)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_budget_control_endpoint(auth_client, sample_project):
+    """F080: Budget control with variance analysis and deviz aggregation."""
+    pid = sample_project["id"]
+
+    # Set budget
+    await auth_client.put(f"/api/v1/pm/projects/{pid}", json={
+        "budget_allocated": 500000.0,
+        "budget_actual": 200000.0,
+    })
+
+    # Create deviz item
+    await auth_client.post(f"/api/v1/pm/projects/{pid}/deviz", json={
+        "description": "Izolație termică",
+        "unit_of_measure": "mp",
+        "estimated_quantity": 100,
+        "estimated_unit_price_material": 50.0,
+        "estimated_unit_price_labor": 30.0,
+    })
+
+    resp = await auth_client.get(f"/api/v1/pm/projects/{pid}/budget-control")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["budget_allocated"] == 500000.0
+    assert data["budget_actual"] == 200000.0
+    assert data["budget_remaining"] == 300000.0
+    assert data["total_estimated"] == 100 * (50.0 + 30.0)  # 8000.0
+    assert data["total_deviz_items"] == 1
+    assert data["is_over_budget"] is False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F105: ML DATA EXPORT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_ml_export_status(auth_client, sample_project):
+    """F105: Get ML export status — no energy impact yet."""
+    pid = sample_project["id"]
+
+    resp = await auth_client.get(f"/api/v1/pm/projects/{pid}/ml-export")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["has_energy_impact"] is False
+    assert len(data["validation_errors"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_ml_export_trigger(auth_client, sample_project):
+    """F105: Trigger ML data export after creating energy impact."""
+    pid = sample_project["id"]
+
+    # Create energy impact first
+    await auth_client.put(f"/api/v1/pm/projects/{pid}/energy-impact", json={
+        "pre_kwh_annual": 150000,
+        "post_kwh_annual": 90000,
+        "total_area_sqm": 2500,
+        "actual_kwh_savings": 60000,
+    })
+
+    # Trigger export
+    resp = await auth_client.post(f"/api/v1/pm/projects/{pid}/ml-export", json={
+        "mapping_config": {"model": "energy_v2", "version": "1.0"},
+    })
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["ml_dataset_exported"] is True
+    assert data["ml_data_mapping"]["model"] == "energy_v2"
+    assert data["ml_export_date"] is not None
+
+
+@pytest.mark.asyncio
+async def test_ml_export_trigger_no_impact(auth_client, sample_project):
+    """F105: Trigger ML export fails without energy impact."""
+    # Create a project without energy impact
+    resp = await auth_client.post("/api/v1/pm/projects", json={
+        "project_number": "PRJ-ML-001",
+        "name": "ML Test Project",
+    })
+    pid = resp.json()["data"]["id"]
+
+    resp = await auth_client.post(f"/api/v1/pm/projects/{pid}/ml-export", json={})
+    assert resp.status_code == 404
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F125: WORK TRACKER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_work_tracker(auth_client, sample_project):
+    """F125: Work tracker — quantities/costs estimated vs actual."""
+    pid = sample_project["id"]
+
+    # Create deviz items
+    await auth_client.post(f"/api/v1/pm/projects/{pid}/deviz", json={
+        "description": "Tencuiala decorativă",
+        "unit_of_measure": "mp",
+        "estimated_quantity": 200,
+        "estimated_unit_price_material": 30.0,
+        "estimated_unit_price_labor": 20.0,
+    })
+    resp2 = await auth_client.post(f"/api/v1/pm/projects/{pid}/deviz", json={
+        "description": "Vopsea lavabilă",
+        "unit_of_measure": "mp",
+        "estimated_quantity": 300,
+        "estimated_unit_price_material": 15.0,
+        "estimated_unit_price_labor": 10.0,
+    })
+    item2 = resp2.json()["data"]
+
+    # Update second with actuals that exceed estimate
+    await auth_client.put(f"/api/v1/pm/deviz/{item2['id']}", json={
+        "actual_quantity": 350.0,
+        "actual_unit_price_material": 18.0,
+        "actual_unit_price_labor": 12.0,
+    })
+
+    resp = await auth_client.get(f"/api/v1/pm/projects/{pid}/work-tracker")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["total_items"] == 2
+    assert data["total_estimated_cost"] > 0
+    assert data["items_over_budget"] >= 1
+    assert len(data["items"]) == 2
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F086: WARRANTY + RECEPTION (completion)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_warranty_crud(auth_client, sample_project):
+    """F086: Warranty tracking CRUD."""
+    pid = sample_project["id"]
+
+    # Create warranty
+    resp = await auth_client.post(f"/api/v1/pm/projects/{pid}/warranties", json={
+        "description": "Garanție izolație termică",
+        "start_date": "2026-06-01T00:00:00Z",
+        "end_date": "2031-06-01T00:00:00Z",
+        "alert_before_days": 60,
+    })
+    assert resp.status_code == 201
+    warranty = resp.json()["data"]
+    assert warranty["description"] == "Garanție izolație termică"
+    assert warranty["alert_before_days"] == 60
+    assert warranty["is_active"] is True
+
+    # Update warranty
+    resp = await auth_client.put(f"/api/v1/pm/warranties/{warranty['id']}", json={
+        "interventions": [{"date": "2027-01-15", "description": "Reparație fisuri"}],
+    })
+    assert resp.status_code == 200
+    updated = resp.json()["data"]
+    assert len(updated["interventions"]) == 1
+
+    # List warranties
+    resp = await auth_client.get(f"/api/v1/pm/projects/{pid}/warranties")
+    assert resp.status_code == 200
+    assert resp.json()["meta"]["total"] == 1
+
+
+@pytest.mark.asyncio
+async def test_reception(auth_client, sample_project):
+    """F086: Create formal reception (PV recepție)."""
+    pid = sample_project["id"]
+
+    resp = await auth_client.post(f"/api/v1/pm/projects/{pid}/receptions", json={
+        "reception_type": "final",
+        "reception_date": "2026-12-15T00:00:00Z",
+        "committee_members": ["Ing. Popescu", "Arh. Ionescu"],
+        "observations": "Lucrare conformă cu proiectul",
+        "is_accepted": True,
+    })
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["is_official"] is True
+    assert data["document_type_badge"] == "PV Recepție"
+    assert "Final" in data["title"]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F145: DEPARTMENT FILES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_department_files(auth_client, sample_project):
+    """F145: List files per department."""
+    pid = sample_project["id"]
+
+    # Create a file-type wiki post
+    await auth_client.post(f"/api/v1/pm/projects/{pid}/wiki", json={
+        "title": "Plan execuție v2",
+        "post_type": "file",
+        "department": "engineering",
+        "file_name": "plan_v2.pdf",
+        "file_path": "/files/plan_v2.pdf",
+        "file_size": 2048000,
+    })
+
+    # List all department files
+    resp = await auth_client.get("/api/v1/pm/department-files")
+    assert resp.status_code == 200
+    assert resp.json()["meta"]["total"] >= 1
+
+    # Filter by department
+    resp = await auth_client.get("/api/v1/pm/department-files?department=engineering")
+    assert resp.status_code == 200
+    assert resp.json()["meta"]["total"] >= 1
+
+    # Non-existing department
+    resp = await auth_client.get("/api/v1/pm/department-files?department=marketing")
+    assert resp.status_code == 200
+    assert resp.json()["meta"]["total"] == 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F146: OFFICIAL DOCUMENTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_official_documents(auth_client, sample_project):
+    """F146: List official documents per department."""
+    pid = sample_project["id"]
+
+    # Create an official document
+    await auth_client.post(f"/api/v1/pm/projects/{pid}/wiki", json={
+        "title": "Autorizație de construcție",
+        "post_type": "document",
+        "is_official": True,
+        "department": "legal",
+        "document_type_badge": "Autorizație",
+    })
+
+    # List official documents
+    resp = await auth_client.get("/api/v1/pm/official-documents")
+    assert resp.status_code == 200
+    assert resp.json()["meta"]["total"] >= 1
+
+    # Filter by department
+    resp = await auth_client.get("/api/v1/pm/official-documents?department=legal")
+    assert resp.status_code == 200
+    assert resp.json()["meta"]["total"] >= 1
