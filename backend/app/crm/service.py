@@ -1067,3 +1067,148 @@ async def delete_work_history(
     await db.delete(entry)
     await db.flush()
     return True
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F004 — Import / Export / Merge
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def import_contacts(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    rows: list[dict],
+    skip_duplicates: bool = True,
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> dict:
+    """F004: Bulk import contacts."""
+    imported = 0
+    skipped = 0
+    errors = []
+
+    for i, row in enumerate(rows):
+        try:
+            if skip_duplicates:
+                dupes = await check_duplicates(
+                    db, org_id,
+                    cui=row.get("cui"),
+                    email=row.get("email"),
+                    phone=row.get("phone"),
+                )
+                if dupes:
+                    skipped += 1
+                    continue
+
+            contact = Contact(
+                id=uuid.uuid4(),
+                organization_id=org_id,
+                created_by=user_id,
+                updated_by=user_id,
+                company_name=row["company_name"],
+                cui=row.get("cui"),
+                email=row.get("email"),
+                phone=row.get("phone"),
+                contact_type=row.get("contact_type", "pj"),
+                stage=row.get("stage", "prospect"),
+                city=row.get("city"),
+                county=row.get("county"),
+                address=row.get("address"),
+                source=row.get("source"),
+            )
+            db.add(contact)
+            imported += 1
+        except Exception as e:
+            errors.append(f"Row {i + 1}: {str(e)}")
+
+    if imported > 0:
+        await db.flush()
+        await log_audit(
+            db, user_id=user_id, organization_id=org_id,
+            action="IMPORT", entity_type="contacts",
+            entity_id=uuid.uuid4(),
+            new_values={"imported": imported, "skipped": skipped},
+            ip_address=ip_address, user_agent=user_agent,
+        )
+
+    return {
+        "total_rows": len(rows),
+        "imported": imported,
+        "skipped_duplicates": skipped,
+        "errors": errors,
+    }
+
+
+async def export_contacts(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    *,
+    stage: str | None = None,
+    contact_type: str | None = None,
+    city: str | None = None,
+    county: str | None = None,
+) -> list[dict]:
+    """F004: Export contacts with filters."""
+    query = select(Contact).where(
+        Contact.organization_id == org_id,
+        Contact.is_deleted.is_(False),
+    )
+    if stage:
+        query = query.where(Contact.stage == stage)
+    if contact_type:
+        query = query.where(Contact.contact_type == contact_type)
+    if city:
+        query = query.where(Contact.city.ilike(f"%{city}%"))
+    if county:
+        query = query.where(Contact.county.ilike(f"%{county}%"))
+
+    result = await db.execute(query.order_by(Contact.company_name))
+    contacts = result.scalars().all()
+    return [model_to_dict(c) for c in contacts]
+
+
+async def merge_contacts(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    source_id: uuid.UUID,
+    target_id: uuid.UUID,
+    fields_from_source: list[str],
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> Contact | None:
+    """F004: Merge source contact into target. Source is soft-deleted."""
+    source = await get_contact(db, org_id, source_id)
+    target = await get_contact(db, org_id, target_id)
+    if not source or not target:
+        return None
+
+    old_target = model_to_dict(target)
+
+    # Copy specified fields from source to target
+    for field in fields_from_source:
+        val = getattr(source, field, None)
+        if val is not None:
+            setattr(target, field, val)
+    target.updated_by = user_id
+
+    # Move source's persons to target
+    for person in source.persons:
+        person.contact_id = target.id
+
+    # Soft-delete source
+    source.is_deleted = True
+    source.deleted_at = datetime.now(timezone.utc)
+    source.deleted_by = user_id
+
+    await log_audit(
+        db, user_id=user_id, organization_id=org_id,
+        action="MERGE", entity_type="contacts", entity_id=target.id,
+        old_values=old_target, new_values=model_to_dict(target),
+        ip_address=ip_address, user_agent=user_agent,
+    )
+    await db.flush()
+    return target

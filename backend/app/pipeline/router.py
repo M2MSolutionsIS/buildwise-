@@ -88,6 +88,8 @@ from app.pipeline.schemas import (
     ContractSignRequest,
     ContractTerminateRequest,
     ContractUpdate,
+    DocumentGenerateOut,
+    DocumentGenerateRequest,
     InvoiceCreate,
     InvoiceOut,
     MilestoneCreate,
@@ -115,6 +117,7 @@ from app.pipeline.schemas import (
     PipelineBoardOut,
     PipelineBoardStage,
     SalesKPIOut,
+    SimplifiedOfferCreate,
 )
 from app.system.schemas import ApiResponse, Meta
 
@@ -1170,3 +1173,74 @@ async def get_contract_analytics(
     """F037: Contracts Analytics."""
     analytics = await service.get_contract_analytics(db, current_user.organization_id)
     return ApiResponse(data=ContractAnalyticsOut(**analytics))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F023/F033 — Document Generation
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pipeline_router.post("/offers/{offer_id}/generate-document", response_model=ApiResponse)
+async def generate_offer_document(
+    offer_id: uuid.UUID,
+    body: DocumentGenerateRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F023: Generate document from offer (template-based)."""
+    result = await service.generate_offer_document(
+        db, current_user.organization_id, offer_id,
+        template_id=body.template_id, format=body.format,
+        include_line_items=body.include_line_items, include_terms=body.include_terms,
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    return ApiResponse(data=DocumentGenerateOut(**result))
+
+
+@pipeline_router.post("/contracts/{contract_id}/generate-document", response_model=ApiResponse)
+async def generate_contract_document(
+    contract_id: uuid.UUID,
+    body: DocumentGenerateRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F033: Generate document from contract (template-based)."""
+    result = await service.generate_contract_document(
+        db, current_user.organization_id, contract_id,
+        template_id=body.template_id, format=body.format,
+        include_terms=body.include_terms,
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    return ApiResponse(data=DocumentGenerateOut(**result))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F049 — Simplified Offer Flow
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pipeline_router.post("/offers/quick", response_model=ApiResponse, status_code=201)
+async def create_simplified_offer(
+    body: SimplifiedOfferCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F049: Quick offer creation with minimal fields."""
+    contact = await crm_service.get_contact(
+        db, current_user.organization_id, body.contact_id
+    )
+    if contact is None:
+        raise HTTPException(status_code=400, detail="Contact not found")
+
+    req_info = await get_request_info(request)
+    offer = await service.create_simplified_offer(
+        db, current_user.organization_id, current_user.id,
+        body.model_dump(),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    offer = await service.get_offer(db, current_user.organization_id, offer.id)
+    return ApiResponse(data=OfferOut.model_validate(offer))

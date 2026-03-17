@@ -659,3 +659,82 @@ async def test_contacts_require_auth(client):
     """All CRM endpoints require authentication."""
     resp = await client.get("/api/v1/crm/contacts")
     assert resp.status_code == 403
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F004 — Import / Export / Merge
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_import_contacts(auth_client):
+    """F004: Bulk import contacts."""
+    resp = await auth_client.post("/api/v1/crm/contacts/import", json={
+        "rows": [
+            {"company_name": "Import Co 1", "cui": "RO11111111", "city": "Cluj"},
+            {"company_name": "Import Co 2", "email": "import2@test.ro"},
+        ],
+        "skip_duplicates": True,
+    })
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["total_rows"] == 2
+    assert data["imported"] == 2
+    assert data["skipped_duplicates"] == 0
+
+
+@pytest.mark.asyncio
+async def test_import_contacts_skip_duplicates(auth_client, sample_contact):
+    """F004: Import skips duplicates by CUI."""
+    resp = await auth_client.post("/api/v1/crm/contacts/import", json={
+        "rows": [
+            {"company_name": "Dup Company", "cui": "RO12345678"},  # same CUI as sample_contact
+        ],
+        "skip_duplicates": True,
+    })
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["skipped_duplicates"] == 1
+    assert data["imported"] == 0
+
+
+@pytest.mark.asyncio
+async def test_export_contacts(auth_client, sample_contact):
+    """F004: Export contacts with filters."""
+    resp = await auth_client.post("/api/v1/crm/contacts/export", json={
+        "format": "json",
+        "stage": "prospect",
+    })
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert len(data) >= 1
+
+
+@pytest.mark.asyncio
+async def test_merge_contacts(auth_client):
+    """F004: Merge two contacts."""
+    # Create two contacts
+    resp1 = await auth_client.post("/api/v1/crm/contacts", json={
+        "company_name": "Source Corp", "cui": "RO99999991", "city": "Sibiu",
+    })
+    source_id = resp1.json()["data"]["id"]
+
+    resp2 = await auth_client.post("/api/v1/crm/contacts", json={
+        "company_name": "Target Corp", "cui": "RO99999992",
+    })
+    target_id = resp2.json()["data"]["id"]
+
+    # Merge source into target, taking city from source
+    resp = await auth_client.post("/api/v1/crm/contacts/merge", json={
+        "source_id": source_id,
+        "target_id": target_id,
+        "fields_from_source": ["city"],
+    })
+    assert resp.status_code == 200
+    merged = resp.json()["data"]
+    assert merged["id"] == target_id
+    assert merged["city"] == "Sibiu"
+
+    # Source should be soft-deleted
+    resp = await auth_client.get(f"/api/v1/crm/contacts/{source_id}")
+    assert resp.status_code == 404
