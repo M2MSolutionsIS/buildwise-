@@ -212,6 +212,16 @@ docker-compose exec backend alembic upgrade head
 docker-compose exec backend alembic revision --autogenerate -m "description"
 ```
 
+## Workflow Git (OBLIGATORIU)
+
+**Această regulă se aplică pentru TOATE task-urile, fără excepție:**
+
+1. **Întotdeauna lucrează direct pe branch-ul `main`**
+2. **Înainte de fiecare task**: `git checkout main && git pull origin main`
+3. **După fiecare task**: `git add . && git commit -m "feat: Task X — descriere" && git push origin main`
+4. **NU crea branch-uri noi** — tot codul merge direct pe `main`
+5. **NU folosi `gh pr create`** — nu se creează Pull Requests
+
 ## Reguli Importante
 
 1. **Audit trail**: FIECARE operațiune CRUD se loghează (cine, ce, când, valorile vechi/noi)
