@@ -129,6 +129,26 @@ class LossReason(str, enum.Enum):
     OTHER = "other"
 
 
+# ─── Predefined Loss Reasons — F053 ──────────────────────────────────────────
+
+class PredefinedLossReason(Base, BasePKMixin, TimestampMixin, OrgMixin):
+    """
+    F053: Predefined loss reasons managed per organization.
+    Admins can CRUD these; agents pick from dropdown on Lost transition.
+    """
+    __tablename__ = "predefined_loss_reasons"
+
+    code: Mapped[str] = mapped_column(String(50), nullable=False)
+    label: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    __table_args__ = (
+        Index("ix_predefined_loss_reasons_org", "organization_id"),
+    )
+
+
 # ─── Opportunity — F042, F050, F051, F052, F053 ──────────────────────────────
 
 class Opportunity(Base, BasePKMixin, TimestampMixin, SoftDeleteMixin, OrgMixin, AuditFieldsMixin, NoteMixin):
@@ -171,8 +191,8 @@ class Opportunity(Base, BasePKMixin, TimestampMixin, SoftDeleteMixin, OrgMixin, 
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
     )
 
-    # Won/Lost — F053
-    loss_reason: Mapped[str | None] = mapped_column(Enum(LossReason), nullable=True)
+    # Won/Lost — F053 (String to support both enum + predefined custom reasons)
+    loss_reason: Mapped[str | None] = mapped_column(String(100), nullable=True)
     loss_reason_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
     won_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 

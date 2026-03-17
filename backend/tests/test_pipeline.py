@@ -1060,3 +1060,197 @@ async def test_pipeline_require_auth(client):
 
     resp = await client.get("/api/v1/pipeline/board")
     assert resp.status_code == 403
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F053 — PREDEFINED LOSS REASONS + WEIGHTED PIPELINE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_loss_reason_crud(auth_client):
+    """F053: CRUD for predefined loss reasons."""
+    # Create
+    resp = await auth_client.post("/api/v1/pipeline/loss-reasons", json={
+        "code": "BUDGET_CUT",
+        "label": "Buget redus",
+        "description": "Clientul nu mai are buget suficient",
+        "sort_order": 1,
+    })
+    assert resp.status_code == 201
+    reason = resp.json()["data"]
+    assert reason["code"] == "BUDGET_CUT"
+    assert reason["label"] == "Buget redus"
+    assert reason["is_active"] is True
+
+    # Create second reason
+    resp = await auth_client.post("/api/v1/pipeline/loss-reasons", json={
+        "code": "COMPETITOR",
+        "label": "Concurență",
+        "sort_order": 2,
+    })
+    assert resp.status_code == 201
+
+    # List
+    resp = await auth_client.get("/api/v1/pipeline/loss-reasons")
+    assert resp.status_code == 200
+    assert resp.json()["meta"]["total"] == 2
+
+    # Get
+    resp = await auth_client.get(f"/api/v1/pipeline/loss-reasons/{reason['id']}")
+    assert resp.status_code == 200
+    assert resp.json()["data"]["code"] == "BUDGET_CUT"
+
+    # Update
+    resp = await auth_client.put(f"/api/v1/pipeline/loss-reasons/{reason['id']}", json={
+        "label": "Buget insuficient",
+        "sort_order": 0,
+    })
+    assert resp.status_code == 200
+    assert resp.json()["data"]["label"] == "Buget insuficient"
+
+    # Delete
+    resp = await auth_client.delete(f"/api/v1/pipeline/loss-reasons/{reason['id']}")
+    assert resp.status_code == 200
+
+    # Verify deleted
+    resp = await auth_client.get(f"/api/v1/pipeline/loss-reasons/{reason['id']}")
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_loss_reasons_active_filter(auth_client):
+    """F053: Filter loss reasons by active status."""
+    # Create active and inactive reasons
+    resp = await auth_client.post("/api/v1/pipeline/loss-reasons", json={
+        "code": "ACTIVE_REASON",
+        "label": "Active",
+    })
+    assert resp.status_code == 201
+    active_id = resp.json()["data"]["id"]
+
+    resp = await auth_client.post("/api/v1/pipeline/loss-reasons", json={
+        "code": "WILL_DEACTIVATE",
+        "label": "Will Deactivate",
+    })
+    assert resp.status_code == 201
+    inactive_id = resp.json()["data"]["id"]
+
+    # Deactivate one
+    resp = await auth_client.put(f"/api/v1/pipeline/loss-reasons/{inactive_id}", json={
+        "is_active": False,
+    })
+    assert resp.status_code == 200
+
+    # List all
+    resp = await auth_client.get("/api/v1/pipeline/loss-reasons")
+    assert resp.json()["meta"]["total"] == 2
+
+    # List active only
+    resp = await auth_client.get("/api/v1/pipeline/loss-reasons?active_only=true")
+    assert resp.json()["meta"]["total"] == 1
+    assert resp.json()["data"][0]["code"] == "ACTIVE_REASON"
+
+
+@pytest.mark.asyncio
+async def test_stage_transition_lost_with_predefined_reason(auth_client, sample_contact):
+    """F053: Transition to Lost uses predefined loss reason from dropdown."""
+    # Create a predefined loss reason
+    resp = await auth_client.post("/api/v1/pipeline/loss-reasons", json={
+        "code": "TOO_EXPENSIVE",
+        "label": "Prea scump",
+    })
+    assert resp.status_code == 201
+
+    # Create opportunity
+    resp = await auth_client.post("/api/v1/pipeline/opportunities", json={
+        "contact_id": sample_contact["id"],
+        "title": "Test Lost Reason",
+        "estimated_value": 50000.0,
+    })
+    assert resp.status_code == 201
+    opp = resp.json()["data"]
+
+    # Transition to qualified first
+    resp = await auth_client.post(f"/api/v1/pipeline/opportunities/{opp['id']}/transition", json={
+        "new_stage": "qualified",
+    })
+    assert resp.status_code == 200
+
+    # Transition to Lost with predefined reason code
+    resp = await auth_client.post(f"/api/v1/pipeline/opportunities/{opp['id']}/transition", json={
+        "new_stage": "lost",
+        "loss_reason": "TOO_EXPENSIVE",
+        "loss_reason_detail": "Clientul a ales un concurent mai ieftin",
+    })
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["stage"] == "lost"
+    assert data["loss_reason"] == "TOO_EXPENSIVE"
+    assert data["loss_reason_detail"] == "Clientul a ales un concurent mai ieftin"
+
+
+@pytest.mark.asyncio
+async def test_stage_transition_lost_with_enum_reason(auth_client, sample_contact):
+    """F053: Backward compatibility — old enum loss reasons still work."""
+    resp = await auth_client.post("/api/v1/pipeline/opportunities", json={
+        "contact_id": sample_contact["id"],
+        "title": "Test Enum Reason",
+        "estimated_value": 30000.0,
+    })
+    assert resp.status_code == 201
+    opp = resp.json()["data"]
+
+    # Transition to qualified then lost with old enum value
+    await auth_client.post(f"/api/v1/pipeline/opportunities/{opp['id']}/transition", json={
+        "new_stage": "qualified",
+    })
+    resp = await auth_client.post(f"/api/v1/pipeline/opportunities/{opp['id']}/transition", json={
+        "new_stage": "lost",
+        "loss_reason": "price",
+    })
+    assert resp.status_code == 200
+    assert resp.json()["data"]["stage"] == "lost"
+
+
+@pytest.mark.asyncio
+async def test_weighted_pipeline_value(auth_client, sample_contact):
+    """F053: Aggregated weighted pipeline value view."""
+    # Create opportunities at different stages
+    for title, value in [("Opp A", 100000.0), ("Opp B", 200000.0)]:
+        resp = await auth_client.post("/api/v1/pipeline/opportunities", json={
+            "contact_id": sample_contact["id"],
+            "title": title,
+            "estimated_value": value,
+        })
+        assert resp.status_code == 201
+
+    # Move Opp B to qualified
+    opps_resp = await auth_client.get("/api/v1/pipeline/opportunities")
+    opps = opps_resp.json()["data"]
+    opp_b = next(o for o in opps if o["title"] == "Opp B")
+    await auth_client.post(f"/api/v1/pipeline/opportunities/{opp_b['id']}/transition", json={
+        "new_stage": "qualified",
+    })
+
+    # Get weighted pipeline
+    resp = await auth_client.get("/api/v1/pipeline/weighted-value")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+
+    # Should have stages with counts and weighted values
+    assert len(data["stages"]) == 6  # 6 active stages (no won/lost)
+    assert data["total_pipeline_value"] == 300000.0
+    # new stage: 100000 * 0.10 = 10000, qualified: 200000 * 0.20 = 40000
+    assert data["total_weighted_value"] == 50000.0
+    assert data["currency"] == "RON"
+
+    # Verify individual stages
+    new_stage = next(s for s in data["stages"] if s["stage"] == "new")
+    assert new_stage["count"] == 1
+    assert new_stage["weighted_value"] == 10000.0
+    assert new_stage["win_probability"] == 0.10
+
+    qualified_stage = next(s for s in data["stages"] if s["stage"] == "qualified")
+    assert qualified_stage["count"] == 1
+    assert qualified_stage["weighted_value"] == 40000.0

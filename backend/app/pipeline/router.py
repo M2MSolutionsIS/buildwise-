@@ -116,8 +116,12 @@ from app.pipeline.schemas import (
     OpportunityUpdate,
     PipelineBoardOut,
     PipelineBoardStage,
+    PredefinedLossReasonCreate,
+    PredefinedLossReasonOut,
+    PredefinedLossReasonUpdate,
     SalesKPIOut,
     SimplifiedOfferCreate,
+    WeightedPipelineOut,
 )
 from app.system.schemas import ApiResponse, Meta
 
@@ -1244,3 +1248,110 @@ async def create_simplified_offer(
     )
     offer = await service.get_offer(db, current_user.organization_id, offer.id)
     return ApiResponse(data=OfferOut.model_validate(offer))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F053 — PREDEFINED LOSS REASONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pipeline_router.get("/loss-reasons", response_model=ApiResponse)
+async def list_loss_reasons(
+    active_only: bool = False,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F053: List predefined loss reasons (dropdown source)."""
+    reasons = await service.list_loss_reasons(
+        db, current_user.organization_id, active_only=active_only,
+    )
+    return ApiResponse(
+        data=[PredefinedLossReasonOut.model_validate(r) for r in reasons],
+        meta=Meta(total=len(reasons), page=1, per_page=len(reasons)),
+    )
+
+
+@pipeline_router.post("/loss-reasons", response_model=ApiResponse, status_code=201)
+async def create_loss_reason(
+    body: PredefinedLossReasonCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F053: Create a predefined loss reason."""
+    req_info = await get_request_info(request)
+    reason = await service.create_loss_reason(
+        db, current_user.organization_id, current_user.id,
+        body.model_dump(),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=PredefinedLossReasonOut.model_validate(reason))
+
+
+@pipeline_router.get("/loss-reasons/{reason_id}", response_model=ApiResponse)
+async def get_loss_reason(
+    reason_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F053: Get a predefined loss reason."""
+    reason = await service.get_loss_reason(db, current_user.organization_id, reason_id)
+    if reason is None:
+        raise HTTPException(status_code=404, detail="Loss reason not found")
+    return ApiResponse(data=PredefinedLossReasonOut.model_validate(reason))
+
+
+@pipeline_router.put("/loss-reasons/{reason_id}", response_model=ApiResponse)
+async def update_loss_reason(
+    reason_id: uuid.UUID,
+    body: PredefinedLossReasonUpdate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F053: Update a predefined loss reason."""
+    req_info = await get_request_info(request)
+    reason = await service.update_loss_reason(
+        db, current_user.organization_id, current_user.id,
+        reason_id, body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if reason is None:
+        raise HTTPException(status_code=404, detail="Loss reason not found")
+    return ApiResponse(data=PredefinedLossReasonOut.model_validate(reason))
+
+
+@pipeline_router.delete("/loss-reasons/{reason_id}", response_model=ApiResponse)
+async def delete_loss_reason(
+    reason_id: uuid.UUID,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F053: Delete a predefined loss reason."""
+    req_info = await get_request_info(request)
+    deleted = await service.delete_loss_reason(
+        db, current_user.organization_id, current_user.id, reason_id,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Loss reason not found")
+    return ApiResponse(data={"deleted": True})
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F053 — WEIGHTED PIPELINE VALUE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pipeline_router.get("/weighted-value", response_model=ApiResponse)
+async def get_weighted_pipeline(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F053: Aggregated weighted pipeline value by stage."""
+    data = await service.get_weighted_pipeline(db, current_user.organization_id)
+    return ApiResponse(data=WeightedPipelineOut(**data))

@@ -38,6 +38,7 @@ from app.pipeline.models import (
     OfferStatus,
     Opportunity,
     OpportunityStage,
+    PredefinedLossReason,
 )
 
 
@@ -261,6 +262,11 @@ async def transition_opportunity_stage(
         opp.won_reason = won_reason
     elif new_stage == OpportunityStage.LOST.value:
         opp.actual_close_date = datetime.now(timezone.utc)
+        # F053: Validate loss_reason against predefined reasons
+        if loss_reason:
+            valid = await validate_loss_reason_code(db, org_id, loss_reason)
+            if not valid:
+                return None  # Invalid loss reason
         opp.loss_reason = loss_reason
         opp.loss_reason_detail = loss_reason_detail
 
@@ -2245,3 +2251,200 @@ async def create_simplified_offer(
     )
     await db.flush()
     return offer
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F053 — PREDEFINED LOSS REASONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def list_loss_reasons(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    *,
+    active_only: bool = False,
+) -> list[PredefinedLossReason]:
+    """F053: List predefined loss reasons for the org."""
+    q = select(PredefinedLossReason).where(
+        PredefinedLossReason.organization_id == org_id,
+    )
+    if active_only:
+        q = q.where(PredefinedLossReason.is_active.is_(True))
+    q = q.order_by(PredefinedLossReason.sort_order, PredefinedLossReason.label)
+    result = await db.execute(q)
+    return list(result.scalars().all())
+
+
+async def create_loss_reason(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    data: dict,
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> PredefinedLossReason:
+    """F053: Create a predefined loss reason."""
+    reason = PredefinedLossReason(
+        id=uuid.uuid4(),
+        organization_id=org_id,
+        **data,
+    )
+    db.add(reason)
+    await log_audit(
+        db, user_id=user_id, organization_id=org_id,
+        action="CREATE", entity_type="predefined_loss_reasons", entity_id=reason.id,
+        new_values=model_to_dict(reason),
+        ip_address=ip_address, user_agent=user_agent,
+    )
+    await db.flush()
+    return reason
+
+
+async def get_loss_reason(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    reason_id: uuid.UUID,
+) -> PredefinedLossReason | None:
+    """F053: Get a single predefined loss reason."""
+    result = await db.execute(
+        select(PredefinedLossReason).where(
+            PredefinedLossReason.id == reason_id,
+            PredefinedLossReason.organization_id == org_id,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_loss_reason(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    reason_id: uuid.UUID,
+    data: dict,
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> PredefinedLossReason | None:
+    """F053: Update a predefined loss reason."""
+    reason = await get_loss_reason(db, org_id, reason_id)
+    if reason is None:
+        return None
+    old_values = model_to_dict(reason)
+    for k, v in data.items():
+        if v is not None:
+            setattr(reason, k, v)
+    await log_audit(
+        db, user_id=user_id, organization_id=org_id,
+        action="UPDATE", entity_type="predefined_loss_reasons", entity_id=reason.id,
+        old_values=old_values, new_values=model_to_dict(reason),
+        ip_address=ip_address, user_agent=user_agent,
+    )
+    await db.flush()
+    return reason
+
+
+async def delete_loss_reason(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    reason_id: uuid.UUID,
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> bool:
+    """F053: Delete a predefined loss reason."""
+    reason = await get_loss_reason(db, org_id, reason_id)
+    if reason is None:
+        return False
+    old_values = model_to_dict(reason)
+    await db.delete(reason)
+    await log_audit(
+        db, user_id=user_id, organization_id=org_id,
+        action="DELETE", entity_type="predefined_loss_reasons", entity_id=reason_id,
+        old_values=old_values,
+        ip_address=ip_address, user_agent=user_agent,
+    )
+    await db.flush()
+    return True
+
+
+async def validate_loss_reason_code(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    loss_reason: str,
+) -> bool:
+    """F053: Check if loss_reason is a valid predefined code for this org."""
+    # Accept both old enum values and predefined codes
+    try:
+        LossReason(loss_reason)
+        return True
+    except ValueError:
+        pass
+    result = await db.execute(
+        select(PredefinedLossReason.id).where(
+            PredefinedLossReason.organization_id == org_id,
+            PredefinedLossReason.code == loss_reason,
+            PredefinedLossReason.is_active.is_(True),
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F053 — WEIGHTED PIPELINE VALUE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def get_weighted_pipeline(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+) -> dict:
+    """F053: Aggregated weighted pipeline value by stage (excludes won/lost)."""
+    active_stages = [
+        OpportunityStage.NEW.value,
+        OpportunityStage.QUALIFIED.value,
+        OpportunityStage.SCOPING.value,
+        OpportunityStage.OFFERING.value,
+        OpportunityStage.SENT.value,
+        OpportunityStage.NEGOTIATION.value,
+    ]
+
+    result = await db.execute(
+        select(Opportunity).where(
+            Opportunity.organization_id == org_id,
+            Opportunity.is_deleted.is_(False),
+            Opportunity.stage.in_(active_stages),
+        ).order_by(Opportunity.stage_entered_at.desc())
+    )
+    all_opps = result.scalars().all()
+
+    by_stage = {s: [] for s in active_stages}
+    for opp in all_opps:
+        if opp.stage in by_stage:
+            by_stage[opp.stage].append(opp)
+
+    stages = []
+    total_pipeline = 0.0
+    total_weighted = 0.0
+    for s in active_stages:
+        opps = by_stage[s]
+        stage_value = sum((o.estimated_value or 0.0) for o in opps)
+        stage_weighted = sum((o.weighted_value or 0.0) for o in opps)
+        win_prob = STAGE_WIN_PROBABILITY.get(s, 0.0)
+        total_pipeline += stage_value
+        total_weighted += stage_weighted
+        stages.append({
+            "stage": s,
+            "count": len(opps),
+            "total_value": round(stage_value, 2),
+            "weighted_value": round(stage_weighted, 2),
+            "win_probability": win_prob,
+        })
+
+    return {
+        "stages": stages,
+        "total_pipeline_value": round(total_pipeline, 2),
+        "total_weighted_value": round(total_weighted, 2),
+        "currency": "RON",
+    }

@@ -675,3 +675,54 @@ class SimplifiedOfferCreate(BaseModel):
     currency: str = "RON"
     valid_until: datetime | None = None
     notes: str | None = None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F053 — Predefined Loss Reasons + Weighted Pipeline
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class PredefinedLossReasonCreate(BaseModel):
+    """F053: Create a predefined loss reason."""
+    code: str = Field(..., min_length=1, max_length=50)
+    label: str = Field(..., min_length=1, max_length=255)
+    description: str | None = None
+    sort_order: int = 0
+
+
+class PredefinedLossReasonUpdate(BaseModel):
+    """F053: Update a predefined loss reason."""
+    label: str | None = None
+    description: str | None = None
+    sort_order: int | None = None
+    is_active: bool | None = None
+
+
+class PredefinedLossReasonOut(BaseModel):
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    code: str
+    label: str
+    description: str | None = None
+    sort_order: int
+    is_active: bool
+    created_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class WeightedPipelineStage(BaseModel):
+    """F053: One stage in weighted pipeline summary."""
+    stage: str
+    count: int
+    total_value: float
+    weighted_value: float
+    win_probability: float
+
+
+class WeightedPipelineOut(BaseModel):
+    """F053: Aggregated weighted pipeline value view."""
+    stages: list[WeightedPipelineStage]
+    total_pipeline_value: float
+    total_weighted_value: float
+    currency: str = "RON"
