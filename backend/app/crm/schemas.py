@@ -1,8 +1,8 @@
 """
-Pydantic schemas for CRM module — F001–F024.
+CRM module schemas — F001–F005, F007, F010, F012, F016, F018.
 
 Covers: Contacts, ContactPersons, Interactions, Products, ProductCategories,
-Offers, OfferLineItems, Contracts, Invoices, Sales KPI.
+Properties, EnergyProfiles, PropertyWorkHistory, Segmentation.
 """
 
 import uuid
@@ -141,6 +141,26 @@ class ContactListOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# ─── F005: Duplicate Check Response ─────────────────────────────────────────
+
+
+class DuplicateMatch(BaseModel):
+    """A potential duplicate contact."""
+    id: uuid.UUID
+    company_name: str
+    cui: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    match_field: str  # "cui" | "email" | "phone"
+    match_value: str
+
+
+class DuplicateCheckResponse(BaseModel):
+    """F005: Duplicate validation result."""
+    has_duplicates: bool = False
+    matches: list[DuplicateMatch] = []
+
+
 # ─── Interaction Schemas — F002 ──────────────────────────────────────────────
 
 
@@ -202,7 +222,7 @@ class ProductCategoryOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ─── Product Schemas — F005, F006 ───────────────────────────────────────────
+# ─── Product Schemas — F007 ─────────────────────────────────────────────────
 
 
 class ProductCreate(BaseModel):
@@ -251,259 +271,221 @@ class ProductOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ─── Offer Schemas — F008, F009, F010, F012, F014, F015, F016 ───────────────
+# ─── Property Schemas — F010 ────────────────────────────────────────────────
 
 
-class OfferLineItemCreate(BaseModel):
-    product_id: uuid.UUID | None = None
-    description: str
-    quantity: float = 1.0
-    unit_of_measure: str = "buc"
-    unit_price: float
-    discount_percent: float = 0.0
-    vat_rate: float = 0.19
-    sort_order: int = 0
-
-
-class OfferLineItemOut(BaseModel):
-    id: uuid.UUID
-    offer_id: uuid.UUID
-    product_id: uuid.UUID | None = None
-    description: str
-    quantity: float
-    unit_of_measure: str
-    unit_price: float
-    discount_percent: float
-    vat_rate: float
-    total_price: float
-    sort_order: int
-
-    model_config = {"from_attributes": True}
-
-
-class OfferCreate(BaseModel):
+class PropertyCreate(BaseModel):
     contact_id: uuid.UUID
-    opportunity_id: uuid.UUID | None = None
-    property_id: uuid.UUID | None = None
-    title: str = Field(..., min_length=1, max_length=500)
-    description: str | None = None
-    currency: str = "RON"
-    terms_and_conditions: str | None = None
-    validity_days: int = 30
-    template_id: uuid.UUID | None = None
-    is_quick_quote: bool = False
-    line_items: list[OfferLineItemCreate] = []
-
-
-class OfferUpdate(BaseModel):
-    title: str | None = Field(None, min_length=1, max_length=500)
-    description: str | None = None
-    currency: str | None = None
-    terms_and_conditions: str | None = None
-    validity_days: int | None = None
-    template_id: uuid.UUID | None = None
+    name: str = Field(..., min_length=1, max_length=255)
+    property_type: str = "other"
+    address: str | None = None
+    city: str | None = Field(None, max_length=100)
+    county: str | None = Field(None, max_length=100)
+    country: str = "Romania"
+    total_area_sqm: float | None = None
+    heated_area_sqm: float | None = None
+    floors_count: int | None = None
+    year_built: int | None = None
+    year_renovated: int | None = None
+    structure_material: str | None = Field(None, max_length=100)
+    facade_material: str | None = Field(None, max_length=100)
+    roof_type: str | None = Field(None, max_length=100)
+    energy_certificate: str | None = Field(None, max_length=50)
+    energy_class: str | None = Field(None, max_length=10)
+    custom_data: dict | None = None
     notes: str | None = None
 
 
-class OfferOut(BaseModel):
+class PropertyUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=255)
+    property_type: str | None = None
+    address: str | None = None
+    city: str | None = Field(None, max_length=100)
+    county: str | None = Field(None, max_length=100)
+    country: str | None = None
+    total_area_sqm: float | None = None
+    heated_area_sqm: float | None = None
+    floors_count: int | None = None
+    year_built: int | None = None
+    year_renovated: int | None = None
+    structure_material: str | None = Field(None, max_length=100)
+    facade_material: str | None = Field(None, max_length=100)
+    roof_type: str | None = Field(None, max_length=100)
+    energy_certificate: str | None = Field(None, max_length=50)
+    energy_class: str | None = Field(None, max_length=10)
+    custom_data: dict | None = None
+    notes: str | None = None
+
+
+class PropertyOut(BaseModel):
     id: uuid.UUID
     contact_id: uuid.UUID
-    opportunity_id: uuid.UUID | None = None
-    property_id: uuid.UUID | None = None
-    offer_number: str
-    title: str
-    description: str | None = None
-    status: str
-    version: int
-    parent_offer_id: uuid.UUID | None = None
-    subtotal: float
-    discount_percent: float
-    discount_amount: float
-    vat_amount: float
-    total_amount: float
-    currency: str
-    terms_and_conditions: str | None = None
-    validity_days: int
-    valid_until: datetime | None = None
-    sent_at: datetime | None = None
-    accepted_at: datetime | None = None
-    rejected_at: datetime | None = None
-    owner_id: uuid.UUID | None = None
-    is_quick_quote: bool
-    pdf_path: str | None = None
+    name: str
+    property_type: str
+    address: str | None = None
+    city: str | None = None
+    county: str | None = None
+    country: str
+    total_area_sqm: float | None = None
+    heated_area_sqm: float | None = None
+    floors_count: int | None = None
+    year_built: int | None = None
+    year_renovated: int | None = None
+    structure_material: str | None = None
+    facade_material: str | None = None
+    roof_type: str | None = None
+    energy_certificate: str | None = None
+    energy_class: str | None = None
+    custom_data: dict | None = None
     notes: str | None = None
     created_at: datetime
     updated_at: datetime | None = None
-    line_items: list[OfferLineItemOut] = []
 
     model_config = {"from_attributes": True}
 
 
-class OfferListOut(BaseModel):
+class PropertyListOut(BaseModel):
     id: uuid.UUID
-    offer_number: str
-    title: str
-    status: str
-    total_amount: float
-    currency: str
     contact_id: uuid.UUID
+    name: str
+    property_type: str
+    city: str | None = None
+    county: str | None = None
+    total_area_sqm: float | None = None
+    energy_class: str | None = None
     created_at: datetime
-    valid_until: datetime | None = None
 
     model_config = {"from_attributes": True}
 
 
-class OfferApprovalRequest(BaseModel):
-    """F014: Submit offer for approval."""
-    comment: str | None = None
+# ─── Energy Profile Schemas — F012 ──────────────────────────────────────────
 
 
-class OfferApprovalDecision(BaseModel):
-    """F014: Approve or reject offer."""
-    approved: bool
-    comment: str | None = None
+class EnergyProfileCreate(BaseModel):
+    u_value_walls: float | None = None
+    u_value_roof: float | None = None
+    u_value_floor: float | None = None
+    u_value_windows: float | None = None
+    u_value_doors: float | None = None
+    u_value_treated_glass: float | None = None
+    hvac_type: str | None = Field(None, max_length=100)
+    hvac_capacity_kw: float | None = None
+    hvac_efficiency: float | None = None
+    hvac_year_installed: int | None = None
+    heating_source: str | None = Field(None, max_length=100)
+    cooling_source: str | None = Field(None, max_length=100)
+    annual_consumption_kwh: float | None = None
+    annual_consumption_gas_mc: float | None = None
+    estimated_savings_kwh: float | None = None
+    estimated_co2_reduction_kg: float | None = None
+    climate_zone: str | None = Field(None, max_length=50)
+    extended_data: dict | None = None
 
 
-# ─── Contract Schemas — F017, F018, F019, F021, F022 ────────────────────────
+class EnergyProfileUpdate(BaseModel):
+    u_value_walls: float | None = None
+    u_value_roof: float | None = None
+    u_value_floor: float | None = None
+    u_value_windows: float | None = None
+    u_value_doors: float | None = None
+    u_value_treated_glass: float | None = None
+    hvac_type: str | None = Field(None, max_length=100)
+    hvac_capacity_kw: float | None = None
+    hvac_efficiency: float | None = None
+    hvac_year_installed: int | None = None
+    heating_source: str | None = Field(None, max_length=100)
+    cooling_source: str | None = Field(None, max_length=100)
+    annual_consumption_kwh: float | None = None
+    annual_consumption_gas_mc: float | None = None
+    estimated_savings_kwh: float | None = None
+    estimated_co2_reduction_kg: float | None = None
+    climate_zone: str | None = Field(None, max_length=50)
+    extended_data: dict | None = None
 
 
-class ContractCreate(BaseModel):
-    contact_id: uuid.UUID
-    offer_id: uuid.UUID | None = None
-    opportunity_id: uuid.UUID | None = None
-    title: str = Field(..., min_length=1, max_length=500)
-    description: str | None = None
-    total_value: float = 0.0
-    currency: str = "RON"
-    start_date: datetime | None = None
-    end_date: datetime | None = None
-    terms_and_conditions: str | None = None
-    standard_clauses: list[str] | None = None
-    template_id: uuid.UUID | None = None
-
-
-class ContractFromOffer(BaseModel):
-    """F018: Auto-populate contract from accepted offer."""
-    offer_id: uuid.UUID
-    title: str | None = None
-    start_date: datetime | None = None
-    end_date: datetime | None = None
-    additional_terms: str | None = None
-
-
-class ContractUpdate(BaseModel):
-    title: str | None = Field(None, min_length=1, max_length=500)
-    description: str | None = None
-    total_value: float | None = None
-    currency: str | None = None
-    start_date: datetime | None = None
-    end_date: datetime | None = None
-    terms_and_conditions: str | None = None
-    standard_clauses: list[str] | None = None
-    notes: str | None = None
-
-
-class ContractOut(BaseModel):
+class EnergyProfileOut(BaseModel):
     id: uuid.UUID
-    contact_id: uuid.UUID
-    offer_id: uuid.UUID | None = None
-    opportunity_id: uuid.UUID | None = None
-    contract_number: str
-    title: str
+    property_id: uuid.UUID
+    u_value_walls: float | None = None
+    u_value_roof: float | None = None
+    u_value_floor: float | None = None
+    u_value_windows: float | None = None
+    u_value_doors: float | None = None
+    u_value_treated_glass: float | None = None
+    hvac_type: str | None = None
+    hvac_capacity_kw: float | None = None
+    hvac_efficiency: float | None = None
+    hvac_year_installed: int | None = None
+    heating_source: str | None = None
+    cooling_source: str | None = None
+    annual_consumption_kwh: float | None = None
+    annual_consumption_gas_mc: float | None = None
+    estimated_savings_kwh: float | None = None
+    estimated_co2_reduction_kg: float | None = None
+    climate_zone: str | None = None
+    extended_data: dict | None = None
+    created_at: datetime
+    updated_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class EnergyCalculatorRequest(BaseModel):
+    """F012: Simple energy savings calculator input."""
+    total_area_sqm: float
+    u_value_current: float
+    u_value_proposed: float
+    heating_degree_days: float = 3000.0  # Default for Romania average
+
+
+class EnergyCalculatorResponse(BaseModel):
+    """F012: Energy savings calculator output."""
+    current_loss_kwh: float
+    proposed_loss_kwh: float
+    savings_kwh: float
+    savings_percent: float
+    estimated_co2_reduction_kg: float
+
+
+# ─── Property Work History Schemas — F016 ────────────────────────────────────
+
+
+class WorkHistoryCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
     description: str | None = None
-    status: str
-    total_value: float
-    currency: str
+    work_type: str | None = Field(None, max_length=100)
+    performed_by: str | None = Field(None, max_length=255)
     start_date: datetime | None = None
     end_date: datetime | None = None
-    signed_date: datetime | None = None
-    terms_and_conditions: str | None = None
-    owner_id: uuid.UUID | None = None
+    cost: float | None = None
+    currency: str = "RON"
     project_id: uuid.UUID | None = None
-    pdf_path: str | None = None
-    notes: str | None = None
-    created_at: datetime
-    updated_at: datetime | None = None
-
-    model_config = {"from_attributes": True}
 
 
-class ContractListOut(BaseModel):
-    id: uuid.UUID
-    contract_number: str
-    title: str
-    status: str
-    total_value: float
-    currency: str
-    contact_id: uuid.UUID
+class WorkHistoryUpdate(BaseModel):
+    title: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = None
+    work_type: str | None = Field(None, max_length=100)
+    performed_by: str | None = Field(None, max_length=255)
     start_date: datetime | None = None
     end_date: datetime | None = None
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
-
-
-# ─── Invoice Schemas — F021 ─────────────────────────────────────────────────
+    cost: float | None = None
+    currency: str | None = None
+    project_id: uuid.UUID | None = None
 
 
-class InvoiceCreate(BaseModel):
-    """F021: Create invoice from contract billing schedule."""
-    contract_id: uuid.UUID
-    amount: float
-    vat_amount: float = 0.0
-    currency: str = "RON"
-    issue_date: datetime
-    due_date: datetime
-    billing_schedule_id: uuid.UUID | None = None
-
-
-class InvoiceOut(BaseModel):
+class WorkHistoryOut(BaseModel):
     id: uuid.UUID
-    contract_id: uuid.UUID
-    invoice_number: str
-    status: str
-    amount: float
-    vat_amount: float
-    total_amount: float
+    property_id: uuid.UUID
+    title: str
+    description: str | None = None
+    work_type: str | None = None
+    performed_by: str | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    cost: float | None = None
     currency: str
-    issue_date: datetime
-    due_date: datetime
-    paid_date: datetime | None = None
-    paid_amount: float | None = None
-    pdf_path: str | None = None
+    project_id: uuid.UUID | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
-
-
-# ─── Sales KPI — F023 ───────────────────────────────────────────────────────
-
-
-class SalesKPIOut(BaseModel):
-    """F023: Sales KPI monitoring."""
-    total_contacts: int = 0
-    active_contacts: int = 0
-    total_offers: int = 0
-    offers_sent: int = 0
-    offers_accepted: int = 0
-    offers_rejected: int = 0
-    conversion_rate: float = 0.0
-    total_contracts: int = 0
-    active_contracts: int = 0
-    total_revenue: float = 0.0
-    total_invoiced: float = 0.0
-    total_paid: float = 0.0
-    currency: str = "RON"
-
-
-# ─── Sales Report — F024 ────────────────────────────────────────────────────
-
-
-class SalesReportRequest(BaseModel):
-    """F024: Sales report filters."""
-    date_from: datetime | None = None
-    date_to: datetime | None = None
-    stage: str | None = None
-    contact_type: str | None = None
-    owner_id: uuid.UUID | None = None
-    currency: str = "RON"
