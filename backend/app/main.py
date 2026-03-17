@@ -50,6 +50,8 @@ from app.system.router import auth_router, health_router, system_router, user_ro
 from app.crm.router import crm_router  # noqa: E402
 from app.pipeline.router import pipeline_router  # noqa: E402
 from app.pm.router import pm_router  # noqa: E402
+from app.rm.router import rm_router  # noqa: E402
+from app.bi.router import bi_router  # noqa: E402
 
 app.include_router(health_router)
 app.include_router(auth_router)
@@ -58,3 +60,5 @@ app.include_router(system_router)
 app.include_router(crm_router)
 app.include_router(pipeline_router)
 app.include_router(pm_router)
+app.include_router(rm_router)
+app.include_router(bi_router)
