@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "start": "node server.js",
+    "start": "vite preview",
     "preview": "vite preview",
     "lint": "eslint ."
   },
@@ -20,9 +20,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.1",
-    "serve": "^14.2.6",
-    "serve-handler": "^6.1.5",
-    "zustand": "^5.0.3"
+"zustand": "^5.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
