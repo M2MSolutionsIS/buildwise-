@@ -31,3 +31,4 @@ docker-compose.override.yml
 # Logs
 *.log
 logs/
+frontend/tsconfig.tsbuildinfo
