@@ -1,6 +1,6 @@
 """
 PM module router — F063, F066, F069–F080, F083, F084, F086, F088,
-F090, F091–F095, F100, F101, F103, F105, F123, F125, F130, F144, F161.
+F090, F091–F095, F100, F101, F103, F105, F123, F125, F130, F144–F146, F161.
 
 All endpoints require JWT authentication and enforce multi-tenant isolation
 via organization_id from the authenticated user.
@@ -14,8 +14,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import get_current_user, get_db, get_request_info
 from app.pm import service
 from app.pm.schemas import (
+    BudgetControlOut,
     CashFlowCreate,
     CashFlowOut,
+    ClientPortalOut,
+    CompanyCapacityOut,
     DailyReportCreate,
     DailyReportOut,
     DevizItemCreate,
@@ -26,8 +29,12 @@ from app.pm.schemas import (
     EnergyPortfolioOut,
     ImportJobCreate,
     ImportJobOut,
+    InvestorDashboardOut,
     MaterialConsumptionCreate,
     MaterialConsumptionOut,
+    MLExportStatusOut,
+    MLExportTriggerRequest,
+    ProgressMonitoringOut,
     ProjectCancelRequest,
     ProjectCloseRequest,
     ProjectCreate,
@@ -40,6 +47,11 @@ from app.pm.schemas import (
     PunchItemCreate,
     PunchItemOut,
     PunchItemUpdate,
+    ReceptionCreate,
+    ReceptionOut,
+    ResourceAllocationCreate,
+    ResourceAllocationOut,
+    ResourceAllocationUpdate,
     RiskCreate,
     RiskOut,
     RiskUpdate,
@@ -54,6 +66,9 @@ from app.pm.schemas import (
     TimesheetCreate,
     TimesheetOut,
     TimesheetUpdate,
+    WarrantyCreate,
+    WarrantyOut,
+    WarrantyUpdate,
     WBSNodeCreate,
     WBSNodeOut,
     WBSNodeUpdate,
@@ -65,6 +80,7 @@ from app.pm.schemas import (
     WorkSituationCreate,
     WorkSituationOut,
     WorkSituationUpdate,
+    WorkTrackerOut,
 )
 from app.system.schemas import ApiResponse, Meta
 
@@ -1249,3 +1265,334 @@ async def get_project_reports(
     if report is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return ApiResponse(data=ProjectReportOut(**report))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CLIENT PORTAL — F066
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pm_router.get("/projects/{project_id}/client-portal", response_model=ApiResponse)
+async def get_client_portal(
+    project_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F066: Client Portal — aggregated CRM contact, invoices, progress."""
+    data = await service.get_client_portal(
+        db, current_user.organization_id, project_id
+    )
+    if data is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return ApiResponse(data=ClientPortalOut(**data))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RESOURCE ALLOCATION — F083
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pm_router.get("/projects/{project_id}/resource-allocations", response_model=ApiResponse)
+async def list_resource_allocations(
+    project_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F083: List resource allocations for a project."""
+    items = await service.list_resource_allocations(
+        db, current_user.organization_id, project_id
+    )
+    return ApiResponse(
+        data=[ResourceAllocationOut.model_validate(i) for i in items],
+        meta=Meta(total=len(items)),
+    )
+
+
+@pm_router.post("/projects/{project_id}/resource-allocations", response_model=ApiResponse, status_code=201)
+async def create_resource_allocation(
+    project_id: uuid.UUID,
+    body: ResourceAllocationCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F083: Allocate resource to project (sync with RM module)."""
+    req_info = await get_request_info(request)
+    alloc = await service.create_resource_allocation(
+        db, current_user.organization_id, current_user.id, project_id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"], user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=ResourceAllocationOut.model_validate(alloc))
+
+
+@pm_router.put("/resource-allocations/{alloc_id}", response_model=ApiResponse)
+async def update_resource_allocation(
+    alloc_id: uuid.UUID,
+    body: ResourceAllocationUpdate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F083: Update resource allocation."""
+    req_info = await get_request_info(request)
+    alloc = await service.update_resource_allocation(
+        db, current_user.organization_id, current_user.id, alloc_id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"], user_agent=req_info["user_agent"],
+    )
+    if alloc is None:
+        raise HTTPException(status_code=404, detail="Resource allocation not found")
+    return ApiResponse(data=ResourceAllocationOut.model_validate(alloc))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INVESTOR DASHBOARD — F100
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pm_router.get("/investor-dashboard", response_model=ApiResponse)
+async def get_investor_dashboard(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F100: Investor dashboard — aggregated project data + notifications."""
+    data = await service.get_investor_dashboard(
+        db, current_user.organization_id
+    )
+    return ApiResponse(data=InvestorDashboardOut(**data))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMPANY CAPACITY DASHBOARD — F130
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pm_router.get("/company-capacity", response_model=ApiResponse)
+async def get_company_capacity(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F130: Company capacity — resources available vs allocated."""
+    data = await service.get_company_capacity(
+        db, current_user.organization_id
+    )
+    return ApiResponse(data=CompanyCapacityOut(**data))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROGRESS MONITORING — F078
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pm_router.get("/projects/{project_id}/progress", response_model=ApiResponse)
+async def get_progress_monitoring(
+    project_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F078: Detailed progress monitoring with task breakdown and delay alerts."""
+    data = await service.get_progress_monitoring(
+        db, current_user.organization_id, project_id
+    )
+    if data is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return ApiResponse(data=ProgressMonitoringOut(**data))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUDGET CONTROL — F080
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pm_router.get("/projects/{project_id}/budget-control", response_model=ApiResponse)
+async def get_budget_control(
+    project_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F080: Detailed budget control with variance analysis and alerts."""
+    data = await service.get_budget_control(
+        db, current_user.organization_id, project_id
+    )
+    if data is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return ApiResponse(data=BudgetControlOut(**data))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ML DATA EXPORT — F105
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pm_router.get("/projects/{project_id}/ml-export", response_model=ApiResponse)
+async def get_ml_export_status(
+    project_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F105: Get ML data export status for a project."""
+    data = await service.get_ml_export_status(
+        db, current_user.organization_id, project_id
+    )
+    return ApiResponse(data=MLExportStatusOut(**data))
+
+
+@pm_router.post("/projects/{project_id}/ml-export", response_model=ApiResponse)
+async def trigger_ml_export(
+    project_id: uuid.UUID,
+    body: MLExportTriggerRequest,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F105: Trigger ML data export — validate mapping and mark as exported."""
+    req_info = await get_request_info(request)
+    data = await service.trigger_ml_export(
+        db, current_user.organization_id, current_user.id, project_id,
+        body.mapping_config,
+        ip_address=req_info["ip_address"], user_agent=req_info["user_agent"],
+    )
+    if not data.get("success"):
+        raise HTTPException(status_code=404, detail=data.get("error", "Export failed"))
+    return ApiResponse(data=MLExportStatusOut(**data))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WORK TRACKER — F125
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pm_router.get("/projects/{project_id}/work-tracker", response_model=ApiResponse)
+async def get_work_tracker(
+    project_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F125: Work tracker — quantities/costs estimated vs actual."""
+    data = await service.get_work_tracker(
+        db, current_user.organization_id, project_id
+    )
+    if data is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return ApiResponse(data=WorkTrackerOut(**data))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WARRANTY — F086 (completion)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pm_router.get("/projects/{project_id}/warranties", response_model=ApiResponse)
+async def list_warranties(
+    project_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F086: List warranties for a project."""
+    items = await service.list_warranties(
+        db, current_user.organization_id, project_id
+    )
+    return ApiResponse(
+        data=[WarrantyOut.model_validate(w) for w in items],
+        meta=Meta(total=len(items)),
+    )
+
+
+@pm_router.post("/projects/{project_id}/warranties", response_model=ApiResponse, status_code=201)
+async def create_warranty(
+    project_id: uuid.UUID,
+    body: WarrantyCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F086: Create warranty tracking entry."""
+    req_info = await get_request_info(request)
+    warranty = await service.create_warranty(
+        db, current_user.organization_id, current_user.id, project_id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"], user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=WarrantyOut.model_validate(warranty))
+
+
+@pm_router.put("/warranties/{warranty_id}", response_model=ApiResponse)
+async def update_warranty(
+    warranty_id: uuid.UUID,
+    body: WarrantyUpdate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F086: Update warranty entry."""
+    req_info = await get_request_info(request)
+    warranty = await service.update_warranty(
+        db, current_user.organization_id, current_user.id, warranty_id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"], user_agent=req_info["user_agent"],
+    )
+    if warranty is None:
+        raise HTTPException(status_code=404, detail="Warranty not found")
+    return ApiResponse(data=WarrantyOut.model_validate(warranty))
+
+
+@pm_router.post("/projects/{project_id}/receptions", response_model=ApiResponse, status_code=201)
+async def create_reception(
+    project_id: uuid.UUID,
+    body: ReceptionCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F086: Create formal reception (PV recepție)."""
+    req_info = await get_request_info(request)
+    post = await service.create_reception(
+        db, current_user.organization_id, current_user.id, project_id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"], user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=WikiPostOut.model_validate(post))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WIKI — F145, F146 (department files & official documents)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pm_router.get("/department-files", response_model=ApiResponse)
+async def list_department_files(
+    department: str | None = None,
+    page: int = 1,
+    per_page: int = 20,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F145: List files per department."""
+    items, total = await service.list_department_files(
+        db, current_user.organization_id,
+        department=department, page=page, per_page=per_page,
+    )
+    return ApiResponse(
+        data=[WikiPostOut.model_validate(f) for f in items],
+        meta=Meta(total=total, page=page, per_page=per_page),
+    )
+
+
+@pm_router.get("/official-documents", response_model=ApiResponse)
+async def list_official_documents(
+    department: str | None = None,
+    page: int = 1,
+    per_page: int = 20,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F146: List official documents per department."""
+    items, total = await service.list_official_documents(
+        db, current_user.organization_id,
+        department=department, page=page, per_page=per_page,
+    )
+    return ApiResponse(
+        data=[WikiPostOut.model_validate(d) for d in items],
+        meta=Meta(total=total, page=page, per_page=per_page),
+    )

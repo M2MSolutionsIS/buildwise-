@@ -33,6 +33,7 @@ from app.pm.models import (
     TaskStatus,
     TimesheetEntry,
     TimesheetStatus,
+    Warranty,
     WBSNode,
     WikiComment,
     WikiPost,
@@ -1992,3 +1993,903 @@ async def get_project_report(
         "open_risks": open_risks,
         "open_punch_items": open_punch,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CLIENT PORTAL — F066
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def get_client_portal(
+    db: AsyncSession, org_id: uuid.UUID, project_id: uuid.UUID
+) -> dict | None:
+    """F066: Aggregate CRM contact + project + invoices for client portal."""
+    project = await get_project(db, org_id, project_id)
+    if project is None:
+        return None
+
+    # Fetch contact info from CRM
+    contact_data = {"contact_name": None, "contact_email": None, "contact_phone": None}
+    if project.contact_id:
+        from app.crm.models import Contact
+        result = await db.execute(
+            select(Contact).where(
+                Contact.id == project.contact_id,
+                Contact.organization_id == org_id,
+            )
+        )
+        contact = result.scalar_one_or_none()
+        if contact:
+            contact_data = {
+                "contact_name": contact.company_name,
+                "contact_email": contact.email,
+                "contact_phone": contact.phone,
+            }
+
+    # Fetch contract data
+    contract_data = {"contract_number": None, "contract_value": None}
+    if project.contract_id:
+        from app.pipeline.models import Contract
+        result = await db.execute(
+            select(Contract).where(
+                Contract.id == project.contract_id,
+                Contract.organization_id == org_id,
+            )
+        )
+        contract = result.scalar_one_or_none()
+        if contract:
+            contract_data = {
+                "contract_number": contract.contract_number,
+                "contract_value": contract.total_value,
+            }
+
+    # Fetch invoices linked to the contract
+    invoices_list = []
+    total_invoiced = 0.0
+    total_paid = 0.0
+    if project.contract_id:
+        from app.pipeline.models import Invoice
+        result = await db.execute(
+            select(Invoice).where(
+                Invoice.contract_id == project.contract_id,
+                Invoice.organization_id == org_id,
+            ).order_by(Invoice.issue_date.desc())
+        )
+        for inv in result.scalars().all():
+            inv_status = str(inv.status).split(".")[-1] if "." in str(inv.status) else str(inv.status)
+            amount = float(inv.amount or 0)
+            paid = float(inv.paid_amount or 0)
+            invoices_list.append({
+                "id": str(inv.id),
+                "invoice_number": inv.invoice_number,
+                "amount": amount,
+                "paid_amount": paid,
+                "status": inv_status,
+                "issue_date": inv.issue_date.isoformat() if inv.issue_date else None,
+                "due_date": inv.due_date.isoformat() if inv.due_date else None,
+            })
+            total_invoiced += amount
+            total_paid += paid
+
+    proj_status = str(project.status).split(".")[-1] if "." in str(project.status) else str(project.status)
+
+    return {
+        "project_id": project.id,
+        "project_name": project.name,
+        "project_status": proj_status,
+        "contact_id": project.contact_id,
+        **contact_data,
+        "contract_id": project.contract_id,
+        **contract_data,
+        "total_invoiced": total_invoiced,
+        "total_paid": total_paid,
+        "total_outstanding": total_invoiced - total_paid,
+        "percent_complete": project.percent_complete,
+        "planned_end_date": project.planned_end_date,
+        "invoices": invoices_list,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RESOURCE ALLOCATION — F083
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def list_resource_allocations(
+    db: AsyncSession, org_id: uuid.UUID, project_id: uuid.UUID
+) -> list:
+    """F083: List resource allocations for a project."""
+    from app.rm.models import ResourceAllocation
+    result = await db.execute(
+        select(ResourceAllocation).where(
+            ResourceAllocation.project_id == project_id,
+            ResourceAllocation.organization_id == org_id,
+        ).order_by(ResourceAllocation.start_date)
+    )
+    return result.scalars().all()
+
+
+async def create_resource_allocation(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    project_id: uuid.UUID,
+    data: dict,
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+):
+    """F083: Allocate resource to project (sync with RM module)."""
+    from app.rm.models import ResourceAllocation
+
+    alloc = ResourceAllocation(
+        id=uuid.uuid4(),
+        project_id=project_id,
+        organization_id=org_id,
+        created_by=user_id,
+        updated_by=user_id,
+        **data,
+    )
+    db.add(alloc)
+    await db.flush()
+
+    await log_audit(
+        db,
+        user_id=user_id,
+        organization_id=org_id,
+        action="CREATE",
+        entity_type="resource_allocations",
+        entity_id=alloc.id,
+        new_values=model_to_dict(alloc),
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+    await db.flush()
+    return alloc
+
+
+async def update_resource_allocation(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    alloc_id: uuid.UUID,
+    data: dict,
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+):
+    """F083: Update resource allocation."""
+    from app.rm.models import ResourceAllocation
+    result = await db.execute(
+        select(ResourceAllocation).where(
+            ResourceAllocation.id == alloc_id,
+            ResourceAllocation.organization_id == org_id,
+        )
+    )
+    alloc = result.scalar_one_or_none()
+    if alloc is None:
+        return None
+
+    old_values = model_to_dict(alloc)
+    for key, val in data.items():
+        if val is not None:
+            setattr(alloc, key, val)
+    alloc.updated_by = user_id
+
+    await log_audit(
+        db,
+        user_id=user_id,
+        organization_id=org_id,
+        action="UPDATE",
+        entity_type="resource_allocations",
+        entity_id=alloc.id,
+        old_values=old_values,
+        new_values=model_to_dict(alloc),
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+    await db.flush()
+    return alloc
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INVESTOR DASHBOARD — F100
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def get_investor_dashboard(
+    db: AsyncSession, org_id: uuid.UUID
+) -> dict:
+    """F100: Investor dashboard — aggregated project data + notifications."""
+    # Count projects by status
+    all_projects_q = select(Project).where(
+        Project.organization_id == org_id,
+        Project.is_deleted.is_(False),
+    )
+    result = await db.execute(all_projects_q)
+    projects = result.scalars().all()
+
+    total = len(projects)
+    active = sum(1 for p in projects if str(p.status).split(".")[-1] in ("in_progress", "planning", "kickoff"))
+    completed = sum(1 for p in projects if str(p.status).split(".")[-1] == "completed")
+
+    budget_allocated = sum(p.budget_allocated or 0 for p in projects)
+    budget_actual = sum(p.budget_actual or 0 for p in projects)
+
+    cpi_values = [p.cpi for p in projects if p.cpi is not None]
+    spi_values = [p.spi for p in projects if p.spi is not None]
+
+    on_track = sum(1 for p in projects if p.health_indicator == "green")
+    at_risk = sum(1 for p in projects if p.health_indicator == "yellow")
+    delayed = sum(1 for p in projects if p.health_indicator == "red")
+
+    pct_values = [p.percent_complete for p in projects if p.percent_complete is not None]
+
+    # Notifications: projects that are delayed or over budget
+    notifications = []
+    for p in projects:
+        status_str = str(p.status).split(".")[-1] if "." in str(p.status) else str(p.status)
+        if p.health_indicator == "red":
+            notifications.append({
+                "type": "warning",
+                "project_id": str(p.id),
+                "project_name": p.name,
+                "message": f"Project '{p.name}' is flagged RED.",
+            })
+        if p.budget_allocated and p.budget_actual and p.budget_actual > p.budget_allocated:
+            notifications.append({
+                "type": "budget_alert",
+                "project_id": str(p.id),
+                "project_name": p.name,
+                "message": f"Project '{p.name}' is over budget.",
+            })
+
+    return {
+        "total_projects": total,
+        "active_projects": active,
+        "completed_projects": completed,
+        "total_budget_allocated": budget_allocated,
+        "total_budget_actual": budget_actual,
+        "total_budget_variance": budget_actual - budget_allocated,
+        "avg_percent_complete": sum(pct_values) / len(pct_values) if pct_values else 0.0,
+        "avg_cpi": sum(cpi_values) / len(cpi_values) if cpi_values else None,
+        "avg_spi": sum(spi_values) / len(spi_values) if spi_values else None,
+        "projects_on_track": on_track,
+        "projects_at_risk": at_risk,
+        "projects_delayed": delayed,
+        "notifications": notifications,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMPANY CAPACITY DASHBOARD — F130
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def get_company_capacity(
+    db: AsyncSession, org_id: uuid.UUID
+) -> dict:
+    """F130: Company capacity — resources available vs allocated."""
+    from app.rm.models import Employee, Equipment, ResourceAllocation, EmployeeStatus, EquipmentStatus, AllocationStatus
+
+    # Employees
+    emp_result = await db.execute(
+        select(func.count()).select_from(Employee).where(
+            Employee.organization_id == org_id,
+            Employee.status == EmployeeStatus.ACTIVE,
+            Employee.is_deleted.is_(False),
+        )
+    )
+    total_employees = emp_result.scalar() or 0
+
+    # Allocated employees (active allocations)
+    alloc_emp_q = select(func.count(func.distinct(ResourceAllocation.employee_id))).where(
+        ResourceAllocation.organization_id == org_id,
+        ResourceAllocation.status.in_([AllocationStatus.PLANNED, AllocationStatus.CONFIRMED, AllocationStatus.ACTIVE]),
+        ResourceAllocation.employee_id.isnot(None),
+    )
+    allocated_employees = (await db.execute(alloc_emp_q)).scalar() or 0
+
+    # Equipment
+    equip_result = await db.execute(
+        select(func.count()).select_from(Equipment).where(
+            Equipment.organization_id == org_id,
+            Equipment.is_deleted.is_(False),
+        )
+    )
+    total_equipment = equip_result.scalar() or 0
+
+    alloc_equip_q = select(func.count(func.distinct(ResourceAllocation.equipment_id))).where(
+        ResourceAllocation.organization_id == org_id,
+        ResourceAllocation.status.in_([AllocationStatus.PLANNED, AllocationStatus.CONFIRMED, AllocationStatus.ACTIVE]),
+        ResourceAllocation.equipment_id.isnot(None),
+    )
+    allocated_equipment = (await db.execute(alloc_equip_q)).scalar() or 0
+
+    # Total allocated hours and cost
+    alloc_totals = await db.execute(
+        select(
+            func.coalesce(func.sum(ResourceAllocation.allocated_hours), 0),
+            func.coalesce(func.sum(ResourceAllocation.planned_cost), 0),
+            func.count(ResourceAllocation.id),
+        ).where(
+            ResourceAllocation.organization_id == org_id,
+            ResourceAllocation.status.in_([AllocationStatus.PLANNED, AllocationStatus.CONFIRMED, AllocationStatus.ACTIVE]),
+        )
+    )
+    row = alloc_totals.one()
+    total_hours = float(row[0])
+    total_cost = float(row[1])
+
+    # Conflicts
+    conflicts_q = select(func.count()).select_from(ResourceAllocation).where(
+        ResourceAllocation.organization_id == org_id,
+        ResourceAllocation.has_conflict.is_(True),
+    )
+    conflicts = (await db.execute(conflicts_q)).scalar() or 0
+
+    # Active projects
+    active_q = select(func.count()).select_from(Project).where(
+        Project.organization_id == org_id,
+        Project.status.in_([ProjectStatus.IN_PROGRESS, ProjectStatus.PLANNING, ProjectStatus.KICKOFF]),
+        Project.is_deleted.is_(False),
+    )
+    active_projects = (await db.execute(active_q)).scalar() or 0
+
+    utilization = (allocated_employees / total_employees * 100) if total_employees > 0 else 0.0
+
+    return {
+        "total_employees": total_employees,
+        "allocated_employees": allocated_employees,
+        "available_employees": total_employees - allocated_employees,
+        "total_equipment": total_equipment,
+        "allocated_equipment": allocated_equipment,
+        "available_equipment": total_equipment - allocated_equipment,
+        "total_allocated_hours": total_hours,
+        "total_planned_cost": total_cost,
+        "utilization_rate": round(utilization, 1),
+        "active_projects_count": active_projects,
+        "allocations_with_conflicts": conflicts,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROGRESS MONITORING — F078
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def get_progress_monitoring(
+    db: AsyncSession, org_id: uuid.UUID, project_id: uuid.UUID
+) -> dict | None:
+    """F078: Detailed progress monitoring with task breakdown and delay alerts."""
+    project = await get_project(db, org_id, project_id)
+    if project is None:
+        return None
+
+    # Task counts by status
+    for status_val in [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.BLOCKED, TaskStatus.DONE]:
+        pass  # query below
+
+    task_counts = {}
+    for status_val in [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.BLOCKED, TaskStatus.DONE]:
+        q = select(func.count()).select_from(Task).where(
+            Task.project_id == project_id,
+            Task.organization_id == org_id,
+            Task.status == status_val,
+        )
+        task_counts[status_val.value] = (await db.execute(q)).scalar() or 0
+
+    total_tasks = sum(task_counts.values())
+
+    # Milestones
+    milestone_total_q = select(func.count()).select_from(Task).where(
+        Task.project_id == project_id,
+        Task.organization_id == org_id,
+        Task.is_milestone.is_(True),
+    )
+    total_milestones = (await db.execute(milestone_total_q)).scalar() or 0
+
+    milestone_done_q = select(func.count()).select_from(Task).where(
+        Task.project_id == project_id,
+        Task.organization_id == org_id,
+        Task.is_milestone.is_(True),
+        Task.status == TaskStatus.DONE,
+    )
+    completed_milestones = (await db.execute(milestone_done_q)).scalar() or 0
+
+    # Overdue tasks (planned_end < now and not done)
+    now = datetime.now(timezone.utc)
+    overdue_q = select(func.count()).select_from(Task).where(
+        Task.project_id == project_id,
+        Task.organization_id == org_id,
+        Task.planned_end < now,
+        Task.status != TaskStatus.DONE,
+    )
+    overdue_tasks = (await db.execute(overdue_q)).scalar() or 0
+
+    # Schedule variance
+    is_behind = False
+    variance_days = None
+    if project.planned_end_date:
+        # Normalize timezone awareness for comparison (SQLite stores naive datetimes)
+        planned_end = project.planned_end_date
+        if planned_end.tzinfo is None:
+            planned_end = planned_end.replace(tzinfo=timezone.utc)
+        if project.actual_end_date:
+            actual_end = project.actual_end_date
+            if actual_end.tzinfo is None:
+                actual_end = actual_end.replace(tzinfo=timezone.utc)
+            delta = actual_end - planned_end
+            variance_days = delta.days
+            is_behind = variance_days > 0
+        elif now > planned_end and str(project.status).split(".")[-1] not in ("completed", "cancelled"):
+            delta = now - planned_end
+            variance_days = delta.days
+            is_behind = True
+
+    proj_status = str(project.status).split(".")[-1] if "." in str(project.status) else str(project.status)
+
+    return {
+        "project_id": project.id,
+        "project_name": project.name,
+        "percent_complete": project.percent_complete,
+        "planned_start": project.planned_start_date,
+        "planned_end": project.planned_end_date,
+        "actual_start": project.actual_start_date,
+        "actual_end": project.actual_end_date,
+        "cpi": project.cpi,
+        "spi": project.spi,
+        "total_tasks": total_tasks,
+        "tasks_todo": task_counts.get("todo", 0),
+        "tasks_in_progress": task_counts.get("in_progress", 0),
+        "tasks_blocked": task_counts.get("blocked", 0),
+        "tasks_done": task_counts.get("done", 0),
+        "total_milestones": total_milestones,
+        "completed_milestones": completed_milestones,
+        "overdue_tasks": overdue_tasks,
+        "is_behind_schedule": is_behind,
+        "schedule_variance_days": variance_days,
+        "trend_data": [],
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUDGET CONTROL — F080
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def get_budget_control(
+    db: AsyncSession, org_id: uuid.UUID, project_id: uuid.UUID
+) -> dict | None:
+    """F080: Detailed budget control with variance analysis and alerts."""
+    project = await get_project(db, org_id, project_id)
+    if project is None:
+        return None
+
+    # Deviz aggregation
+    deviz_q = select(
+        func.coalesce(func.sum(DevizItem.estimated_total), 0).label("est_total"),
+        func.coalesce(func.sum(DevizItem.actual_total), 0).label("act_total"),
+        func.coalesce(func.sum(DevizItem.estimated_quantity * DevizItem.estimated_unit_price_labor), 0).label("labor_est"),
+        func.coalesce(func.sum(DevizItem.actual_quantity * DevizItem.actual_unit_price_labor), 0).label("labor_act"),
+        func.coalesce(func.sum(DevizItem.estimated_quantity * DevizItem.estimated_unit_price_material), 0).label("mat_est"),
+        func.coalesce(func.sum(DevizItem.actual_quantity * DevizItem.actual_unit_price_material), 0).label("mat_act"),
+        func.count(DevizItem.id).label("total_items"),
+    ).where(
+        DevizItem.project_id == project_id,
+        DevizItem.organization_id == org_id,
+    )
+    row = (await db.execute(deviz_q)).one()
+
+    # Over-budget items count
+    over_q = select(func.count()).select_from(DevizItem).where(
+        DevizItem.project_id == project_id,
+        DevizItem.organization_id == org_id,
+        DevizItem.over_budget_alert.is_(True),
+    )
+    items_over = (await db.execute(over_q)).scalar() or 0
+
+    budget_alloc = project.budget_allocated or 0
+    budget_actual = project.budget_actual or 0
+    budget_remaining = budget_alloc - budget_actual if budget_alloc else None
+    budget_variance = budget_actual - budget_alloc if budget_alloc else None
+    budget_variance_pct = (budget_actual / budget_alloc * 100) if budget_alloc else None
+    is_over = budget_actual > budget_alloc if budget_alloc else False
+
+    # Simple burn rate: budget_actual / months elapsed
+    burn_rate = None
+    if project.actual_start_date and budget_actual > 0:
+        months = max(1, (datetime.now(timezone.utc) - project.actual_start_date).days / 30)
+        burn_rate = round(budget_actual / months, 2)
+
+    return {
+        "project_id": project.id,
+        "project_name": project.name,
+        "currency": project.currency,
+        "budget_allocated": project.budget_allocated,
+        "budget_committed": project.budget_committed,
+        "budget_actual": project.budget_actual,
+        "budget_remaining": budget_remaining,
+        "budget_variance": budget_variance,
+        "budget_variance_percent": round(budget_variance_pct, 1) if budget_variance_pct else None,
+        "cpi": project.cpi,
+        "spi": project.spi,
+        "total_estimated": float(row.est_total),
+        "total_actual": float(row.act_total),
+        "deviz_variance": float(row.act_total) - float(row.est_total),
+        "items_over_budget": items_over,
+        "total_deviz_items": int(row.total_items),
+        "labor_cost_estimated": float(row.labor_est),
+        "labor_cost_actual": float(row.labor_act),
+        "material_cost_estimated": float(row.mat_est),
+        "material_cost_actual": float(row.mat_act),
+        "is_over_budget": is_over,
+        "budget_alert_threshold": 0.9,
+        "burn_rate_monthly": burn_rate,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ML DATA EXPORT — F105
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def get_ml_export_status(
+    db: AsyncSession, org_id: uuid.UUID, project_id: uuid.UUID
+) -> dict:
+    """F105: Get ML data export status for a project."""
+    impact = await get_energy_impact(db, org_id, project_id)
+
+    validation_errors = []
+    if impact is None:
+        return {
+            "project_id": project_id,
+            "has_energy_impact": False,
+            "ml_data_mapping": None,
+            "ml_dataset_exported": False,
+            "ml_export_date": None,
+            "is_verified": False,
+            "validation_errors": ["No energy impact data found for this project."],
+        }
+
+    # Validate required fields for ML export
+    if impact.pre_kwh_annual is None:
+        validation_errors.append("pre_kwh_annual is required")
+    if impact.post_kwh_annual is None:
+        validation_errors.append("post_kwh_annual is required")
+    if impact.total_area_sqm is None:
+        validation_errors.append("total_area_sqm is required")
+
+    return {
+        "project_id": project_id,
+        "has_energy_impact": True,
+        "ml_data_mapping": impact.ml_data_mapping,
+        "ml_dataset_exported": impact.ml_dataset_exported,
+        "ml_export_date": impact.ml_export_date,
+        "is_verified": impact.is_verified,
+        "validation_errors": validation_errors,
+    }
+
+
+async def trigger_ml_export(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    project_id: uuid.UUID,
+    mapping_config: dict | None = None,
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> dict:
+    """F105: Trigger ML data export — validate mapping and mark as exported."""
+    impact = await get_energy_impact(db, org_id, project_id)
+    if impact is None:
+        return {"success": False, "error": "No energy impact data found."}
+
+    old_values = model_to_dict(impact)
+
+    if mapping_config:
+        impact.ml_data_mapping = mapping_config
+    impact.ml_dataset_exported = True
+    impact.ml_export_date = datetime.now(timezone.utc)
+    impact.updated_by = user_id
+
+    await log_audit(
+        db,
+        user_id=user_id,
+        organization_id=org_id,
+        action="UPDATE",
+        entity_type="energy_impacts",
+        entity_id=impact.id,
+        old_values=old_values,
+        new_values=model_to_dict(impact),
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+    await db.flush()
+    await db.refresh(impact)
+
+    return {
+        "success": True,
+        "project_id": project_id,
+        "has_energy_impact": True,
+        "ml_data_mapping": impact.ml_data_mapping,
+        "ml_dataset_exported": True,
+        "ml_export_date": impact.ml_export_date,
+        "is_verified": impact.is_verified,
+        "validation_errors": [],
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WORK TRACKER — F125
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def get_work_tracker(
+    db: AsyncSession, org_id: uuid.UUID, project_id: uuid.UUID
+) -> dict | None:
+    """F125: Work tracker — quantities/costs estimated vs actual per deviz item."""
+    project = await get_project(db, org_id, project_id)
+    if project is None:
+        return None
+
+    result = await db.execute(
+        select(DevizItem).where(
+            DevizItem.project_id == project_id,
+            DevizItem.organization_id == org_id,
+        ).order_by(DevizItem.sort_order)
+    )
+    items = result.scalars().all()
+
+    tracker_items = []
+    total_est_qty = 0.0
+    total_act_qty = 0.0
+    total_est_cost = 0.0
+    total_act_cost = 0.0
+    over_count = 0
+    under_count = 0
+
+    for item in items:
+        qty_var = item.actual_quantity - item.estimated_quantity
+        cost_var = item.actual_total - item.estimated_total
+        is_over = item.over_budget_alert
+
+        total_est_qty += item.estimated_quantity
+        total_act_qty += item.actual_quantity
+        total_est_cost += item.estimated_total
+        total_act_cost += item.actual_total
+
+        if is_over:
+            over_count += 1
+        elif item.actual_total > 0 and item.actual_total <= item.estimated_total:
+            under_count += 1
+
+        tracker_items.append({
+            "id": item.id,
+            "code": item.code,
+            "description": item.description,
+            "unit_of_measure": item.unit_of_measure,
+            "estimated_quantity": item.estimated_quantity,
+            "actual_quantity": item.actual_quantity,
+            "quantity_variance": qty_var,
+            "estimated_total": item.estimated_total,
+            "actual_total": item.actual_total,
+            "cost_variance": cost_var,
+            "over_budget": is_over,
+        })
+
+    return {
+        "project_id": project.id,
+        "project_name": project.name,
+        "currency": project.currency,
+        "total_estimated_quantity": total_est_qty,
+        "total_actual_quantity": total_act_qty,
+        "quantity_variance": total_act_qty - total_est_qty,
+        "total_estimated_cost": total_est_cost,
+        "total_actual_cost": total_act_cost,
+        "cost_variance": total_act_cost - total_est_cost,
+        "items": tracker_items,
+        "items_over_budget": over_count,
+        "items_under_budget": under_count,
+        "total_items": len(tracker_items),
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WARRANTY — F086 (completion)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def list_warranties(
+    db: AsyncSession, org_id: uuid.UUID, project_id: uuid.UUID
+) -> list[Warranty]:
+    result = await db.execute(
+        select(Warranty).where(
+            Warranty.project_id == project_id,
+            Warranty.organization_id == org_id,
+        ).order_by(Warranty.end_date)
+    )
+    return result.scalars().all()
+
+
+async def create_warranty(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    project_id: uuid.UUID,
+    data: dict,
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> Warranty:
+    warranty = Warranty(
+        id=uuid.uuid4(),
+        project_id=project_id,
+        organization_id=org_id,
+        **data,
+    )
+    db.add(warranty)
+    await db.flush()
+
+    await log_audit(
+        db,
+        user_id=user_id,
+        organization_id=org_id,
+        action="CREATE",
+        entity_type="warranties",
+        entity_id=warranty.id,
+        new_values=model_to_dict(warranty),
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+    await db.flush()
+    return warranty
+
+
+async def update_warranty(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    warranty_id: uuid.UUID,
+    data: dict,
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> Warranty | None:
+    result = await db.execute(
+        select(Warranty).where(
+            Warranty.id == warranty_id,
+            Warranty.organization_id == org_id,
+        )
+    )
+    warranty = result.scalar_one_or_none()
+    if warranty is None:
+        return None
+
+    old_values = model_to_dict(warranty)
+    for key, val in data.items():
+        if val is not None:
+            setattr(warranty, key, val)
+
+    await log_audit(
+        db,
+        user_id=user_id,
+        organization_id=org_id,
+        action="UPDATE",
+        entity_type="warranties",
+        entity_id=warranty.id,
+        old_values=old_values,
+        new_values=model_to_dict(warranty),
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+    await db.flush()
+    return warranty
+
+
+async def create_reception(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    project_id: uuid.UUID,
+    data: dict,
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> WikiPost:
+    """F086: Create formal reception (PV recepție) stored as wiki document."""
+    reception_data = {
+        "reception_type": data.get("reception_type", "partial"),
+        "reception_date": data.get("reception_date"),
+        "committee_members": data.get("committee_members"),
+        "observations": data.get("observations"),
+        "is_accepted": data.get("is_accepted", True),
+        "conditions": data.get("conditions"),
+        "documents": data.get("documents"),
+    }
+
+    post = WikiPost(
+        id=uuid.uuid4(),
+        project_id=project_id,
+        organization_id=org_id,
+        author_id=user_id,
+        created_by=user_id,
+        updated_by=user_id,
+        post_type="document",
+        is_official=True,
+        title=f"PV Recepție {data.get('reception_type', 'partial').capitalize()} — {data.get('reception_date', '')}",
+        content=str(reception_data),
+        document_type_badge="PV Recepție",
+    )
+    db.add(post)
+    await db.flush()
+
+    await log_audit(
+        db,
+        user_id=user_id,
+        organization_id=org_id,
+        action="CREATE",
+        entity_type="wiki_posts",
+        entity_id=post.id,
+        new_values=model_to_dict(post),
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+    await db.flush()
+    return post
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WIKI — F145, F146 (department files & official documents)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def list_department_files(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    *,
+    department: str | None = None,
+    page: int = 1,
+    per_page: int = 20,
+) -> tuple[list[WikiPost], int]:
+    """F145: List files per department."""
+    query = select(WikiPost).where(
+        WikiPost.organization_id == org_id,
+        WikiPost.post_type == "file",
+    )
+    if department:
+        query = query.where(WikiPost.department == department)
+
+    count_q = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_q)).scalar()
+
+    query = query.order_by(WikiPost.created_at.desc())
+    query = query.offset((page - 1) * per_page).limit(per_page)
+    result = await db.execute(query)
+    return result.scalars().all(), total
+
+
+async def list_official_documents(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    *,
+    department: str | None = None,
+    page: int = 1,
+    per_page: int = 20,
+) -> tuple[list[WikiPost], int]:
+    """F146: List official documents per department."""
+    query = select(WikiPost).where(
+        WikiPost.organization_id == org_id,
+        WikiPost.is_official.is_(True),
+    )
+    if department:
+        query = query.where(WikiPost.department == department)
+
+    count_q = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_q)).scalar()
+
+    query = query.order_by(WikiPost.created_at.desc())
+    query = query.offset((page - 1) * per_page).limit(per_page)
+    result = await db.execute(query)
+    return result.scalars().all(), total
