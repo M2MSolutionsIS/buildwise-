@@ -47,8 +47,10 @@ from app.bi import models as bi_models  # noqa: F401, E402
 
 # ─── Register routers ────────────────────────────────────────────────────────
 from app.system.router import auth_router, health_router, system_router, user_router  # noqa: E402
+from app.crm.router import crm_router  # noqa: E402
 
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(system_router)
+app.include_router(crm_router)
