@@ -489,3 +489,52 @@ class WorkHistoryOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F004 — Import / Export / Merge
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class ContactImportRow(BaseModel):
+    """A single row from CSV/Excel import."""
+    company_name: str
+    cui: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    contact_type: str = "pj"
+    stage: str = "prospect"
+    city: str | None = None
+    county: str | None = None
+    address: str | None = None
+    source: str | None = None
+
+
+class ContactImportRequest(BaseModel):
+    """F004: Bulk import contacts from structured data."""
+    rows: list[ContactImportRow]
+    skip_duplicates: bool = True
+
+
+class ContactImportResult(BaseModel):
+    """F004: Import result summary."""
+    total_rows: int
+    imported: int
+    skipped_duplicates: int
+    errors: list[str] = []
+
+
+class ContactExportRequest(BaseModel):
+    """F004: Export contacts with optional filters."""
+    format: str = "json"  # json, csv
+    stage: str | None = None
+    contact_type: str | None = None
+    city: str | None = None
+    county: str | None = None
+
+
+class ContactMergeRequest(BaseModel):
+    """F004: Merge two contacts into one."""
+    source_id: uuid.UUID
+    target_id: uuid.UUID
+    fields_from_source: list[str] = []

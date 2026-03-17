@@ -19,8 +19,17 @@ from app.core.auth import (
 from app.core.audit import log_audit, model_to_dict
 from app.config import settings
 from app.system.models import (
+    AuditLog,
+    Currency,
+    CustomFieldDefinition,
+    DocumentTemplate,
+    ExchangeRate,
+    FeatureFlag,
+    Notification,
+    NotificationTemplate,
     Organization,
     Permission,
+    PipelineStageConfig,
     Role,
     RolePermission,
     User,
@@ -338,3 +347,666 @@ async def _ensure_default_roles(db: AsyncSession, org_id: uuid.UUID) -> None:
                 )
 
     await db.flush()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F040 — RBAC Admin (CRUD roles, permissions, user-role assignment)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def create_role(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    *,
+    name: str,
+    code: str,
+    description: str | None = None,
+    user_id: uuid.UUID | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> Role:
+    role = Role(
+        id=uuid.uuid4(),
+        organization_id=org_id,
+        name=name,
+        code=code,
+        description=description,
+        is_system=False,
+    )
+    db.add(role)
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="CREATE", entity_type="roles", entity_id=role.id,
+                    new_values=model_to_dict(role), ip_address=ip_address, user_agent=user_agent)
+    return role
+
+
+async def update_role(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    role_id: uuid.UUID,
+    *,
+    name: str | None = None,
+    description: str | None = None,
+    user_id: uuid.UUID | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> Role | None:
+    result = await db.execute(
+        select(Role).where(Role.id == role_id, Role.organization_id == org_id)
+    )
+    role = result.scalar_one_or_none()
+    if not role:
+        return None
+    old = model_to_dict(role)
+    if name is not None:
+        role.name = name
+    if description is not None:
+        role.description = description
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="UPDATE", entity_type="roles", entity_id=role.id,
+                    old_values=old, new_values=model_to_dict(role),
+                    ip_address=ip_address, user_agent=user_agent)
+    return role
+
+
+async def delete_role(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    role_id: uuid.UUID,
+    *,
+    user_id: uuid.UUID | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> bool:
+    result = await db.execute(
+        select(Role).where(Role.id == role_id, Role.organization_id == org_id, Role.is_system.is_(False))
+    )
+    role = result.scalar_one_or_none()
+    if not role:
+        return False
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="DELETE", entity_type="roles", entity_id=role.id,
+                    old_values=model_to_dict(role), ip_address=ip_address, user_agent=user_agent)
+    await db.delete(role)
+    return True
+
+
+async def list_permissions(db: AsyncSession) -> list[Permission]:
+    result = await db.execute(select(Permission))
+    return list(result.scalars().all())
+
+
+async def assign_permissions_to_role(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    role_id: uuid.UUID,
+    permission_ids: list[uuid.UUID],
+    *,
+    user_id: uuid.UUID | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> bool:
+    result = await db.execute(
+        select(Role).where(Role.id == role_id, Role.organization_id == org_id)
+    )
+    if not result.scalar_one_or_none():
+        return False
+    existing = await db.execute(
+        select(RolePermission).where(RolePermission.role_id == role_id)
+    )
+    for rp in existing.scalars().all():
+        await db.delete(rp)
+    await db.flush()
+    for pid in permission_ids:
+        db.add(RolePermission(id=uuid.uuid4(), role_id=role_id, permission_id=pid))
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="UPDATE", entity_type="role_permissions", entity_id=role_id,
+                    new_values={"permission_ids": [str(p) for p in permission_ids]},
+                    ip_address=ip_address, user_agent=user_agent)
+    return True
+
+
+async def assign_roles_to_user(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    target_user_id: uuid.UUID,
+    role_ids: list[uuid.UUID],
+    *,
+    user_id: uuid.UUID | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> bool:
+    result = await db.execute(
+        select(User).where(User.id == target_user_id, User.organization_id == org_id)
+    )
+    if not result.scalar_one_or_none():
+        return False
+    existing = await db.execute(
+        select(UserRole).where(UserRole.user_id == target_user_id)
+    )
+    for ur in existing.scalars().all():
+        await db.delete(ur)
+    await db.flush()
+    for rid in role_ids:
+        db.add(UserRole(id=uuid.uuid4(), user_id=target_user_id, role_id=rid))
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="UPDATE", entity_type="user_roles", entity_id=target_user_id,
+                    new_values={"role_ids": [str(r) for r in role_ids]},
+                    ip_address=ip_address, user_agent=user_agent)
+    return True
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F041 — Audit Log (filtered)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def list_audit_logs_filtered(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    *,
+    entity_type: str | None = None,
+    entity_id: uuid.UUID | None = None,
+    audit_user_id: str | None = None,
+    action: str | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    page: int = 1,
+    per_page: int = 20,
+) -> tuple[list[AuditLog], int]:
+    q = select(AuditLog).where(AuditLog.organization_id == org_id)
+    count_q = select(func.count()).select_from(AuditLog).where(AuditLog.organization_id == org_id)
+    if entity_type:
+        q = q.where(AuditLog.entity_type == entity_type)
+        count_q = count_q.where(AuditLog.entity_type == entity_type)
+    if entity_id:
+        q = q.where(AuditLog.entity_id == entity_id)
+        count_q = count_q.where(AuditLog.entity_id == entity_id)
+    if audit_user_id:
+        q = q.where(AuditLog.user_id == uuid.UUID(audit_user_id))
+        count_q = count_q.where(AuditLog.user_id == uuid.UUID(audit_user_id))
+    if action:
+        q = q.where(AuditLog.action == action)
+        count_q = count_q.where(AuditLog.action == action)
+    if date_from:
+        q = q.where(AuditLog.timestamp >= date_from)
+        count_q = count_q.where(AuditLog.timestamp >= date_from)
+    if date_to:
+        q = q.where(AuditLog.timestamp <= date_to)
+        count_q = count_q.where(AuditLog.timestamp <= date_to)
+
+    total = (await db.execute(count_q)).scalar()
+    result = await db.execute(
+        q.order_by(AuditLog.timestamp.desc()).offset((page - 1) * per_page).limit(per_page)
+    )
+    return list(result.scalars().all()), total
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F039 — Custom Fields CRUD
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def list_custom_fields(
+    db: AsyncSession, org_id: uuid.UUID, entity_type: str | None = None
+) -> list[CustomFieldDefinition]:
+    q = select(CustomFieldDefinition).where(CustomFieldDefinition.organization_id == org_id)
+    if entity_type:
+        q = q.where(CustomFieldDefinition.entity_type == entity_type)
+    result = await db.execute(q.order_by(CustomFieldDefinition.sort_order))
+    return list(result.scalars().all())
+
+
+async def create_custom_field(
+    db: AsyncSession, org_id: uuid.UUID, *, data: dict,
+    user_id: uuid.UUID | None = None, ip_address: str | None = None, user_agent: str | None = None,
+) -> CustomFieldDefinition:
+    field = CustomFieldDefinition(id=uuid.uuid4(), organization_id=org_id, **data)
+    db.add(field)
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="CREATE", entity_type="custom_field_definitions", entity_id=field.id,
+                    new_values=model_to_dict(field), ip_address=ip_address, user_agent=user_agent)
+    return field
+
+
+async def update_custom_field(
+    db: AsyncSession, org_id: uuid.UUID, field_id: uuid.UUID, *, data: dict,
+    user_id: uuid.UUID | None = None, ip_address: str | None = None, user_agent: str | None = None,
+) -> CustomFieldDefinition | None:
+    result = await db.execute(
+        select(CustomFieldDefinition).where(
+            CustomFieldDefinition.id == field_id, CustomFieldDefinition.organization_id == org_id
+        )
+    )
+    field = result.scalar_one_or_none()
+    if not field:
+        return None
+    old = model_to_dict(field)
+    for k, v in data.items():
+        if v is not None:
+            setattr(field, k, v)
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="UPDATE", entity_type="custom_field_definitions", entity_id=field.id,
+                    old_values=old, new_values=model_to_dict(field),
+                    ip_address=ip_address, user_agent=user_agent)
+    return field
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F106 — Document Templates CRUD
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def list_document_templates(
+    db: AsyncSession, org_id: uuid.UUID, template_type: str | None = None
+) -> list[DocumentTemplate]:
+    q = select(DocumentTemplate).where(DocumentTemplate.organization_id == org_id)
+    if template_type:
+        q = q.where(DocumentTemplate.template_type == template_type)
+    result = await db.execute(q.order_by(DocumentTemplate.created_at.desc()))
+    return list(result.scalars().all())
+
+
+async def create_document_template(
+    db: AsyncSession, org_id: uuid.UUID, *, data: dict,
+    user_id: uuid.UUID | None = None, ip_address: str | None = None, user_agent: str | None = None,
+) -> DocumentTemplate:
+    tmpl = DocumentTemplate(id=uuid.uuid4(), organization_id=org_id, **data)
+    db.add(tmpl)
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="CREATE", entity_type="document_templates", entity_id=tmpl.id,
+                    new_values=model_to_dict(tmpl), ip_address=ip_address, user_agent=user_agent)
+    return tmpl
+
+
+async def update_document_template(
+    db: AsyncSession, org_id: uuid.UUID, tmpl_id: uuid.UUID, *, data: dict,
+    user_id: uuid.UUID | None = None, ip_address: str | None = None, user_agent: str | None = None,
+) -> DocumentTemplate | None:
+    result = await db.execute(
+        select(DocumentTemplate).where(
+            DocumentTemplate.id == tmpl_id, DocumentTemplate.organization_id == org_id
+        )
+    )
+    tmpl = result.scalar_one_or_none()
+    if not tmpl:
+        return None
+    old = model_to_dict(tmpl)
+    for k, v in data.items():
+        if v is not None:
+            setattr(tmpl, k, v)
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="UPDATE", entity_type="document_templates", entity_id=tmpl.id,
+                    old_values=old, new_values=model_to_dict(tmpl),
+                    ip_address=ip_address, user_agent=user_agent)
+    return tmpl
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F136 — Pipeline Stage Config + Feature Flags
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def list_pipeline_stage_configs(db: AsyncSession, org_id: uuid.UUID) -> list[PipelineStageConfig]:
+    result = await db.execute(
+        select(PipelineStageConfig).where(PipelineStageConfig.organization_id == org_id)
+        .order_by(PipelineStageConfig.sort_order)
+    )
+    return list(result.scalars().all())
+
+
+async def create_pipeline_stage_config(
+    db: AsyncSession, org_id: uuid.UUID, *, data: dict,
+    user_id: uuid.UUID | None = None, ip_address: str | None = None, user_agent: str | None = None,
+) -> PipelineStageConfig:
+    stage = PipelineStageConfig(id=uuid.uuid4(), organization_id=org_id, **data)
+    db.add(stage)
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="CREATE", entity_type="pipeline_stage_configs", entity_id=stage.id,
+                    new_values=model_to_dict(stage), ip_address=ip_address, user_agent=user_agent)
+    return stage
+
+
+async def update_pipeline_stage_config(
+    db: AsyncSession, org_id: uuid.UUID, stage_id: uuid.UUID, *, data: dict,
+    user_id: uuid.UUID | None = None, ip_address: str | None = None, user_agent: str | None = None,
+) -> PipelineStageConfig | None:
+    result = await db.execute(
+        select(PipelineStageConfig).where(
+            PipelineStageConfig.id == stage_id, PipelineStageConfig.organization_id == org_id
+        )
+    )
+    stage = result.scalar_one_or_none()
+    if not stage:
+        return None
+    old = model_to_dict(stage)
+    for k, v in data.items():
+        if v is not None:
+            setattr(stage, k, v)
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="UPDATE", entity_type="pipeline_stage_configs", entity_id=stage.id,
+                    old_values=old, new_values=model_to_dict(stage),
+                    ip_address=ip_address, user_agent=user_agent)
+    return stage
+
+
+async def list_feature_flags(db: AsyncSession, org_id: uuid.UUID) -> list[FeatureFlag]:
+    result = await db.execute(
+        select(FeatureFlag).where(FeatureFlag.organization_id == org_id)
+    )
+    return list(result.scalars().all())
+
+
+async def update_feature_flag(
+    db: AsyncSession, org_id: uuid.UUID, flag_id: uuid.UUID, *, data: dict,
+    user_id: uuid.UUID | None = None, ip_address: str | None = None, user_agent: str | None = None,
+) -> FeatureFlag | None:
+    result = await db.execute(
+        select(FeatureFlag).where(FeatureFlag.id == flag_id, FeatureFlag.organization_id == org_id)
+    )
+    flag = result.scalar_one_or_none()
+    if not flag:
+        return None
+    old = model_to_dict(flag)
+    for k, v in data.items():
+        if v is not None:
+            setattr(flag, k, v)
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="UPDATE", entity_type="feature_flags", entity_id=flag.id,
+                    old_values=old, new_values=model_to_dict(flag),
+                    ip_address=ip_address, user_agent=user_agent)
+    return flag
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F139 — Currency + Exchange Rate CRUD
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def list_currencies(db: AsyncSession, org_id: uuid.UUID) -> list[Currency]:
+    result = await db.execute(
+        select(Currency).where(Currency.organization_id == org_id)
+    )
+    return list(result.scalars().all())
+
+
+async def create_currency(
+    db: AsyncSession, org_id: uuid.UUID, *, data: dict,
+    user_id: uuid.UUID | None = None, ip_address: str | None = None, user_agent: str | None = None,
+) -> Currency:
+    cur = Currency(id=uuid.uuid4(), organization_id=org_id, **data)
+    db.add(cur)
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="CREATE", entity_type="currencies", entity_id=cur.id,
+                    new_values=model_to_dict(cur), ip_address=ip_address, user_agent=user_agent)
+    return cur
+
+
+async def update_currency(
+    db: AsyncSession, org_id: uuid.UUID, cur_id: uuid.UUID, *, data: dict,
+    user_id: uuid.UUID | None = None, ip_address: str | None = None, user_agent: str | None = None,
+) -> Currency | None:
+    result = await db.execute(
+        select(Currency).where(Currency.id == cur_id, Currency.organization_id == org_id)
+    )
+    cur = result.scalar_one_or_none()
+    if not cur:
+        return None
+    old = model_to_dict(cur)
+    for k, v in data.items():
+        if v is not None:
+            setattr(cur, k, v)
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="UPDATE", entity_type="currencies", entity_id=cur.id,
+                    old_values=old, new_values=model_to_dict(cur),
+                    ip_address=ip_address, user_agent=user_agent)
+    return cur
+
+
+async def list_exchange_rates(
+    db: AsyncSession, org_id: uuid.UUID, from_currency: str | None = None
+) -> list[ExchangeRate]:
+    q = select(ExchangeRate).where(ExchangeRate.organization_id == org_id)
+    if from_currency:
+        q = q.where(ExchangeRate.from_currency == from_currency)
+    result = await db.execute(q.order_by(ExchangeRate.effective_date.desc()))
+    return list(result.scalars().all())
+
+
+async def create_exchange_rate(
+    db: AsyncSession, org_id: uuid.UUID, *, data: dict,
+    user_id: uuid.UUID | None = None, ip_address: str | None = None, user_agent: str | None = None,
+) -> ExchangeRate:
+    rate = ExchangeRate(id=uuid.uuid4(), organization_id=org_id, **data)
+    db.add(rate)
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="CREATE", entity_type="exchange_rates", entity_id=rate.id,
+                    new_values=model_to_dict(rate), ip_address=ip_address, user_agent=user_agent)
+    return rate
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F140 — TrueCast (Actual vs Forecast)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def get_truecast_data(db: AsyncSession, org_id: uuid.UUID, project_id: uuid.UUID | None = None) -> list[dict]:
+    """Cross-module Actual vs Forecast comparison."""
+    from app.pm.models import Project, Task, DevizItem
+    q = select(Project).where(Project.organization_id == org_id, Project.is_deleted.is_(False))
+    if project_id:
+        q = q.where(Project.id == project_id)
+    projects = (await db.execute(q)).scalars().all()
+    results = []
+    for proj in projects:
+        tasks = (await db.execute(
+            select(Task).where(Task.project_id == proj.id)
+        )).scalars().all()
+        hours_est = sum(t.estimated_hours or 0 for t in tasks)
+        hours_act = sum(t.actual_hours or 0 for t in tasks)
+        deviz_items = (await db.execute(
+            select(DevizItem).where(DevizItem.project_id == proj.id)
+        )).scalars().all()
+        deviz_est = sum((d.quantity or 0) * (d.unit_price or 0) for d in deviz_items)
+        deviz_act = sum(d.actual_total or 0 for d in deviz_items)
+        budget_forecast = proj.budget_allocated or 0
+        budget_actual = proj.budget_actual or 0
+        cpi = (budget_forecast / budget_actual) if budget_actual and budget_actual > 0 else None
+        results.append({
+            "project_id": proj.id,
+            "project_name": proj.name,
+            "planned_start": proj.planned_start_date,
+            "planned_end": proj.planned_end_date,
+            "actual_start": proj.actual_start_date,
+            "actual_end": proj.actual_end_date,
+            "schedule_variance_days": (
+                (proj.actual_end_date - proj.planned_end_date).days
+                if proj.actual_end_date and proj.planned_end_date else None
+            ),
+            "budget_forecast": budget_forecast,
+            "budget_actual": budget_actual,
+            "budget_variance": budget_forecast - (budget_actual or 0),
+            "hours_estimated": hours_est,
+            "hours_actual": hours_act,
+            "hours_variance": hours_est - hours_act,
+            "deviz_estimated": deviz_est,
+            "deviz_actual": deviz_act,
+            "deviz_variance": deviz_est - deviz_act,
+            "cpi": cpi,
+            "spi": None,
+            "invoiced_forecast": 0.0,
+            "invoiced_actual": 0.0,
+            "invoiced_variance": 0.0,
+        })
+    return results
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F141 — Notifications
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def list_notifications(
+    db: AsyncSession, user_id: uuid.UUID, org_id: uuid.UUID,
+    status: str | None = None, page: int = 1, per_page: int = 20,
+) -> tuple[list[Notification], int]:
+    q = select(Notification).where(
+        Notification.user_id == user_id, Notification.organization_id == org_id
+    )
+    count_q = select(func.count()).select_from(Notification).where(
+        Notification.user_id == user_id, Notification.organization_id == org_id
+    )
+    if status:
+        q = q.where(Notification.status == status)
+        count_q = count_q.where(Notification.status == status)
+    total = (await db.execute(count_q)).scalar()
+    result = await db.execute(
+        q.order_by(Notification.created_at.desc()).offset((page - 1) * per_page).limit(per_page)
+    )
+    return list(result.scalars().all()), total
+
+
+async def create_notification(
+    db: AsyncSession, org_id: uuid.UUID, target_user_id: uuid.UUID, *, data: dict,
+) -> Notification:
+    notif = Notification(
+        id=uuid.uuid4(), organization_id=org_id, user_id=target_user_id, **data
+    )
+    db.add(notif)
+    await db.flush()
+    return notif
+
+
+async def mark_notification_read(
+    db: AsyncSession, notif_id: uuid.UUID, user_id: uuid.UUID,
+) -> Notification | None:
+    result = await db.execute(
+        select(Notification).where(Notification.id == notif_id, Notification.user_id == user_id)
+    )
+    notif = result.scalar_one_or_none()
+    if not notif:
+        return None
+    notif.status = "read"
+    notif.read_at = datetime.now(timezone.utc)
+    await db.flush()
+    return notif
+
+
+async def list_notification_templates(
+    db: AsyncSession, org_id: uuid.UUID,
+) -> list[NotificationTemplate]:
+    result = await db.execute(
+        select(NotificationTemplate).where(NotificationTemplate.organization_id == org_id)
+    )
+    return list(result.scalars().all())
+
+
+async def create_notification_template(
+    db: AsyncSession, org_id: uuid.UUID, *, data: dict,
+    user_id: uuid.UUID | None = None, ip_address: str | None = None, user_agent: str | None = None,
+) -> NotificationTemplate:
+    tmpl = NotificationTemplate(id=uuid.uuid4(), organization_id=org_id, **data)
+    db.add(tmpl)
+    await db.flush()
+    await log_audit(db, user_id=user_id, organization_id=org_id,
+                    action="CREATE", entity_type="notification_templates", entity_id=tmpl.id,
+                    new_values=model_to_dict(tmpl), ip_address=ip_address, user_agent=user_agent)
+    return tmpl
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F142 — Report Export
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def export_report(
+    db: AsyncSession, org_id: uuid.UUID, *,
+    report_type: str, format: str = "json", filters: dict | None = None,
+    project_id: uuid.UUID | None = None,
+) -> dict:
+    """Generate report data for export."""
+    data = []
+    record_count = 0
+    if report_type == "contacts":
+        from app.crm.models import Contact
+        q = select(Contact).where(Contact.organization_id == org_id, Contact.is_deleted.is_(False))
+        contacts = (await db.execute(q)).scalars().all()
+        data = [model_to_dict(c) for c in contacts]
+        record_count = len(data)
+    elif report_type == "projects":
+        from app.pm.models import Project
+        q = select(Project).where(Project.organization_id == org_id, Project.is_deleted.is_(False))
+        projects = (await db.execute(q)).scalars().all()
+        data = [model_to_dict(p) for p in projects]
+        record_count = len(data)
+    elif report_type == "pipeline":
+        from app.pipeline.models import Opportunity
+        q = select(Opportunity).where(Opportunity.organization_id == org_id, Opportunity.is_deleted.is_(False))
+        opps = (await db.execute(q)).scalars().all()
+        data = [model_to_dict(o) for o in opps]
+        record_count = len(data)
+    elif report_type == "audit_logs":
+        q = select(AuditLog).where(AuditLog.organization_id == org_id).limit(1000)
+        logs = (await db.execute(q)).scalars().all()
+        data = [model_to_dict(lg) for lg in logs]
+        record_count = len(data)
+    return {
+        "report_type": report_type,
+        "format": format,
+        "generated_at": datetime.now(timezone.utc),
+        "record_count": record_count,
+        "data": data,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F143 — Sync Journal
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def get_sync_status(db: AsyncSession, org_id: uuid.UUID) -> list[dict]:
+    """Cross-module sync status."""
+    modules = [
+        ("crm", "contacts", "app.crm.models", "Contact"),
+        ("pipeline", "opportunities", "app.pipeline.models", "Opportunity"),
+        ("pm", "projects", "app.pm.models", "Project"),
+    ]
+    results = []
+    for mod, entity, mod_path, cls_name in modules:
+        import importlib
+        m = importlib.import_module(mod_path)
+        model_cls = getattr(m, cls_name)
+        count_q = select(func.count()).select_from(model_cls).where(
+            model_cls.organization_id == org_id
+        )
+        total = (await db.execute(count_q)).scalar()
+        last_audit = await db.execute(
+            select(AuditLog.timestamp).where(
+                AuditLog.organization_id == org_id,
+                AuditLog.entity_type == entity,
+            ).order_by(AuditLog.timestamp.desc()).limit(1)
+        )
+        last_ts = last_audit.scalar_one_or_none()
+        results.append({
+            "module": mod,
+            "entity_type": entity,
+            "total_records": total,
+            "last_sync": last_ts,
+            "errors": [],
+            "status": "ok",
+        })
+    return results

@@ -62,7 +62,11 @@ from app.core.deps import get_current_user, get_db, get_request_info
 from app.crm import service
 from app.crm.schemas import (
     ContactCreate,
+    ContactExportRequest,
+    ContactImportRequest,
+    ContactImportResult,
     ContactListOut,
+    ContactMergeRequest,
     ContactOut,
     ContactPersonCreate,
     ContactPersonOut,
@@ -876,3 +880,63 @@ async def delete_product(
     )
     if not deleted:
         raise HTTPException(status_code=404, detail="Product not found")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F004 — Import / Export / Merge
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@crm_router.post("/contacts/import", response_model=ApiResponse, status_code=201)
+async def import_contacts(
+    body: ContactImportRequest,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F004: Bulk import contacts from structured data."""
+    req_info = await get_request_info(request)
+    result = await service.import_contacts(
+        db, current_user.organization_id, current_user.id,
+        [r.model_dump() for r in body.rows],
+        skip_duplicates=body.skip_duplicates,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=ContactImportResult(**result))
+
+
+@crm_router.post("/contacts/export", response_model=ApiResponse)
+async def export_contacts(
+    body: ContactExportRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F004: Export contacts with filters."""
+    data = await service.export_contacts(
+        db, current_user.organization_id,
+        stage=body.stage, contact_type=body.contact_type,
+        city=body.city, county=body.county,
+    )
+    return ApiResponse(data=data, meta=Meta(total=len(data)))
+
+
+@crm_router.post("/contacts/merge", response_model=ApiResponse)
+async def merge_contacts(
+    body: ContactMergeRequest,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F004: Merge two contacts (source into target)."""
+    req_info = await get_request_info(request)
+    contact = await service.merge_contacts(
+        db, current_user.organization_id, current_user.id,
+        body.source_id, body.target_id, body.fields_from_source,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if not contact:
+        raise HTTPException(status_code=404, detail="One or both contacts not found")
+    contact = await service.get_contact(db, current_user.organization_id, contact.id)
+    return ApiResponse(data=ContactOut.model_validate(contact))

@@ -637,3 +637,41 @@ class SalesKPIOut(BaseModel):
     avg_deal_value: float = 0.0
     currency: str = "RON"
     funnel: list[dict] = []
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F023/F033 — Document Generation (PDF/DOC)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class DocumentGenerateRequest(BaseModel):
+    """F023/F033: Generate document from offer/contract using template."""
+    template_id: uuid.UUID | None = None
+    format: str = "json"  # json (actual PDF requires engine)
+    include_line_items: bool = True
+    include_terms: bool = True
+
+
+class DocumentGenerateOut(BaseModel):
+    """F023/F033: Generated document data."""
+    entity_type: str  # offer, contract
+    entity_id: uuid.UUID
+    template_name: str | None = None
+    format: str
+    generated_at: datetime
+    content: dict  # Structured content ready for PDF rendering
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F049 — Simplified Offer Flow
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class SimplifiedOfferCreate(BaseModel):
+    """F049: Quick offer creation with minimal fields."""
+    contact_id: uuid.UUID
+    title: str = Field(..., min_length=1, max_length=500)
+    total_value: float
+    currency: str = "RON"
+    valid_until: datetime | None = None
+    notes: str | None = None

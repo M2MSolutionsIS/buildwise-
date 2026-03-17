@@ -947,6 +947,101 @@ async def test_contract_analytics(auth_client, sample_contact):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# F023/F033 — Document Generation
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_generate_offer_document(auth_client, sample_contact):
+    """F023: Generate document from offer."""
+    offer_resp = await auth_client.post("/api/v1/pipeline/offers", json={
+        "contact_id": sample_contact["id"],
+        "title": "Doc Gen Test Offer",
+        "validity_days": 30,
+        "line_items": [
+            {"description": "Service A", "quantity": 1, "unit_price": 1000, "vat_rate": 0.19}
+        ],
+    })
+    assert offer_resp.status_code == 201
+    offer_id = offer_resp.json()["data"]["id"]
+
+    resp = await auth_client.post(
+        f"/api/v1/pipeline/offers/{offer_id}/generate-document",
+        json={"format": "json", "include_line_items": True, "include_terms": True},
+    )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["entity_type"] == "offer"
+    assert "content" in data
+    assert data["content"]["title"] == "Doc Gen Test Offer"
+
+
+@pytest.mark.asyncio
+async def test_generate_contract_document(auth_client, sample_contact):
+    """F033: Generate document from contract."""
+    contract_resp = await auth_client.post("/api/v1/pipeline/contracts", json={
+        "contact_id": sample_contact["id"],
+        "title": "Doc Gen Test Contract",
+        "total_value": 50000.0,
+    })
+    assert contract_resp.status_code == 201
+    contract_id = contract_resp.json()["data"]["id"]
+
+    resp = await auth_client.post(
+        f"/api/v1/pipeline/contracts/{contract_id}/generate-document",
+        json={"format": "json"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["entity_type"] == "contract"
+    assert data["content"]["title"] == "Doc Gen Test Contract"
+
+
+@pytest.mark.asyncio
+async def test_generate_document_not_found(auth_client):
+    """F023: Generate document for non-existent offer returns 404."""
+    fake_id = str(uuid.uuid4())
+    resp = await auth_client.post(
+        f"/api/v1/pipeline/offers/{fake_id}/generate-document",
+        json={"format": "json"},
+    )
+    assert resp.status_code == 404
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F049 — Simplified Offer Flow
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+async def test_simplified_offer(auth_client, sample_contact):
+    """F049: Quick offer creation with minimal fields."""
+    resp = await auth_client.post("/api/v1/pipeline/offers/quick", json={
+        "contact_id": sample_contact["id"],
+        "title": "Quick Offer",
+        "total_value": 15000.0,
+        "currency": "RON",
+        "notes": "Quick test",
+    })
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["title"] == "Quick Offer"
+    assert data["status"] == "draft"
+    assert data["subtotal"] == 15000.0
+
+
+@pytest.mark.asyncio
+async def test_simplified_offer_bad_contact(auth_client):
+    """F049: Quick offer with invalid contact returns 400."""
+    resp = await auth_client.post("/api/v1/pipeline/offers/quick", json={
+        "contact_id": str(uuid.uuid4()),
+        "title": "Bad Contact Offer",
+        "total_value": 1000.0,
+    })
+    assert resp.status_code == 400
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # AUTH REQUIRED
 # ═══════════════════════════════════════════════════════════════════════════════
 

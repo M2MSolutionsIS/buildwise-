@@ -61,17 +61,23 @@ def model_to_dict(obj, exclude: set[str] | None = None) -> dict:
     """
     Convert a SQLAlchemy model instance to a dict for audit logging.
     Excludes password_hash and other sensitive fields.
+    Uses instance __dict__ to avoid triggering lazy loads on expired attrs.
     """
     exclude = (exclude or set()) | {"password_hash", "refresh_token"}
     result = {}
-    for col in obj.__table__.columns:
-        if col.name in exclude:
+    col_names = {col.name for col in obj.__table__.columns}
+    # Use instance dict to get loaded values without triggering lazy loads
+    obj_dict = obj.__dict__
+    for col_name in col_names:
+        if col_name in exclude:
             continue
-        val = getattr(obj, col.name, None)
+        if col_name not in obj_dict:
+            continue
+        val = obj_dict[col_name]
         # Convert UUID and datetime to string for JSON serialization
         if isinstance(val, uuid.UUID):
             val = str(val)
         elif isinstance(val, datetime):
             val = val.isoformat()
-        result[col.name] = val
+        result[col_name] = val
     return result

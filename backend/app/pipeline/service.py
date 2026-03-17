@@ -2061,3 +2061,187 @@ async def get_sales_kpi(db: AsyncSession, org_id: uuid.UUID) -> dict:
         "currency": "RON",
         "funnel": funnel,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F023/F033 — Document Generation (template-based)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def generate_offer_document(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    offer_id: uuid.UUID,
+    *,
+    template_id: uuid.UUID | None = None,
+    format: str = "json",
+    include_line_items: bool = True,
+    include_terms: bool = True,
+) -> dict | None:
+    """F023: Generate document from offer using template."""
+    offer = await get_offer(db, org_id, offer_id)
+    if not offer:
+        return None
+
+    # Get template if specified
+    template_name = None
+    if template_id:
+        from app.system.models import DocumentTemplate
+        tmpl = (await db.execute(
+            select(DocumentTemplate).where(
+                DocumentTemplate.id == template_id, DocumentTemplate.organization_id == org_id
+            )
+        )).scalar_one_or_none()
+        template_name = tmpl.name if tmpl else None
+
+    # Get contact info
+    from app.crm.models import Contact
+    contact = (await db.execute(
+        select(Contact).where(Contact.id == offer.contact_id)
+    )).scalar_one_or_none()
+
+    content = {
+        "offer_number": offer.offer_number,
+        "title": offer.title,
+        "status": offer.status,
+        "date": offer.created_at.isoformat() if offer.created_at else None,
+        "valid_until": offer.valid_until.isoformat() if offer.valid_until else None,
+        "contact": {
+            "company_name": contact.company_name if contact else None,
+            "cui": contact.cui if contact else None,
+            "address": contact.address if contact else None,
+            "email": contact.email if contact else None,
+        } if contact else {},
+        "subtotal": offer.subtotal,
+        "vat_amount": offer.vat_amount,
+        "total_amount": offer.total_amount,
+        "currency": offer.currency,
+    }
+    if include_line_items:
+        # Eagerly load line items
+        li_result = await db.execute(
+            select(OfferLineItem).where(OfferLineItem.offer_id == offer.id)
+        )
+        items = li_result.scalars().all()
+        content["line_items"] = [
+            {
+                "description": li.description,
+                "quantity": li.quantity,
+                "unit_price": li.unit_price,
+                "total_price": li.total_price,
+            }
+            for li in items
+        ]
+    if include_terms:
+        content["terms_and_conditions"] = offer.terms_and_conditions
+
+    return {
+        "entity_type": "offer",
+        "entity_id": offer.id,
+        "template_name": template_name,
+        "format": format,
+        "generated_at": datetime.now(timezone.utc),
+        "content": content,
+    }
+
+
+async def generate_contract_document(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    contract_id: uuid.UUID,
+    *,
+    template_id: uuid.UUID | None = None,
+    format: str = "json",
+    include_terms: bool = True,
+) -> dict | None:
+    """F033: Generate document from contract using template."""
+    contract = await get_contract(db, org_id, contract_id)
+    if not contract:
+        return None
+
+    template_name = None
+    if template_id:
+        from app.system.models import DocumentTemplate
+        tmpl = (await db.execute(
+            select(DocumentTemplate).where(
+                DocumentTemplate.id == template_id, DocumentTemplate.organization_id == org_id
+            )
+        )).scalar_one_or_none()
+        template_name = tmpl.name if tmpl else None
+
+    from app.crm.models import Contact
+    contact = (await db.execute(
+        select(Contact).where(Contact.id == contract.contact_id)
+    )).scalar_one_or_none()
+
+    content = {
+        "contract_number": contract.contract_number,
+        "title": contract.title,
+        "status": contract.status,
+        "start_date": contract.start_date.isoformat() if contract.start_date else None,
+        "end_date": contract.end_date.isoformat() if contract.end_date else None,
+        "signed_date": contract.signed_date.isoformat() if contract.signed_date else None,
+        "contact": {
+            "company_name": contact.company_name if contact else None,
+            "cui": contact.cui if contact else None,
+            "address": contact.address if contact else None,
+        } if contact else {},
+        "total_value": contract.total_value,
+        "currency": contract.currency,
+    }
+    if include_terms:
+        content["terms_and_conditions"] = contract.terms_and_conditions
+
+    return {
+        "entity_type": "contract",
+        "entity_id": contract.id,
+        "template_name": template_name,
+        "format": format,
+        "generated_at": datetime.now(timezone.utc),
+        "content": content,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F049 — Simplified Offer Flow
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def create_simplified_offer(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    data: dict,
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> "Offer":
+    """F049: Quick offer with minimal fields — auto-generates offer number."""
+    offer_number = await _generate_offer_number(db, org_id)
+    offer = Offer(
+        id=uuid.uuid4(),
+        organization_id=org_id,
+        offer_number=offer_number,
+        contact_id=data["contact_id"],
+        title=data["title"],
+        subtotal=data["total_value"],
+        vat_amount=data["total_value"] * 0.19,
+        total_amount=data["total_value"] * 1.19,
+        currency=data.get("currency", "RON"),
+        valid_until=data.get("valid_until"),
+        is_quick_quote=True,
+        status="draft",
+        version=1,
+        created_by=user_id,
+        updated_by=user_id,
+    )
+    db.add(offer)
+
+    await log_audit(
+        db, user_id=user_id, organization_id=org_id,
+        action="CREATE", entity_type="offers", entity_id=offer.id,
+        new_values=model_to_dict(offer),
+        ip_address=ip_address, user_agent=user_agent,
+    )
+    await db.flush()
+    return offer
