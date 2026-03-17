@@ -1,9 +1,14 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ConfigProvider, App as AntApp } from "antd";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import roLocale from "antd/locale/ro_RO";
 import AppLayout from "./layouts/AppLayout";
+import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./modules/crm/pages/DashboardPage";
+import ContactsListPage from "./modules/crm/pages/ContactsListPage";
+import ContactDetailPage from "./modules/crm/pages/ContactDetailPage";
+import ContactCreatePage from "./modules/crm/pages/ContactCreatePage";
+import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,6 +18,14 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+}
 
 function App() {
   return (
@@ -29,14 +42,46 @@ function App() {
         <AntApp>
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<AppLayout />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="/"
+                element={
+                  <RequireAuth>
+                    <AppLayout />
+                  </RequireAuth>
+                }
+              >
                 <Route index element={<DashboardPage />} />
+
+                {/* CRM Routes */}
+                <Route path="crm">
+                  <Route index element={<Navigate to="contacts" replace />} />
+                  <Route path="contacts" element={<ContactsListPage />} />
+                  <Route path="contacts/new" element={<ContactCreatePage />} />
+                  <Route path="contacts/:id" element={<ContactDetailPage />} />
+                </Route>
+
+                {/* Placeholder routes for other modules */}
+                <Route path="pipeline" element={<PlaceholderPage title="Sales Pipeline" />} />
+                <Route path="pm" element={<PlaceholderPage title="Project Management" />} />
+                <Route path="rm" element={<PlaceholderPage title="Resource Management" />} />
+                <Route path="bi" element={<PlaceholderPage title="Business Intelligence" />} />
+                <Route path="settings" element={<PlaceholderPage title="Setări" />} />
               </Route>
             </Routes>
           </BrowserRouter>
         </AntApp>
       </ConfigProvider>
     </QueryClientProvider>
+  );
+}
+
+function PlaceholderPage({ title }: { title: string }) {
+  return (
+    <div style={{ padding: 48, textAlign: "center" }}>
+      <h2>{title}</h2>
+      <p style={{ color: "#888" }}>Modul în curs de implementare.</p>
+    </div>
   );
 }
 
