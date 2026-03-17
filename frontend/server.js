@@ -1,5 +1,5 @@
-const handler = require('serve-handler');
-const http = require('http');
+import handler from 'serve-handler';
+import http from 'http';
 
 const port = process.env.PORT || 3000;
 
@@ -11,5 +11,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`Running on ${port}`);
+  console.log(`Running on port ${port}`);
 });
