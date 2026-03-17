@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "start": "npx serve dist -s -l $PORT",
+    "start": "node server.js",
     "preview": "vite preview",
     "lint": "eslint ."
   },
@@ -21,6 +21,7 @@
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.1",
     "serve": "^14.2.6",
+    "serve-handler": "^6.1.5",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
