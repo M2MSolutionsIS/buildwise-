@@ -16,6 +16,14 @@ from app.core.auth import hash_password
 from app.database import Base
 from app.core.deps import get_db
 
+# Import all models so they register with Base.metadata before create_all
+import app.system.models  # noqa: F401
+import app.crm.models  # noqa: F401
+import app.pipeline.models  # noqa: F401
+import app.pm.models  # noqa: F401
+import app.rm.models  # noqa: F401
+import app.bi.models  # noqa: F401
+
 
 # Use SQLite for tests (async via aiosqlite)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"

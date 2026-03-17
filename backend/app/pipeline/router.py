@@ -1,33 +1,70 @@
 """
-Sales Pipeline module router — F019, F028, F031, F035.
+Sales Pipeline module router — F019, F023, F026–F029, F031, F033, F035, F037,
+F042–F056, F058, F049.
 
 Endpoints:
-  # Offers — F019 (Offer Builder), F028 (Approval)
-  GET    /api/v1/pipeline/offers                    — List offers
-  POST   /api/v1/pipeline/offers                    — Create offer
-  GET    /api/v1/pipeline/offers/{id}               — Get offer detail
-  PUT    /api/v1/pipeline/offers/{id}               — Update offer
-  DELETE /api/v1/pipeline/offers/{id}               — Delete offer
-  POST   /api/v1/pipeline/offers/{id}/submit        — Submit for approval (F028)
-  POST   /api/v1/pipeline/offers/{id}/approve       — Approve/reject offer (F028)
+  # Opportunities — F042, F050, F051, F052, F053
+  GET    /api/v1/pipeline/opportunities                — List opportunities
+  POST   /api/v1/pipeline/opportunities                — Create opportunity (CRM handover)
+  GET    /api/v1/pipeline/opportunities/{id}           — Get opportunity detail
+  PUT    /api/v1/pipeline/opportunities/{id}           — Update opportunity
+  DELETE /api/v1/pipeline/opportunities/{id}           — Delete opportunity
+  POST   /api/v1/pipeline/opportunities/{id}/transition — Stage transition (F051)
+  POST   /api/v1/pipeline/opportunities/{id}/qualify    — Qualify (F042)
+  GET    /api/v1/pipeline/board                        — Pipeline Kanban board (F050)
 
-  # Contracts — F031 (Contract Builder)
-  GET    /api/v1/pipeline/contracts                 — List contracts
-  POST   /api/v1/pipeline/contracts                 — Create contract
-  POST   /api/v1/pipeline/contracts/from-offer      — Create from offer (F031)
-  GET    /api/v1/pipeline/contracts/{id}            — Get contract detail
-  PUT    /api/v1/pipeline/contracts/{id}            — Update contract
-  DELETE /api/v1/pipeline/contracts/{id}            — Delete contract
+  # Milestones — F043, F044, F045, F046, F047, F048
+  GET    /api/v1/pipeline/opportunities/{id}/milestones       — List milestones
+  POST   /api/v1/pipeline/milestones                          — Create milestone
+  GET    /api/v1/pipeline/milestones/{id}                     — Get milestone
+  PUT    /api/v1/pipeline/milestones/{id}                     — Update milestone
+  DELETE /api/v1/pipeline/milestones/{id}                     — Delete milestone
+  POST   /api/v1/pipeline/milestones/{id}/dependencies        — Add dependency (F047)
+  GET    /api/v1/pipeline/opportunities/{id}/time-summary     — Time summary (F044)
+  GET    /api/v1/pipeline/milestone-templates                 — List templates (F048)
+  POST   /api/v1/pipeline/milestone-templates                 — Create template (F048)
+  POST   /api/v1/pipeline/milestone-templates/apply           — Apply template (F048)
 
-  # Invoices — F035 (Billing)
-  GET    /api/v1/pipeline/invoices                  — List invoices
-  POST   /api/v1/pipeline/invoices                  — Create invoice from contract
+  # Activities — F054, F055, F056
+  GET    /api/v1/pipeline/activities                   — List activities
+  POST   /api/v1/pipeline/activities                   — Create activity
+  GET    /api/v1/pipeline/activities/{id}              — Get activity
+  PUT    /api/v1/pipeline/activities/{id}              — Update activity
+  DELETE /api/v1/pipeline/activities/{id}              — Delete activity
 
-  # KPI
-  GET    /api/v1/pipeline/kpi/sales                 — Sales KPI dashboard
+  # Offers — F019, F026, F028
+  GET    /api/v1/pipeline/offers                       — List offers
+  POST   /api/v1/pipeline/offers                       — Create offer
+  GET    /api/v1/pipeline/offers/{id}                  — Get offer detail
+  PUT    /api/v1/pipeline/offers/{id}                  — Update offer
+  DELETE /api/v1/pipeline/offers/{id}                  — Delete offer
+  POST   /api/v1/pipeline/offers/{id}/submit           — Submit for approval (F028)
+  POST   /api/v1/pipeline/offers/{id}/approve          — Approve/reject (F028)
+  POST   /api/v1/pipeline/offers/{id}/version          — Create new version (F026)
+
+  # Contracts — F031, F035
+  GET    /api/v1/pipeline/contracts                    — List contracts
+  POST   /api/v1/pipeline/contracts                    — Create contract
+  POST   /api/v1/pipeline/contracts/from-offer         — Create from offer (F031)
+  GET    /api/v1/pipeline/contracts/{id}               — Get contract detail
+  PUT    /api/v1/pipeline/contracts/{id}               — Update contract
+  DELETE /api/v1/pipeline/contracts/{id}               — Delete contract
+  POST   /api/v1/pipeline/contracts/{id}/sign          — Sign contract (F031)
+  POST   /api/v1/pipeline/contracts/{id}/terminate     — Terminate contract (F035)
+  POST   /api/v1/pipeline/contracts/{id}/billing       — Add billing schedule (F035)
+
+  # Invoices — F035
+  GET    /api/v1/pipeline/invoices                     — List invoices
+  POST   /api/v1/pipeline/invoices                     — Create invoice
+
+  # Analytics & KPI — F029, F037, F058
+  GET    /api/v1/pipeline/kpi/sales                    — Sales Dashboard (F058)
+  GET    /api/v1/pipeline/analytics/offers             — Offers analytics (F029)
+  GET    /api/v1/pipeline/analytics/contracts          — Contracts analytics (F037)
 """
 
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,19 +74,46 @@ from app.core.rbac import require_min_role
 from app.crm import service as crm_service
 from app.pipeline import service
 from app.pipeline.schemas import (
+    ActivityCreate,
+    ActivityListOut,
+    ActivityOut,
+    ActivityUpdate,
+    BillingScheduleCreate,
+    BillingScheduleOut,
+    ContractAnalyticsOut,
     ContractCreate,
     ContractFromOffer,
     ContractListOut,
     ContractOut,
+    ContractSignRequest,
+    ContractTerminateRequest,
     ContractUpdate,
     InvoiceCreate,
     InvoiceOut,
+    MilestoneCreate,
+    MilestoneDependencyCreate,
+    MilestoneDependencyOut,
+    MilestoneOut,
+    MilestoneTemplateApply,
+    MilestoneTemplateCreate,
+    MilestoneTemplateOut,
+    MilestoneUpdate,
+    OfferAnalyticsOut,
     OfferApprovalDecision,
     OfferApprovalRequest,
     OfferCreate,
     OfferListOut,
     OfferOut,
     OfferUpdate,
+    OfferVersionCreate,
+    OpportunityCreate,
+    OpportunityListOut,
+    OpportunityOut,
+    OpportunityQualify,
+    OpportunityStageTransition,
+    OpportunityUpdate,
+    PipelineBoardOut,
+    PipelineBoardStage,
     SalesKPIOut,
 )
 from app.system.schemas import ApiResponse, Meta
@@ -58,7 +122,520 @@ pipeline_router = APIRouter(prefix="/api/v1/pipeline", tags=["Sales Pipeline"])
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# OFFERS — F019, F028
+# OPPORTUNITIES — F042, F050, F051, F052, F053
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pipeline_router.get("/opportunities", response_model=ApiResponse)
+async def list_opportunities(
+    page: int = 1,
+    per_page: int = 20,
+    stage: str | None = None,
+    owner_id: uuid.UUID | None = None,
+    contact_id: uuid.UUID | None = None,
+    search: str | None = None,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F050: List opportunities with filtering."""
+    opps, total = await service.list_opportunities(
+        db,
+        current_user.organization_id,
+        page=page,
+        per_page=per_page,
+        stage=stage,
+        owner_id=owner_id,
+        contact_id=contact_id,
+        search=search,
+    )
+    return ApiResponse(
+        data=[OpportunityListOut.model_validate(o) for o in opps],
+        meta=Meta(total=total, page=page, per_page=per_page),
+    )
+
+
+@pipeline_router.post("/opportunities", response_model=ApiResponse, status_code=201)
+async def create_opportunity(
+    body: OpportunityCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F042: Create opportunity (CRM → Pipeline handover)."""
+    contact = await crm_service.get_contact(
+        db, current_user.organization_id, body.contact_id
+    )
+    if contact is None:
+        raise HTTPException(status_code=400, detail="Contact not found")
+
+    req_info = await get_request_info(request)
+    opp = await service.create_opportunity(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        body.model_dump(),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=OpportunityOut.model_validate(opp))
+
+
+@pipeline_router.get("/opportunities/{opp_id}", response_model=ApiResponse)
+async def get_opportunity(
+    opp_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F050: Get opportunity detail."""
+    opp = await service.get_opportunity(db, current_user.organization_id, opp_id)
+    if opp is None:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+    return ApiResponse(data=OpportunityOut.model_validate(opp))
+
+
+@pipeline_router.put("/opportunities/{opp_id}", response_model=ApiResponse)
+async def update_opportunity(
+    opp_id: uuid.UUID,
+    body: OpportunityUpdate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update opportunity."""
+    req_info = await get_request_info(request)
+    opp = await service.update_opportunity(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        opp_id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if opp is None:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+    opp = await service.get_opportunity(db, current_user.organization_id, opp_id)
+    return ApiResponse(data=OpportunityOut.model_validate(opp))
+
+
+@pipeline_router.delete("/opportunities/{opp_id}", status_code=204)
+async def delete_opportunity(
+    opp_id: uuid.UUID,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete opportunity."""
+    req_info = await get_request_info(request)
+    deleted = await service.delete_opportunity(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        opp_id,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+
+
+@pipeline_router.post("/opportunities/{opp_id}/transition", response_model=ApiResponse)
+async def transition_opportunity(
+    opp_id: uuid.UUID,
+    body: OpportunityStageTransition,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F051: Stage transition with validation + F052: auto win probability."""
+    req_info = await get_request_info(request)
+    opp = await service.transition_opportunity_stage(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        opp_id,
+        body.new_stage,
+        loss_reason=body.loss_reason,
+        loss_reason_detail=body.loss_reason_detail,
+        won_reason=body.won_reason,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if opp is None:
+        raise HTTPException(
+            status_code=400, detail="Invalid stage transition or opportunity not found"
+        )
+    opp = await service.get_opportunity(db, current_user.organization_id, opp_id)
+    return ApiResponse(data=OpportunityOut.model_validate(opp))
+
+
+@pipeline_router.post("/opportunities/{opp_id}/qualify", response_model=ApiResponse)
+async def qualify_opportunity(
+    opp_id: uuid.UUID,
+    body: OpportunityQualify,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F042: Qualify opportunity (CRM → Pipeline handover)."""
+    req_info = await get_request_info(request)
+    opp = await service.qualify_opportunity(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        opp_id,
+        body.qualification_checklist,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if opp is None:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+    opp = await service.get_opportunity(db, current_user.organization_id, opp_id)
+    return ApiResponse(data=OpportunityOut.model_validate(opp))
+
+
+@pipeline_router.get("/board", response_model=ApiResponse)
+async def get_pipeline_board(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F050: Pipeline Kanban board."""
+    board = await service.get_pipeline_board(db, current_user.organization_id)
+    # Serialize opportunities within stages
+    for stage in board["stages"]:
+        stage["opportunities"] = [
+            OpportunityListOut.model_validate(o) for o in stage["opportunities"]
+        ]
+    return ApiResponse(data=board)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MILESTONES — F043, F044, F045, F046, F047, F048
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pipeline_router.get("/opportunities/{opp_id}/milestones", response_model=ApiResponse)
+async def list_milestones(
+    opp_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F043: List milestones for an opportunity."""
+    milestones = await service.list_milestones(
+        db, current_user.organization_id, opp_id
+    )
+    return ApiResponse(
+        data=[MilestoneOut.model_validate(m) for m in milestones],
+    )
+
+
+@pipeline_router.post("/milestones", response_model=ApiResponse, status_code=201)
+async def create_milestone(
+    body: MilestoneCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F043: Create milestone."""
+    req_info = await get_request_info(request)
+    ms = await service.create_milestone(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        body.model_dump(),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=MilestoneOut.model_validate(ms))
+
+
+@pipeline_router.get("/milestones/{milestone_id}", response_model=ApiResponse)
+async def get_milestone(
+    milestone_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F043: Get milestone detail."""
+    ms = await service.get_milestone(
+        db, current_user.organization_id, milestone_id
+    )
+    if ms is None:
+        raise HTTPException(status_code=404, detail="Milestone not found")
+    return ApiResponse(data=MilestoneOut.model_validate(ms))
+
+
+@pipeline_router.put("/milestones/{milestone_id}", response_model=ApiResponse)
+async def update_milestone(
+    milestone_id: uuid.UUID,
+    body: MilestoneUpdate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F043-F046: Update milestone (status, assignment, cost, time)."""
+    req_info = await get_request_info(request)
+    ms = await service.update_milestone(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        milestone_id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if ms is None:
+        raise HTTPException(status_code=404, detail="Milestone not found")
+    ms = await service.get_milestone(db, current_user.organization_id, milestone_id)
+    return ApiResponse(data=MilestoneOut.model_validate(ms))
+
+
+@pipeline_router.delete("/milestones/{milestone_id}", status_code=204)
+async def delete_milestone(
+    milestone_id: uuid.UUID,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete milestone."""
+    req_info = await get_request_info(request)
+    deleted = await service.delete_milestone(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        milestone_id,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Milestone not found")
+
+
+@pipeline_router.post(
+    "/milestones/{milestone_id}/dependencies",
+    response_model=ApiResponse,
+    status_code=201,
+)
+async def add_milestone_dependency(
+    milestone_id: uuid.UUID,
+    body: MilestoneDependencyCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F047: Add dependency between milestones."""
+    req_info = await get_request_info(request)
+    dep = await service.add_milestone_dependency(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        milestone_id,
+        body.depends_on_id,
+        body.dependency_type,
+        body.lag_days,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if dep is None:
+        raise HTTPException(status_code=400, detail="Milestone(s) not found")
+    return ApiResponse(data=MilestoneDependencyOut.model_validate(dep))
+
+
+@pipeline_router.get(
+    "/opportunities/{opp_id}/time-summary", response_model=ApiResponse
+)
+async def get_time_summary(
+    opp_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F044: Time estimation summary for all milestones."""
+    summary = await service.get_milestone_time_summary(
+        db, current_user.organization_id, opp_id
+    )
+    return ApiResponse(data=summary)
+
+
+@pipeline_router.get("/milestone-templates", response_model=ApiResponse)
+async def list_milestone_templates(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F048: List milestone templates."""
+    templates = await service.list_milestone_templates(
+        db, current_user.organization_id
+    )
+    return ApiResponse(
+        data=[MilestoneTemplateOut.model_validate(t) for t in templates],
+    )
+
+
+@pipeline_router.post(
+    "/milestone-templates", response_model=ApiResponse, status_code=201
+)
+async def create_milestone_template(
+    body: MilestoneTemplateCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F048: Create milestone template."""
+    req_info = await get_request_info(request)
+    tmpl = await service.create_milestone_template(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        body.model_dump(),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=MilestoneTemplateOut.model_validate(tmpl))
+
+
+@pipeline_router.post("/milestone-templates/apply", response_model=ApiResponse)
+async def apply_milestone_template(
+    body: MilestoneTemplateApply,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F048: Apply template to create milestones for opportunity."""
+    req_info = await get_request_info(request)
+    milestones = await service.apply_milestone_template(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        body.template_id,
+        body.opportunity_id,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(
+        data=[MilestoneOut.model_validate(m) for m in milestones],
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ACTIVITIES — F054, F055, F056
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pipeline_router.get("/activities", response_model=ApiResponse)
+async def list_activities(
+    page: int = 1,
+    per_page: int = 20,
+    activity_type: str | None = None,
+    status: str | None = None,
+    owner_id: uuid.UUID | None = None,
+    contact_id: uuid.UUID | None = None,
+    opportunity_id: uuid.UUID | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F054: List activities with filtering."""
+    activities, total = await service.list_activities(
+        db,
+        current_user.organization_id,
+        page=page,
+        per_page=per_page,
+        activity_type=activity_type,
+        status=status,
+        owner_id=owner_id,
+        contact_id=contact_id,
+        opportunity_id=opportunity_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    return ApiResponse(
+        data=[ActivityListOut.model_validate(a) for a in activities],
+        meta=Meta(total=total, page=page, per_page=per_page),
+    )
+
+
+@pipeline_router.post("/activities", response_model=ApiResponse, status_code=201)
+async def create_activity(
+    body: ActivityCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F054/F055/F056: Create activity."""
+    req_info = await get_request_info(request)
+    act = await service.create_activity(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        body.model_dump(),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=ActivityOut.model_validate(act))
+
+
+@pipeline_router.get("/activities/{activity_id}", response_model=ApiResponse)
+async def get_activity(
+    activity_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get activity detail."""
+    act = await service.get_activity(
+        db, current_user.organization_id, activity_id
+    )
+    if act is None:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    return ApiResponse(data=ActivityOut.model_validate(act))
+
+
+@pipeline_router.put("/activities/{activity_id}", response_model=ApiResponse)
+async def update_activity(
+    activity_id: uuid.UUID,
+    body: ActivityUpdate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update activity."""
+    req_info = await get_request_info(request)
+    act = await service.update_activity(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        activity_id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if act is None:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    act = await service.get_activity(db, current_user.organization_id, activity_id)
+    return ApiResponse(data=ActivityOut.model_validate(act))
+
+
+@pipeline_router.delete("/activities/{activity_id}", status_code=204)
+async def delete_activity(
+    activity_id: uuid.UUID,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete activity."""
+    req_info = await get_request_info(request)
+    deleted = await service.delete_activity(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        activity_id,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OFFERS — F019, F026, F028
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -96,7 +673,6 @@ async def create_offer(
     db: AsyncSession = Depends(get_db),
 ):
     """F019: Create an offer with line items."""
-    # Verify contact exists
     contact = await crm_service.get_contact(
         db, current_user.organization_id, body.contact_id
     )
@@ -239,8 +815,33 @@ async def approve_offer(
     return ApiResponse(data=OfferOut.model_validate(offer))
 
 
+@pipeline_router.post("/offers/{offer_id}/version", response_model=ApiResponse, status_code=201)
+async def create_offer_version(
+    offer_id: uuid.UUID,
+    body: OfferVersionCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F026: Create new version of an offer."""
+    req_info = await get_request_info(request)
+    new_offer = await service.create_offer_version(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        offer_id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if new_offer is None:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    new_offer = await service.get_offer(db, current_user.organization_id, new_offer.id)
+    return ApiResponse(data=OfferOut.model_validate(new_offer))
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
-# CONTRACTS — F031
+# CONTRACTS — F031, F035
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -398,6 +999,90 @@ async def delete_contract(
         )
 
 
+@pipeline_router.post("/contracts/{contract_id}/sign", response_model=ApiResponse)
+async def sign_contract(
+    contract_id: uuid.UUID,
+    body: ContractSignRequest,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F031: Sign contract → triggers Project Setup (F063)."""
+    req_info = await get_request_info(request)
+    contract = await service.sign_contract(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        contract_id,
+        body.signed_date,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if contract is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Contract not found or cannot be signed in current status",
+        )
+    contract = await service.get_contract(db, current_user.organization_id, contract_id)
+    return ApiResponse(data=ContractOut.model_validate(contract))
+
+
+@pipeline_router.post("/contracts/{contract_id}/terminate", response_model=ApiResponse)
+async def terminate_contract(
+    contract_id: uuid.UUID,
+    body: ContractTerminateRequest,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F035: Terminate contract."""
+    req_info = await get_request_info(request)
+    contract = await service.terminate_contract(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        contract_id,
+        body.termination_reason,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if contract is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Contract not found or already terminated/completed",
+        )
+    contract = await service.get_contract(db, current_user.organization_id, contract_id)
+    return ApiResponse(data=ContractOut.model_validate(contract))
+
+
+@pipeline_router.post(
+    "/contracts/{contract_id}/billing",
+    response_model=ApiResponse,
+    status_code=201,
+)
+async def add_billing_schedule(
+    contract_id: uuid.UUID,
+    body: BillingScheduleCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F035: Add billing schedule item to contract."""
+    req_info = await get_request_info(request)
+    bs = await service.add_billing_schedule(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        contract_id,
+        body.model_dump(),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if bs is None:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    return ApiResponse(data=BillingScheduleOut.model_validate(bs))
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # INVOICES — F035
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -453,7 +1138,7 @@ async def create_invoice(
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SALES KPI
+# ANALYTICS & KPI — F029, F037, F058
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -462,6 +1147,26 @@ async def get_sales_kpi(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Sales KPI dashboard."""
+    """F058: Sales Dashboard — KPIs, funnel, forecast."""
     kpi = await service.get_sales_kpi(db, current_user.organization_id)
     return ApiResponse(data=SalesKPIOut(**kpi))
+
+
+@pipeline_router.get("/analytics/offers", response_model=ApiResponse)
+async def get_offer_analytics(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F029: Offers Analytics."""
+    analytics = await service.get_offer_analytics(db, current_user.organization_id)
+    return ApiResponse(data=OfferAnalyticsOut(**analytics))
+
+
+@pipeline_router.get("/analytics/contracts", response_model=ApiResponse)
+async def get_contract_analytics(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F037: Contracts Analytics."""
+    analytics = await service.get_contract_analytics(db, current_user.organization_id)
+    return ApiResponse(data=ContractAnalyticsOut(**analytics))
