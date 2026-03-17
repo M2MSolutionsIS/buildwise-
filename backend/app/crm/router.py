@@ -1,59 +1,56 @@
 """
-CRM module router — F001–F024.
+CRM module router — F001–F005, F007, F010, F012, F016, F018.
 
 Endpoints:
   # Contacts — F001, F003
-  GET    /api/v1/crm/contacts                    — List contacts (search, filter, paginate)
-  POST   /api/v1/crm/contacts                    — Create contact
-  GET    /api/v1/crm/contacts/{id}               — Get contact detail
-  PUT    /api/v1/crm/contacts/{id}               — Update contact
-  DELETE /api/v1/crm/contacts/{id}               — Soft-delete contact
+  GET    /api/v1/crm/contacts                              — List contacts (search, filter, paginate)
+  POST   /api/v1/crm/contacts                              — Create contact
+  GET    /api/v1/crm/contacts/{id}                         — Get contact detail
+  PUT    /api/v1/crm/contacts/{id}                         — Update contact
+  DELETE /api/v1/crm/contacts/{id}                         — Soft-delete contact
+
+  # F005: Duplicate Check
+  POST   /api/v1/crm/contacts/check-duplicates             — Check for duplicates
 
   # Contact Persons — F001
-  POST   /api/v1/crm/contacts/{id}/persons       — Add person
-  PUT    /api/v1/crm/contacts/{id}/persons/{pid}  — Update person
-  DELETE /api/v1/crm/contacts/{id}/persons/{pid}  — Delete person
+  POST   /api/v1/crm/contacts/{id}/persons                 — Add person
+  PUT    /api/v1/crm/contacts/{id}/persons/{pid}           — Update person
+  DELETE /api/v1/crm/contacts/{id}/persons/{pid}           — Delete person
 
   # Interactions — F002
-  GET    /api/v1/crm/contacts/{id}/interactions   — List interactions (timeline)
-  POST   /api/v1/crm/contacts/{id}/interactions   — Create interaction
+  GET    /api/v1/crm/contacts/{id}/interactions            — List interactions (timeline)
+  POST   /api/v1/crm/contacts/{id}/interactions            — Create interaction
+
+  # Properties — F010
+  GET    /api/v1/crm/contacts/{id}/properties              — List properties for contact
+  POST   /api/v1/crm/contacts/{id}/properties              — Create property
+  GET    /api/v1/crm/properties/{id}                       — Get property detail
+  PUT    /api/v1/crm/properties/{id}                       — Update property
+  DELETE /api/v1/crm/properties/{id}                       — Delete property
+
+  # Energy Profile — F012
+  GET    /api/v1/crm/properties/{id}/energy-profile        — Get energy profile
+  PUT    /api/v1/crm/properties/{id}/energy-profile        — Create/update energy profile
+  POST   /api/v1/crm/energy/calculator                     — Energy savings calculator
+
+  # Work History — F016
+  GET    /api/v1/crm/properties/{id}/work-history          — List work history
+  POST   /api/v1/crm/properties/{id}/work-history          — Add work history entry
+  PUT    /api/v1/crm/work-history/{id}                     — Update entry
+  DELETE /api/v1/crm/work-history/{id}                     — Delete entry
 
   # Product Categories — F007
-  GET    /api/v1/crm/product-categories           — List categories
-  POST   /api/v1/crm/product-categories           — Create category
-  PUT    /api/v1/crm/product-categories/{id}      — Update category
-  DELETE /api/v1/crm/product-categories/{id}      — Delete category
+  GET    /api/v1/crm/product-categories                    — List categories
+  POST   /api/v1/crm/product-categories                    — Create category
+  PUT    /api/v1/crm/product-categories/{id}               — Update category
+  DELETE /api/v1/crm/product-categories/{id}               — Delete category
 
-  # Products — F005, F006
-  GET    /api/v1/crm/products                     — List products
-  POST   /api/v1/crm/products                     — Create product
-  GET    /api/v1/crm/products/{id}                — Get product detail
-  PUT    /api/v1/crm/products/{id}                — Update product
-  DELETE /api/v1/crm/products/{id}                — Delete product
-
-  # Offers — F008, F009, F010, F012, F014, F015, F016
-  GET    /api/v1/crm/offers                       — List offers
-  POST   /api/v1/crm/offers                       — Create offer
-  GET    /api/v1/crm/offers/{id}                  — Get offer detail
-  PUT    /api/v1/crm/offers/{id}                  — Update offer
-  DELETE /api/v1/crm/offers/{id}                  — Delete offer
-  POST   /api/v1/crm/offers/{id}/submit           — Submit for approval (F014)
-  POST   /api/v1/crm/offers/{id}/approve          — Approve/reject offer (F014)
-
-  # Contracts — F017, F018, F019, F021, F022
-  GET    /api/v1/crm/contracts                    — List contracts
-  POST   /api/v1/crm/contracts                    — Create contract
-  POST   /api/v1/crm/contracts/from-offer         — Create from offer (F018)
-  GET    /api/v1/crm/contracts/{id}               — Get contract detail
-  PUT    /api/v1/crm/contracts/{id}               — Update contract
-  DELETE /api/v1/crm/contracts/{id}               — Delete contract
-
-  # Invoices — F021
-  GET    /api/v1/crm/invoices                     — List invoices
-  POST   /api/v1/crm/invoices                     — Create invoice from contract
-
-  # KPI & Reports — F023, F024
-  GET    /api/v1/crm/kpi/sales                    — Sales KPI dashboard
+  # Products — F007
+  GET    /api/v1/crm/products                              — List products
+  POST   /api/v1/crm/products                              — Create product
+  GET    /api/v1/crm/products/{id}                         — Get product detail
+  PUT    /api/v1/crm/products/{id}                         — Update product
+  DELETE /api/v1/crm/products/{id}                         — Delete product
 """
 
 import uuid
@@ -62,7 +59,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_db, get_request_info
-from app.core.rbac import require_min_role, require_role
 from app.crm import service
 from app.crm.schemas import (
     ContactCreate,
@@ -72,28 +68,28 @@ from app.crm.schemas import (
     ContactPersonOut,
     ContactPersonUpdate,
     ContactUpdate,
-    ContractCreate,
-    ContractFromOffer,
-    ContractListOut,
-    ContractOut,
-    ContractUpdate,
+    DuplicateCheckResponse,
+    DuplicateMatch,
+    EnergyCalculatorRequest,
+    EnergyCalculatorResponse,
+    EnergyProfileCreate,
+    EnergyProfileOut,
+    EnergyProfileUpdate,
     InteractionCreate,
     InteractionOut,
-    InvoiceCreate,
-    InvoiceOut,
-    OfferApprovalDecision,
-    OfferApprovalRequest,
-    OfferCreate,
-    OfferListOut,
-    OfferOut,
-    OfferUpdate,
     ProductCategoryCreate,
     ProductCategoryOut,
     ProductCategoryUpdate,
     ProductCreate,
     ProductOut,
     ProductUpdate,
-    SalesKPIOut,
+    PropertyCreate,
+    PropertyListOut,
+    PropertyOut,
+    PropertyUpdate,
+    WorkHistoryCreate,
+    WorkHistoryOut,
+    WorkHistoryUpdate,
 )
 from app.system.schemas import ApiResponse, Meta
 
@@ -112,10 +108,14 @@ async def list_contacts(
     search: str | None = None,
     stage: str | None = None,
     contact_type: str | None = None,
+    # F018: segmentation filters
+    city: str | None = None,
+    county: str | None = None,
+    source: str | None = None,
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """F001: List contacts with search, filter, pagination."""
+    """F001/F018: List contacts with search, filter, segmentation, pagination."""
     contacts, total = await service.list_contacts(
         db,
         current_user.organization_id,
@@ -124,6 +124,9 @@ async def list_contacts(
         search=search,
         stage=stage,
         contact_type=contact_type,
+        city=city,
+        county=county,
+        source=source,
     )
     return ApiResponse(
         data=[ContactListOut.model_validate(c) for c in contacts],
@@ -210,6 +213,33 @@ async def delete_contact(
     )
     if not deleted:
         raise HTTPException(status_code=404, detail="Contact not found")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F005: DUPLICATE CHECK
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@crm_router.post("/contacts/check-duplicates", response_model=ApiResponse)
+async def check_duplicates(
+    body: ContactCreate,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F005: Check for duplicate contacts by CUI, email, phone."""
+    matches = await service.check_duplicates(
+        db,
+        current_user.organization_id,
+        cui=body.cui,
+        email=str(body.email) if body.email else None,
+        phone=body.phone,
+    )
+    return ApiResponse(
+        data=DuplicateCheckResponse(
+            has_duplicates=len(matches) > 0,
+            matches=[DuplicateMatch(**m) for m in matches],
+        )
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -350,6 +380,322 @@ async def create_interaction(
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PROPERTIES — F010
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@crm_router.get(
+    "/contacts/{contact_id}/properties",
+    response_model=ApiResponse,
+)
+async def list_properties(
+    contact_id: uuid.UUID,
+    page: int = 1,
+    per_page: int = 20,
+    property_type: str | None = None,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F010: List properties for a contact."""
+    properties, total = await service.list_properties(
+        db,
+        current_user.organization_id,
+        contact_id,
+        page=page,
+        per_page=per_page,
+        property_type=property_type,
+    )
+    return ApiResponse(
+        data=[PropertyListOut.model_validate(p) for p in properties],
+        meta=Meta(total=total, page=page, per_page=per_page),
+    )
+
+
+@crm_router.post(
+    "/contacts/{contact_id}/properties",
+    response_model=ApiResponse,
+    status_code=201,
+)
+async def create_property(
+    contact_id: uuid.UUID,
+    body: PropertyCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F010: Create a property for a contact."""
+    # Verify contact exists
+    contact = await service.get_contact(db, current_user.organization_id, contact_id)
+    if contact is None:
+        raise HTTPException(status_code=404, detail="Contact not found")
+
+    data = body.model_dump(exclude_unset=True)
+    data["contact_id"] = contact_id  # Override from URL
+
+    req_info = await get_request_info(request)
+    prop = await service.create_property(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        data,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=PropertyOut.model_validate(prop))
+
+
+@crm_router.get("/properties/{property_id}", response_model=ApiResponse)
+async def get_property(
+    property_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F010: Get property detail with energy profile and work history."""
+    prop = await service.get_property(
+        db, current_user.organization_id, property_id
+    )
+    if prop is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+    return ApiResponse(data=PropertyOut.model_validate(prop))
+
+
+@crm_router.put("/properties/{property_id}", response_model=ApiResponse)
+async def update_property(
+    property_id: uuid.UUID,
+    body: PropertyUpdate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F010: Update a property."""
+    req_info = await get_request_info(request)
+    prop = await service.update_property(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        property_id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if prop is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+    prop = await service.get_property(db, current_user.organization_id, property_id)
+    return ApiResponse(data=PropertyOut.model_validate(prop))
+
+
+@crm_router.delete("/properties/{property_id}", status_code=204)
+async def delete_property(
+    property_id: uuid.UUID,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F010: Soft-delete a property."""
+    req_info = await get_request_info(request)
+    deleted = await service.delete_property(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        property_id,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Property not found")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENERGY PROFILE — F012
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@crm_router.get(
+    "/properties/{property_id}/energy-profile",
+    response_model=ApiResponse,
+)
+async def get_energy_profile(
+    property_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F012: Get energy profile for a property."""
+    # Verify property exists
+    prop = await service.get_property(
+        db, current_user.organization_id, property_id
+    )
+    if prop is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+
+    profile = await service.get_energy_profile(
+        db, current_user.organization_id, property_id
+    )
+    if profile is None:
+        return ApiResponse(data=None)
+    return ApiResponse(data=EnergyProfileOut.model_validate(profile))
+
+
+@crm_router.put(
+    "/properties/{property_id}/energy-profile",
+    response_model=ApiResponse,
+)
+async def upsert_energy_profile(
+    property_id: uuid.UUID,
+    body: EnergyProfileCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F012: Create or update energy profile for a property."""
+    # Verify property exists
+    prop = await service.get_property(
+        db, current_user.organization_id, property_id
+    )
+    if prop is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+
+    req_info = await get_request_info(request)
+    profile = await service.create_or_update_energy_profile(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        property_id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=EnergyProfileOut.model_validate(profile))
+
+
+@crm_router.post("/energy/calculator", response_model=ApiResponse)
+async def energy_calculator(
+    body: EnergyCalculatorRequest,
+    current_user=Depends(get_current_user),
+):
+    """F012: Energy savings calculator."""
+    result = service.calculate_energy_savings(
+        total_area_sqm=body.total_area_sqm,
+        u_value_current=body.u_value_current,
+        u_value_proposed=body.u_value_proposed,
+        heating_degree_days=body.heating_degree_days,
+    )
+    return ApiResponse(data=EnergyCalculatorResponse(**result))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WORK HISTORY — F016
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@crm_router.get(
+    "/properties/{property_id}/work-history",
+    response_model=ApiResponse,
+)
+async def list_work_history(
+    property_id: uuid.UUID,
+    page: int = 1,
+    per_page: int = 20,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F016: List work history for a property."""
+    prop = await service.get_property(
+        db, current_user.organization_id, property_id
+    )
+    if prop is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+
+    entries, total = await service.list_work_history(
+        db,
+        current_user.organization_id,
+        property_id,
+        page=page,
+        per_page=per_page,
+    )
+    return ApiResponse(
+        data=[WorkHistoryOut.model_validate(e) for e in entries],
+        meta=Meta(total=total, page=page, per_page=per_page),
+    )
+
+
+@crm_router.post(
+    "/properties/{property_id}/work-history",
+    response_model=ApiResponse,
+    status_code=201,
+)
+async def create_work_history(
+    property_id: uuid.UUID,
+    body: WorkHistoryCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F016: Add a work history entry for a property."""
+    prop = await service.get_property(
+        db, current_user.organization_id, property_id
+    )
+    if prop is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+
+    req_info = await get_request_info(request)
+    entry = await service.create_work_history(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        property_id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=WorkHistoryOut.model_validate(entry))
+
+
+@crm_router.put("/work-history/{entry_id}", response_model=ApiResponse)
+async def update_work_history(
+    entry_id: uuid.UUID,
+    body: WorkHistoryUpdate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F016: Update a work history entry."""
+    req_info = await get_request_info(request)
+    entry = await service.update_work_history(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        entry_id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Work history entry not found")
+    return ApiResponse(data=WorkHistoryOut.model_validate(entry))
+
+
+@crm_router.delete("/work-history/{entry_id}", status_code=204)
+async def delete_work_history(
+    entry_id: uuid.UUID,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F016: Delete a work history entry."""
+    req_info = await get_request_info(request)
+    deleted = await service.delete_work_history(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        entry_id,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Work history entry not found")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # PRODUCT CATEGORIES — F007
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -420,7 +766,7 @@ async def delete_product_category(
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PRODUCTS — F005, F006
+# PRODUCTS — F007
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -435,7 +781,7 @@ async def list_products(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """F005: List products/services catalog."""
+    """F007: List products/services catalog."""
     products, total = await service.list_products(
         db,
         current_user.organization_id,
@@ -459,7 +805,7 @@ async def create_product(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """F005/F006: Create a product/article."""
+    """F007: Create a product/article."""
     req_info = await get_request_info(request)
     product = await service.create_product(
         db,
@@ -478,7 +824,7 @@ async def get_product(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """F005: Get product detail with sub-products."""
+    """F007: Get product detail with sub-products."""
     product = await service.get_product(
         db, current_user.organization_id, product_id
     )
@@ -495,7 +841,7 @@ async def update_product(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """F005/F006: Update a product."""
+    """F007: Update a product."""
     req_info = await get_request_info(request)
     product = await service.update_product(
         db,
@@ -518,7 +864,7 @@ async def delete_product(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """F005: Soft-delete a product."""
+    """F007: Soft-delete a product."""
     req_info = await get_request_info(request)
     deleted = await service.delete_product(
         db,
@@ -530,413 +876,3 @@ async def delete_product(
     )
     if not deleted:
         raise HTTPException(status_code=404, detail="Product not found")
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# OFFERS — F008, F009, F010, F012, F014, F015, F016
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-@crm_router.get("/offers", response_model=ApiResponse)
-async def list_offers(
-    page: int = 1,
-    per_page: int = 20,
-    status: str | None = None,
-    contact_id: uuid.UUID | None = None,
-    search: str | None = None,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F016: List offers with filtering."""
-    offers, total = await service.list_offers(
-        db,
-        current_user.organization_id,
-        page=page,
-        per_page=per_page,
-        status=status,
-        contact_id=contact_id,
-        search=search,
-    )
-    return ApiResponse(
-        data=[OfferListOut.model_validate(o) for o in offers],
-        meta=Meta(total=total, page=page, per_page=per_page),
-    )
-
-
-@crm_router.post("/offers", response_model=ApiResponse, status_code=201)
-async def create_offer(
-    body: OfferCreate,
-    request: Request,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F008/F009: Create an offer with line items."""
-    # Verify contact exists
-    contact = await service.get_contact(
-        db, current_user.organization_id, body.contact_id
-    )
-    if contact is None:
-        raise HTTPException(status_code=400, detail="Contact not found")
-
-    req_info = await get_request_info(request)
-    offer = await service.create_offer(
-        db,
-        current_user.organization_id,
-        current_user.id,
-        body.model_dump(),
-        ip_address=req_info["ip_address"],
-        user_agent=req_info["user_agent"],
-    )
-    offer = await service.get_offer(db, current_user.organization_id, offer.id)
-    return ApiResponse(data=OfferOut.model_validate(offer))
-
-
-@crm_router.get("/offers/{offer_id}", response_model=ApiResponse)
-async def get_offer(
-    offer_id: uuid.UUID,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F008: Get offer detail with line items."""
-    offer = await service.get_offer(db, current_user.organization_id, offer_id)
-    if offer is None:
-        raise HTTPException(status_code=404, detail="Offer not found")
-    return ApiResponse(data=OfferOut.model_validate(offer))
-
-
-@crm_router.put("/offers/{offer_id}", response_model=ApiResponse)
-async def update_offer(
-    offer_id: uuid.UUID,
-    body: OfferUpdate,
-    request: Request,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F008: Update an offer (draft only)."""
-    req_info = await get_request_info(request)
-    offer = await service.update_offer(
-        db,
-        current_user.organization_id,
-        current_user.id,
-        offer_id,
-        body.model_dump(exclude_unset=True),
-        ip_address=req_info["ip_address"],
-        user_agent=req_info["user_agent"],
-    )
-    if offer is None:
-        raise HTTPException(
-            status_code=400, detail="Offer not found or not in draft status"
-        )
-    offer = await service.get_offer(db, current_user.organization_id, offer_id)
-    return ApiResponse(data=OfferOut.model_validate(offer))
-
-
-@crm_router.delete("/offers/{offer_id}", status_code=204)
-async def delete_offer(
-    offer_id: uuid.UUID,
-    request: Request,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F008: Soft-delete an offer (draft only)."""
-    req_info = await get_request_info(request)
-    deleted = await service.delete_offer(
-        db,
-        current_user.organization_id,
-        current_user.id,
-        offer_id,
-        ip_address=req_info["ip_address"],
-        user_agent=req_info["user_agent"],
-    )
-    if not deleted:
-        raise HTTPException(
-            status_code=400, detail="Offer not found or not in draft status"
-        )
-
-
-@crm_router.post("/offers/{offer_id}/submit", response_model=ApiResponse)
-async def submit_offer(
-    offer_id: uuid.UUID,
-    body: OfferApprovalRequest,
-    request: Request,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F014: Submit offer for approval."""
-    req_info = await get_request_info(request)
-    offer = await service.submit_offer_for_approval(
-        db,
-        current_user.organization_id,
-        current_user.id,
-        offer_id,
-        body.comment,
-        ip_address=req_info["ip_address"],
-        user_agent=req_info["user_agent"],
-    )
-    if offer is None:
-        raise HTTPException(
-            status_code=400, detail="Offer not found or not in draft status"
-        )
-    offer = await service.get_offer(db, current_user.organization_id, offer_id)
-    return ApiResponse(data=OfferOut.model_validate(offer))
-
-
-@crm_router.post(
-    "/offers/{offer_id}/approve",
-    response_model=ApiResponse,
-    dependencies=[Depends(require_min_role("manager_vanzari"))],
-)
-async def approve_offer(
-    offer_id: uuid.UUID,
-    body: OfferApprovalDecision,
-    request: Request,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F014: Approve or reject an offer (manager+ only)."""
-    req_info = await get_request_info(request)
-    offer = await service.approve_or_reject_offer(
-        db,
-        current_user.organization_id,
-        current_user.id,
-        offer_id,
-        body.approved,
-        body.comment,
-        ip_address=req_info["ip_address"],
-        user_agent=req_info["user_agent"],
-    )
-    if offer is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Offer not found or not pending approval",
-        )
-    offer = await service.get_offer(db, current_user.organization_id, offer_id)
-    return ApiResponse(data=OfferOut.model_validate(offer))
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# CONTRACTS — F017, F018, F019, F021, F022
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-@crm_router.get("/contracts", response_model=ApiResponse)
-async def list_contracts(
-    page: int = 1,
-    per_page: int = 20,
-    status: str | None = None,
-    contact_id: uuid.UUID | None = None,
-    search: str | None = None,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F022: List contracts with filtering."""
-    contracts, total = await service.list_contracts(
-        db,
-        current_user.organization_id,
-        page=page,
-        per_page=per_page,
-        status=status,
-        contact_id=contact_id,
-        search=search,
-    )
-    return ApiResponse(
-        data=[ContractListOut.model_validate(c) for c in contracts],
-        meta=Meta(total=total, page=page, per_page=per_page),
-    )
-
-
-@crm_router.post("/contracts", response_model=ApiResponse, status_code=201)
-async def create_contract(
-    body: ContractCreate,
-    request: Request,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F017: Create a contract."""
-    contact = await service.get_contact(
-        db, current_user.organization_id, body.contact_id
-    )
-    if contact is None:
-        raise HTTPException(status_code=400, detail="Contact not found")
-
-    req_info = await get_request_info(request)
-    contract = await service.create_contract(
-        db,
-        current_user.organization_id,
-        current_user.id,
-        body.model_dump(exclude_unset=True),
-        ip_address=req_info["ip_address"],
-        user_agent=req_info["user_agent"],
-    )
-    return ApiResponse(data=ContractOut.model_validate(contract))
-
-
-@crm_router.post(
-    "/contracts/from-offer",
-    response_model=ApiResponse,
-    status_code=201,
-)
-async def create_contract_from_offer(
-    body: ContractFromOffer,
-    request: Request,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F018: Create contract from accepted offer (auto-populate)."""
-    req_info = await get_request_info(request)
-    contract = await service.create_contract_from_offer(
-        db,
-        current_user.organization_id,
-        current_user.id,
-        body.offer_id,
-        title=body.title,
-        start_date=body.start_date,
-        end_date=body.end_date,
-        additional_terms=body.additional_terms,
-        ip_address=req_info["ip_address"],
-        user_agent=req_info["user_agent"],
-    )
-    if contract is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Offer not found or not in accepted/approved status",
-        )
-    return ApiResponse(data=ContractOut.model_validate(contract))
-
-
-@crm_router.get("/contracts/{contract_id}", response_model=ApiResponse)
-async def get_contract(
-    contract_id: uuid.UUID,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F017: Get contract detail."""
-    contract = await service.get_contract(
-        db, current_user.organization_id, contract_id
-    )
-    if contract is None:
-        raise HTTPException(status_code=404, detail="Contract not found")
-    return ApiResponse(data=ContractOut.model_validate(contract))
-
-
-@crm_router.put("/contracts/{contract_id}", response_model=ApiResponse)
-async def update_contract(
-    contract_id: uuid.UUID,
-    body: ContractUpdate,
-    request: Request,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F017: Update a contract (draft only)."""
-    req_info = await get_request_info(request)
-    contract = await service.update_contract(
-        db,
-        current_user.organization_id,
-        current_user.id,
-        contract_id,
-        body.model_dump(exclude_unset=True),
-        ip_address=req_info["ip_address"],
-        user_agent=req_info["user_agent"],
-    )
-    if contract is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Contract not found or not in draft status",
-        )
-    contract = await service.get_contract(
-        db, current_user.organization_id, contract_id
-    )
-    return ApiResponse(data=ContractOut.model_validate(contract))
-
-
-@crm_router.delete("/contracts/{contract_id}", status_code=204)
-async def delete_contract(
-    contract_id: uuid.UUID,
-    request: Request,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F017: Soft-delete a contract (draft only)."""
-    req_info = await get_request_info(request)
-    deleted = await service.delete_contract(
-        db,
-        current_user.organization_id,
-        current_user.id,
-        contract_id,
-        ip_address=req_info["ip_address"],
-        user_agent=req_info["user_agent"],
-    )
-    if not deleted:
-        raise HTTPException(
-            status_code=400,
-            detail="Contract not found or not in draft status",
-        )
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# INVOICES — F021
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-@crm_router.get("/invoices", response_model=ApiResponse)
-async def list_invoices(
-    page: int = 1,
-    per_page: int = 20,
-    status: str | None = None,
-    contract_id: uuid.UUID | None = None,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F021: List invoices."""
-    invoices, total = await service.list_invoices(
-        db,
-        current_user.organization_id,
-        page=page,
-        per_page=per_page,
-        status=status,
-        contract_id=contract_id,
-    )
-    return ApiResponse(
-        data=[InvoiceOut.model_validate(i) for i in invoices],
-        meta=Meta(total=total, page=page, per_page=per_page),
-    )
-
-
-@crm_router.post("/invoices", response_model=ApiResponse, status_code=201)
-async def create_invoice(
-    body: InvoiceCreate,
-    request: Request,
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F021: Create invoice from contract."""
-    req_info = await get_request_info(request)
-    invoice = await service.create_invoice_from_contract(
-        db,
-        current_user.organization_id,
-        current_user.id,
-        body.model_dump(),
-        ip_address=req_info["ip_address"],
-        user_agent=req_info["user_agent"],
-    )
-    if invoice is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Contract not found or not in active/signed status",
-        )
-    return ApiResponse(data=InvoiceOut.model_validate(invoice))
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# SALES KPI & REPORTS — F023, F024
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-@crm_router.get("/kpi/sales", response_model=ApiResponse)
-async def get_sales_kpi(
-    current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """F023: Sales KPI dashboard."""
-    kpi = await service.get_sales_kpi(db, current_user.organization_id)
-    return ApiResponse(data=SalesKPIOut(**kpi))
