@@ -1,3 +1,4 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 from typing import Literal
 
@@ -5,6 +6,15 @@ from typing import Literal
 class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://buildwise:buildwise@localhost:5432/buildwise"
+
+    @model_validator(mode="after")
+    def fix_database_url(self) -> "Settings":
+        """Convert postgresql:// to postgresql+asyncpg:// for async SQLAlchemy."""
+        if self.DATABASE_URL.startswith("postgresql://"):
+            self.DATABASE_URL = self.DATABASE_URL.replace(
+                "postgresql://", "postgresql+asyncpg://", 1
+            )
+        return self
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
