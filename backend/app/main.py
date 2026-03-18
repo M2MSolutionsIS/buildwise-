@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import os
 import logging
 from contextlib import asynccontextmanager
 
@@ -15,6 +16,9 @@ logger = logging.getLogger("buildwise")
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
     logger.info("BuildWise ERP starting — prototype %s", settings.DEFAULT_PROTOTYPE)
+    # Temporary debug: log DATABASE_URL prefix to verify Railway env
+    db_url = os.environ.get("DATABASE_URL", "NOT SET")
+    logger.info("DATABASE_URL prefix: %s", db_url[:20])
     yield
     logger.info("BuildWise ERP shutting down")
 
