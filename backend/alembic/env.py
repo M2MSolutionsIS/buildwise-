@@ -1,5 +1,6 @@
 """Alembic environment configuration for async SQLAlchemy."""
 
+import os
 import asyncio
 from logging.config import fileConfig
 
@@ -8,7 +9,11 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from app.config import settings
+# Read DATABASE_URL directly from environment BEFORE any app imports
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 from app.database import Base
 
 # Import all models so they're visible to Alembic
@@ -26,7 +31,9 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Override alembic.ini URL with environment variable
+if DATABASE_URL:
+    config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 
 def run_migrations_offline() -> None:
