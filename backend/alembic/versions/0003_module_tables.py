@@ -1,9 +1,7 @@
-"""Initial schema — all 6 modules (CRM, Pipeline, PM, RM, BI, System).
+"""Module tables — CRM, Pipeline, PM, RM, BI.
 
-77 tables covering 108 functionalities (F001-F161) across 3 prototypes (P1, P2, P3).
-
-Revision ID: 0001
-Revises:
+Revision ID: 0003
+Revises: 0002
 Create Date: 2026-03-16
 
 """
@@ -11,83 +9,16 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "0001"
-down_revision: Union[str, None] = None
+revision: str = "0003"
+down_revision: Union[str, None] = "0002"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Create all 77 tables for the BuildWise ERP platform."""
-
-    # ==========================================
-    # CREATE ALL ENUM TYPES BEFORE ANY TABLES
-    # ==========================================
-
-    # CRM enums
-    op.execute("CREATE TYPE contactstage AS ENUM ('PROSPECT', 'POTENTIAL_CLIENT', 'ACTIVE', 'INACTIVE', 'PARTNER')")
-    op.execute("CREATE TYPE contacttype AS ENUM ('PF', 'IMM', 'PJ', 'CORPORATION')")
-    op.execute("CREATE TYPE interactiontype AS ENUM ('CALL', 'EMAIL', 'MEETING', 'OFFER', 'CONTRACT', 'NOTE', 'VISIT')")
-    op.execute("CREATE TYPE propertytype AS ENUM ('BLOC_PANOU', 'BLOC_CARAMIDA', 'CASA_INTERBELICA', 'CASA_POST_1990', 'SPATIU_INDUSTRIAL', 'CLADIRE_COMERCIALA', 'CLADIRE_PUBLICA', 'OTHER')")
-    op.execute("CREATE TYPE productcategory AS ENUM ('PRODUCT', 'SERVICE', 'REVENUE', 'EXPENSE')")
-    op.execute("CREATE TYPE documentcategory AS ENUM ('CERTIFICATE', 'PHOTO', 'TECHNICAL', 'CONTRACT', 'OFFER', 'INVOICE', 'OTHER')")
-
-    # Pipeline enums
-    op.execute("CREATE TYPE opportunitystage AS ENUM ('NEW', 'QUALIFIED', 'SCOPING', 'OFFERING', 'SENT', 'NEGOTIATION', 'WON', 'LOST')")
-    op.execute("CREATE TYPE milestonestatus AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED')")
-    op.execute("CREATE TYPE dependencytype AS ENUM ('FS', 'SS', 'FF', 'SF')")
-    op.execute("CREATE TYPE activitytype AS ENUM ('CALL', 'MEETING', 'FOLLOW_UP', 'TECHNICAL_VISIT', 'EMAIL', 'TASK')")
-    op.execute("CREATE TYPE activitystatus AS ENUM ('PLANNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'OVERDUE')")
-    op.execute("CREATE TYPE offerstatus AS ENUM ('DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'SENT', 'NEGOTIATION', 'ACCEPTED', 'REJECTED', 'EXPIRED')")
-    op.execute("CREATE TYPE contractstatus AS ENUM ('DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'SENT', 'SIGNED', 'ACTIVE', 'SUSPENDED', 'TERMINATED', 'COMPLETED')")
-    op.execute("CREATE TYPE invoicestatus AS ENUM ('DRAFT', 'ISSUED', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED')")
-    op.execute("CREATE TYPE approvalstatus AS ENUM ('PENDING', 'APPROVED', 'REJECTED')")
-    op.execute("CREATE TYPE lossreason AS ENUM ('PRICE', 'COMPETITION', 'TIMING', 'NO_BUDGET', 'NO_NEED', 'NO_RESPONSE', 'OTHER')")
-
-    # PM enums
-    op.execute("CREATE TYPE projectstatus AS ENUM ('DRAFT', 'KICKOFF', 'PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'POST_EXECUTION', 'CLOSING', 'COMPLETED', 'CANCELLED')")
-    op.execute("CREATE TYPE projecttype AS ENUM ('CLIENT', 'INTERNAL')")
-    op.execute("CREATE TYPE wbsnodetype AS ENUM ('CHAPTER', 'SUBCHAPTER', 'ARTICLE')")
-    op.execute("CREATE TYPE taskstatus AS ENUM ('TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE')")
-    op.execute("CREATE TYPE taskdependencytype AS ENUM ('FS', 'SS', 'FF', 'SF')")
-    op.execute("CREATE TYPE riskprobability AS ENUM ('VERY_LOW', 'LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH')")
-    op.execute("CREATE TYPE riskimpact AS ENUM ('NEGLIGIBLE', 'MINOR', 'MODERATE', 'MAJOR', 'CRITICAL')")
-    op.execute("CREATE TYPE riskstatus AS ENUM ('IDENTIFIED', 'ASSESSED', 'MITIGATING', 'RESOLVED', 'ACCEPTED')")
-    op.execute("CREATE TYPE punchitemstatus AS ENUM ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'VERIFIED')")
-    op.execute("CREATE TYPE punchitemseverity AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')")
-    op.execute("CREATE TYPE timesheetstatus AS ENUM ('DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED')")
-    op.execute("CREATE TYPE wikiposttype AS ENUM ('POST', 'FILE', 'DOCUMENT')")
-    op.execute("CREATE TYPE importsourcetype AS ENUM ('INTERSOFT', 'EDEVIZE', 'CSV', 'EXCEL', 'API')")
-
-    # RM enums
-    op.execute("CREATE TYPE employeestatus AS ENUM ('ACTIVE', 'ON_LEAVE', 'SUSPENDED', 'TERMINATED')")
-    op.execute("CREATE TYPE contracttype AS ENUM ('FULL_TIME', 'PART_TIME', 'CONTRACT', 'FREELANCE')")
-    op.execute("CREATE TYPE leavetype AS ENUM ('ANNUAL', 'SICK', 'PERSONAL', 'MATERNITY', 'UNPAID', 'OTHER')")
-    op.execute("CREATE TYPE leavestatus AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED')")
-    op.execute("CREATE TYPE equipmentstatus AS ENUM ('AVAILABLE', 'ALLOCATED', 'IN_MAINTENANCE', 'OUT_OF_SERVICE')")
-    op.execute("CREATE TYPE procurementstatus AS ENUM ('DRAFT', 'REQUESTED', 'APPROVED', 'ORDERED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CANCELLED')")
-    op.execute("CREATE TYPE allocationstatus AS ENUM ('PLANNED', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED')")
-    op.execute("CREATE TYPE resourcetype AS ENUM ('EMPLOYEE', 'EQUIPMENT', 'MATERIAL', 'EXTERNAL')")
-    op.execute("CREATE TYPE documenttype_rm AS ENUM ('INVOICE', 'NIR', 'CONSUMPTION_VOUCHER', 'DELIVERY_NOTE')")
-
-    # BI enums
-    op.execute("CREATE TYPE kpithresholdcolor AS ENUM ('RED', 'YELLOW', 'GREEN')")
-    op.execute("CREATE TYPE reportformat AS ENUM ('PDF', 'EXCEL', 'CSV')")
-    op.execute("CREATE TYPE dashboardwidgettype AS ENUM ('KPI_CARD', 'CHART', 'TABLE', 'GAUGE', 'FUNNEL', 'MAP', 'CUSTOM')")
-
-    # System enums
-    op.execute("CREATE TYPE prototypeenum AS ENUM ('P1', 'P2', 'P3')")
-    op.execute("CREATE TYPE roleenum AS ENUM ('ADMIN', 'MANAGER_VANZARI', 'AGENT_COMERCIAL', 'TEHNICIAN')")
-    op.execute("CREATE TYPE notificationchannel AS ENUM ('EMAIL', 'IN_APP', 'BOTH')")
-    op.execute("CREATE TYPE notificationstatus AS ENUM ('UNREAD', 'READ', 'ARCHIVED')")
-    op.execute("CREATE TYPE customfieldtype AS ENUM ('TEXT', 'NUMBER', 'DATE', 'SELECT', 'MULTISELECT', 'BOOLEAN', 'URL', 'EMAIL', 'PHONE')")
-
-    # ==========================================
-    # CREATE ALL TABLES
-    # ==========================================
+    """Create all module tables (CRM, Pipeline, PM, RM, BI)."""
 
     op.execute("""CREATE TABLE contacts (
 	company_name VARCHAR(255) NOT NULL, 
@@ -126,54 +57,6 @@ def upgrade() -> None:
 	PRIMARY KEY (id)
 )""")
 
-    op.execute("""CREATE TABLE currencies (
-	code VARCHAR(3) NOT NULL, 
-	name VARCHAR(100) NOT NULL, 
-	symbol VARCHAR(5) NOT NULL, 
-	is_default BOOLEAN NOT NULL, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	CONSTRAINT uq_currency_code_org UNIQUE (code, organization_id)
-)""")
-
-    op.execute("""CREATE TABLE custom_field_definitions (
-	entity_type VARCHAR(100) NOT NULL, 
-	field_name VARCHAR(100) NOT NULL, 
-	field_label VARCHAR(255) NOT NULL, 
-	field_type customfieldtype NOT NULL, 
-	is_required BOOLEAN NOT NULL, 
-	default_value TEXT, 
-	options JSON, 
-	sort_order INTEGER NOT NULL, 
-	is_active BOOLEAN NOT NULL, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	CONSTRAINT uq_custom_field UNIQUE (organization_id, entity_type, field_name)
-)""")
-
-    op.execute("""CREATE TABLE document_templates (
-	name VARCHAR(255) NOT NULL, 
-	template_type VARCHAR(50) NOT NULL, 
-	content TEXT, 
-	placeholders JSON, 
-	layout_config JSON, 
-	is_default BOOLEAN NOT NULL, 
-	is_active BOOLEAN NOT NULL, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	organization_id UUID NOT NULL, 
-	created_by UUID, 
-	updated_by UUID, 
-	PRIMARY KEY (id)
-)""")
-
     op.execute("""CREATE TABLE equipment (
 	is_p1 BOOLEAN NOT NULL, 
 	is_p2 BOOLEAN NOT NULL, 
@@ -206,204 +89,6 @@ def upgrade() -> None:
 	PRIMARY KEY (id)
 )""")
 
-    op.execute("""CREATE TABLE exchange_rates (
-	from_currency VARCHAR(3) NOT NULL, 
-	to_currency VARCHAR(3) NOT NULL, 
-	rate FLOAT NOT NULL, 
-	effective_date TIMESTAMP WITH TIME ZONE NOT NULL, 
-	id UUID NOT NULL, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id)
-)""")
-
-    op.execute("""CREATE TABLE feature_flags (
-	f_code VARCHAR(10) NOT NULL, 
-	name VARCHAR(255) NOT NULL, 
-	module VARCHAR(50) NOT NULL, 
-	is_p1 BOOLEAN NOT NULL, 
-	is_p2 BOOLEAN NOT NULL, 
-	is_p3 BOOLEAN NOT NULL, 
-	is_enabled BOOLEAN NOT NULL, 
-	config JSON, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	CONSTRAINT uq_feature_flag_org UNIQUE (f_code, organization_id)
-)""")
-
-    op.execute("""CREATE TABLE kpi_definitions (
-	name VARCHAR(255) NOT NULL, 
-	code VARCHAR(50) NOT NULL, 
-	description TEXT, 
-	module VARCHAR(50), 
-	formula JSON NOT NULL, 
-	formula_text TEXT, 
-	unit VARCHAR(20), 
-	thresholds JSON, 
-	display_type VARCHAR(50), 
-	drill_down_config JSON, 
-	assigned_roles JSON, 
-	assigned_users JSON, 
-	is_active BOOLEAN NOT NULL, 
-	sort_order INTEGER NOT NULL, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	organization_id UUID NOT NULL, 
-	created_by UUID, 
-	updated_by UUID, 
-	PRIMARY KEY (id)
-)""")
-
-    op.execute("""CREATE TABLE ml_model_configs (
-	is_p1 BOOLEAN NOT NULL, 
-	is_p2 BOOLEAN NOT NULL, 
-	is_p3 BOOLEAN NOT NULL, 
-	name VARCHAR(255) NOT NULL, 
-	description TEXT, 
-	model_type VARCHAR(100) NOT NULL, 
-	data_sources JSON NOT NULL, 
-	status VARCHAR(50) NOT NULL, 
-	last_trained_at TIMESTAMP WITH TIME ZONE, 
-	error_metric FLOAT, 
-	parameters JSON, 
-	training_history JSON, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id)
-)""")
-
-    op.execute("""CREATE TABLE notification_templates (
-	name VARCHAR(255) NOT NULL, 
-	event_type VARCHAR(100) NOT NULL, 
-	channel notificationchannel NOT NULL, 
-	subject_template VARCHAR(500), 
-	body_template TEXT, 
-	is_active BOOLEAN NOT NULL, 
-	target_roles JSON, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id)
-)""")
-
-    op.execute("""CREATE TABLE organizations (
-	name VARCHAR(255) NOT NULL, 
-	slug VARCHAR(100) NOT NULL, 
-	cui VARCHAR(20), 
-	address TEXT, 
-	phone VARCHAR(30), 
-	email VARCHAR(255), 
-	website VARCHAR(255), 
-	logo_url VARCHAR(500), 
-	active_prototype prototypeenum NOT NULL, 
-	primary_color VARCHAR(7), 
-	secondary_color VARCHAR(7), 
-	custom_branding JSON, 
-	default_language VARCHAR(5) NOT NULL, 
-	supported_languages JSON, 
-	default_currency VARCHAR(3) NOT NULL, 
-	reference_currency VARCHAR(3), 
-	modules_enabled JSON, 
-	setup_completed BOOLEAN NOT NULL, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	is_deleted BOOLEAN NOT NULL, 
-	deleted_at TIMESTAMP WITH TIME ZONE, 
-	deleted_by UUID, 
-	is_p1 BOOLEAN NOT NULL, 
-	is_p2 BOOLEAN NOT NULL, 
-	is_p3 BOOLEAN NOT NULL, 
-	PRIMARY KEY (id)
-)""")
-
-    op.execute("""CREATE TABLE permissions (
-	module VARCHAR(50) NOT NULL, 
-	action VARCHAR(50) NOT NULL, 
-	description TEXT, 
-	id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	CONSTRAINT uq_permission_module_action UNIQUE (module, action)
-)""")
-
-    op.execute("""CREATE TABLE pipeline_stage_configs (
-	name VARCHAR(100) NOT NULL, 
-	code VARCHAR(50) NOT NULL, 
-	sort_order INTEGER NOT NULL, 
-	color VARCHAR(7), 
-	win_probability FLOAT, 
-	stagnation_days INTEGER, 
-	required_fields JSON, 
-	auto_advance_rules JSON, 
-	is_active BOOLEAN NOT NULL, 
-	is_closed_won BOOLEAN NOT NULL, 
-	is_closed_lost BOOLEAN NOT NULL, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	CONSTRAINT uq_pipeline_stage_code_org UNIQUE (code, organization_id)
-)""")
-
-    op.execute("""CREATE TABLE product_categories (
-	name VARCHAR(255) NOT NULL, 
-	parent_id UUID, 
-	sort_order INTEGER NOT NULL, 
-	is_active BOOLEAN NOT NULL, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(parent_id) REFERENCES product_categories (id)
-)""")
-
-    op.execute("""CREATE TABLE roles (
-	name VARCHAR(100) NOT NULL, 
-	code VARCHAR(50) NOT NULL, 
-	description TEXT, 
-	is_system BOOLEAN NOT NULL, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	CONSTRAINT uq_role_code_org UNIQUE (code, organization_id)
-)""")
-
-    op.execute("""CREATE TABLE users (
-	email VARCHAR(255) NOT NULL, 
-	password_hash VARCHAR(255) NOT NULL, 
-	first_name VARCHAR(100) NOT NULL, 
-	last_name VARCHAR(100) NOT NULL, 
-	phone VARCHAR(30), 
-	avatar_url VARCHAR(500), 
-	is_active BOOLEAN NOT NULL, 
-	is_superuser BOOLEAN NOT NULL, 
-	gdpr_consent BOOLEAN NOT NULL, 
-	gdpr_consent_date TIMESTAMP WITH TIME ZONE, 
-	last_login TIMESTAMP WITH TIME ZONE, 
-	refresh_token VARCHAR(500), 
-	notification_preferences JSON, 
-	language VARCHAR(5) NOT NULL, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	is_deleted BOOLEAN NOT NULL, 
-	deleted_at TIMESTAMP WITH TIME ZONE, 
-	deleted_by UUID, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	CONSTRAINT uq_user_email_org UNIQUE (email, organization_id)
-)""")
-
     op.execute("""CREATE TABLE ai_conversations (
 	is_p1 BOOLEAN NOT NULL, 
 	is_p2 BOOLEAN NOT NULL, 
@@ -414,37 +99,6 @@ def upgrade() -> None:
 	id UUID NOT NULL, 
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
 	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(user_id) REFERENCES users (id)
-)""")
-
-    op.execute("""CREATE TABLE approval_workflows (
-	entity_type VARCHAR(50) NOT NULL, 
-	entity_id UUID NOT NULL, 
-	status approvalstatus NOT NULL, 
-	submitted_by UUID NOT NULL, 
-	submitted_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	threshold_rule JSON, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(submitted_by) REFERENCES users (id)
-)""")
-
-    op.execute("""CREATE TABLE audit_logs (
-	user_id UUID, 
-	action VARCHAR(50) NOT NULL, 
-	entity_type VARCHAR(100) NOT NULL, 
-	entity_id UUID NOT NULL, 
-	old_values JSON, 
-	new_values JSON, 
-	ip_address VARCHAR(45), 
-	user_agent VARCHAR(500), 
-	timestamp TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	id UUID NOT NULL, 
 	organization_id UUID NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(user_id) REFERENCES users (id)
@@ -467,18 +121,6 @@ def upgrade() -> None:
 	organization_id UUID NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(contact_id) REFERENCES contacts (id)
-)""")
-
-    op.execute("""CREATE TABLE custom_field_values (
-	field_definition_id UUID NOT NULL, 
-	entity_type VARCHAR(100) NOT NULL, 
-	entity_id UUID NOT NULL, 
-	value TEXT, 
-	id UUID NOT NULL, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	CONSTRAINT uq_custom_field_value UNIQUE (field_definition_id, entity_id), 
-	FOREIGN KEY(field_definition_id) REFERENCES custom_field_definitions (id)
 )""")
 
     op.execute("""CREATE TABLE dashboards (
@@ -599,25 +241,6 @@ def upgrade() -> None:
 	organization_id UUID NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(product_category_id) REFERENCES product_categories (id)
-)""")
-
-    op.execute("""CREATE TABLE notifications (
-	user_id UUID NOT NULL, 
-	template_id UUID, 
-	title VARCHAR(255) NOT NULL, 
-	message TEXT NOT NULL, 
-	status notificationstatus NOT NULL, 
-	link VARCHAR(500), 
-	entity_type VARCHAR(100), 
-	entity_id UUID, 
-	read_at TIMESTAMP WITH TIME ZONE, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	organization_id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(user_id) REFERENCES users (id), 
-	FOREIGN KEY(template_id) REFERENCES notification_templates (id)
 )""")
 
     op.execute("""CREATE TABLE opportunities (
@@ -744,26 +367,6 @@ def upgrade() -> None:
 	FOREIGN KEY(owner_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE role_permissions (
-	role_id UUID NOT NULL, 
-	permission_id UUID NOT NULL, 
-	id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	CONSTRAINT uq_role_permission UNIQUE (role_id, permission_id), 
-	FOREIGN KEY(role_id) REFERENCES roles (id), 
-	FOREIGN KEY(permission_id) REFERENCES permissions (id)
-)""")
-
-    op.execute("""CREATE TABLE user_roles (
-	user_id UUID NOT NULL, 
-	role_id UUID NOT NULL, 
-	id UUID NOT NULL, 
-	PRIMARY KEY (id), 
-	CONSTRAINT uq_user_role UNIQUE (user_id, role_id), 
-	FOREIGN KEY(user_id) REFERENCES users (id), 
-	FOREIGN KEY(role_id) REFERENCES roles (id)
-)""")
-
     op.execute("""CREATE TABLE activities (
 	activity_type activitytype NOT NULL, 
 	title VARCHAR(500) NOT NULL, 
@@ -808,21 +411,6 @@ def upgrade() -> None:
 	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(conversation_id) REFERENCES ai_conversations (id)
-)""")
-
-    op.execute("""CREATE TABLE approval_steps (
-	workflow_id UUID NOT NULL, 
-	approver_id UUID NOT NULL, 
-	step_order INTEGER NOT NULL, 
-	status approvalstatus NOT NULL, 
-	comment TEXT, 
-	decided_at TIMESTAMP WITH TIME ZONE, 
-	id UUID NOT NULL, 
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(workflow_id) REFERENCES approval_workflows (id), 
-	FOREIGN KEY(approver_id) REFERENCES users (id)
 )""")
 
     op.execute("""CREATE TABLE dashboard_widgets (
@@ -1824,6 +1412,7 @@ def upgrade() -> None:
 	FOREIGN KEY(approved_by) REFERENCES users (id)
 )""")
 
+    # Indexes
     op.execute("""CREATE INDEX IF NOT EXISTS ix_contacts_cui ON contacts (cui)""")
 
     op.execute("""CREATE INDEX IF NOT EXISTS ix_contact_org_stage ON contacts (organization_id, stage)""")
@@ -1836,61 +1425,15 @@ def upgrade() -> None:
 
     op.execute("""CREATE INDEX IF NOT EXISTS ix_contact_org_type ON contacts (organization_id, contact_type)""")
 
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_currencies_organization_id ON currencies (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_custom_field_definitions_organization_id ON custom_field_definitions (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_document_templates_organization_id ON document_templates (organization_id)""")
-
     op.execute("""CREATE INDEX IF NOT EXISTS ix_equipment_code ON equipment (code)""")
 
     op.execute("""CREATE INDEX IF NOT EXISTS ix_equipment_org_status ON equipment (organization_id, status)""")
 
     op.execute("""CREATE INDEX IF NOT EXISTS ix_equipment_organization_id ON equipment (organization_id)""")
 
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_exchange_rate_date ON exchange_rates (from_currency, to_currency, effective_date)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_exchange_rates_organization_id ON exchange_rates (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_feature_flags_organization_id ON feature_flags (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_kpi_org ON kpi_definitions (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_kpi_definitions_organization_id ON kpi_definitions (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_ml_model_configs_organization_id ON ml_model_configs (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_notification_templates_organization_id ON notification_templates (organization_id)""")
-
-    op.execute("""CREATE UNIQUE INDEX IF NOT EXISTS ix_organizations_slug ON organizations (slug)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_pipeline_stage_configs_organization_id ON pipeline_stage_configs (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_product_categories_organization_id ON product_categories (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_roles_organization_id ON roles (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_users_email ON users (email)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_users_organization_id ON users (organization_id)""")
-
     op.execute("""CREATE INDEX IF NOT EXISTS ix_ai_conversations_organization_id ON ai_conversations (organization_id)""")
 
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_approval_entity ON approval_workflows (entity_type, entity_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_approval_workflows_organization_id ON approval_workflows (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_audit_entity ON audit_logs (entity_type, entity_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_audit_logs_organization_id ON audit_logs (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_audit_timestamp ON audit_logs (timestamp)""")
-
     op.execute("""CREATE INDEX IF NOT EXISTS ix_contact_persons_organization_id ON contact_persons (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_custom_field_values_organization_id ON custom_field_values (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_custom_field_entity ON custom_field_values (entity_type, entity_id)""")
 
     op.execute("""CREATE INDEX IF NOT EXISTS ix_dashboards_organization_id ON dashboards (organization_id)""")
 
@@ -1911,10 +1454,6 @@ def upgrade() -> None:
     op.execute("""CREATE INDEX IF NOT EXISTS ix_kpi_value_def_date ON kpi_values (kpi_definition_id, computed_at)""")
 
     op.execute("""CREATE INDEX IF NOT EXISTS ix_milestone_templates_organization_id ON milestone_templates (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_notifications_organization_id ON notifications (organization_id)""")
-
-    op.execute("""CREATE INDEX IF NOT EXISTS ix_notification_user_status ON notifications (user_id, status)""")
 
     op.execute("""CREATE INDEX IF NOT EXISTS ix_opportunities_organization_id ON opportunities (organization_id)""")
 
@@ -2099,8 +1638,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Drop all tables in reverse dependency order."""
-
+    """Drop all module tables in reverse dependency order."""
     op.execute("DROP TABLE IF EXISTS timesheet_entries CASCADE")
     op.execute("DROP TABLE IF EXISTS task_dependencies CASCADE")
     op.execute("DROP TABLE IF EXISTS resource_allocations CASCADE")
@@ -2142,87 +1680,18 @@ def downgrade() -> None:
     op.execute("DROP TABLE IF EXISTS energy_profiles CASCADE")
     op.execute("DROP TABLE IF EXISTS documents CASCADE")
     op.execute("DROP TABLE IF EXISTS dashboard_widgets CASCADE")
-    op.execute("DROP TABLE IF EXISTS approval_steps CASCADE")
     op.execute("DROP TABLE IF EXISTS ai_messages CASCADE")
     op.execute("DROP TABLE IF EXISTS activities CASCADE")
-    op.execute("DROP TABLE IF EXISTS user_roles CASCADE")
-    op.execute("DROP TABLE IF EXISTS role_permissions CASCADE")
     op.execute("DROP TABLE IF EXISTS report_definitions CASCADE")
     op.execute("DROP TABLE IF EXISTS properties CASCADE")
     op.execute("DROP TABLE IF EXISTS products CASCADE")
     op.execute("DROP TABLE IF EXISTS opportunities CASCADE")
-    op.execute("DROP TABLE IF EXISTS notifications CASCADE")
     op.execute("DROP TABLE IF EXISTS milestone_templates CASCADE")
     op.execute("DROP TABLE IF EXISTS kpi_values CASCADE")
     op.execute("DROP TABLE IF EXISTS interactions CASCADE")
     op.execute("DROP TABLE IF EXISTS employees CASCADE")
     op.execute("DROP TABLE IF EXISTS dashboards CASCADE")
-    op.execute("DROP TABLE IF EXISTS custom_field_values CASCADE")
     op.execute("DROP TABLE IF EXISTS contact_persons CASCADE")
-    op.execute("DROP TABLE IF EXISTS audit_logs CASCADE")
-    op.execute("DROP TABLE IF EXISTS approval_workflows CASCADE")
     op.execute("DROP TABLE IF EXISTS ai_conversations CASCADE")
-    op.execute("DROP TABLE IF EXISTS users CASCADE")
-    op.execute("DROP TABLE IF EXISTS roles CASCADE")
-    op.execute("DROP TABLE IF EXISTS product_categories CASCADE")
-    op.execute("DROP TABLE IF EXISTS pipeline_stage_configs CASCADE")
-    op.execute("DROP TABLE IF EXISTS permissions CASCADE")
-    op.execute("DROP TABLE IF EXISTS organizations CASCADE")
-    op.execute("DROP TABLE IF EXISTS notification_templates CASCADE")
-    op.execute("DROP TABLE IF EXISTS ml_model_configs CASCADE")
-    op.execute("DROP TABLE IF EXISTS kpi_definitions CASCADE")
-    op.execute("DROP TABLE IF EXISTS feature_flags CASCADE")
-    op.execute("DROP TABLE IF EXISTS exchange_rates CASCADE")
     op.execute("DROP TABLE IF EXISTS equipment CASCADE")
-    op.execute("DROP TABLE IF EXISTS document_templates CASCADE")
-    op.execute("DROP TABLE IF EXISTS custom_field_definitions CASCADE")
-    op.execute("DROP TABLE IF EXISTS currencies CASCADE")
     op.execute("DROP TABLE IF EXISTS contacts CASCADE")
-
-    # Drop all enum types
-    op.execute("DROP TYPE IF EXISTS contactstage CASCADE")
-    op.execute("DROP TYPE IF EXISTS contacttype CASCADE")
-    op.execute("DROP TYPE IF EXISTS interactiontype CASCADE")
-    op.execute("DROP TYPE IF EXISTS propertytype CASCADE")
-    op.execute("DROP TYPE IF EXISTS productcategory CASCADE")
-    op.execute("DROP TYPE IF EXISTS documentcategory CASCADE")
-    op.execute("DROP TYPE IF EXISTS opportunitystage CASCADE")
-    op.execute("DROP TYPE IF EXISTS milestonestatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS dependencytype CASCADE")
-    op.execute("DROP TYPE IF EXISTS activitytype CASCADE")
-    op.execute("DROP TYPE IF EXISTS activitystatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS offerstatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS contractstatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS invoicestatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS approvalstatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS lossreason CASCADE")
-    op.execute("DROP TYPE IF EXISTS projectstatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS projecttype CASCADE")
-    op.execute("DROP TYPE IF EXISTS wbsnodetype CASCADE")
-    op.execute("DROP TYPE IF EXISTS taskstatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS taskdependencytype CASCADE")
-    op.execute("DROP TYPE IF EXISTS riskprobability CASCADE")
-    op.execute("DROP TYPE IF EXISTS riskimpact CASCADE")
-    op.execute("DROP TYPE IF EXISTS riskstatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS punchitemstatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS punchitemseverity CASCADE")
-    op.execute("DROP TYPE IF EXISTS timesheetstatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS wikiposttype CASCADE")
-    op.execute("DROP TYPE IF EXISTS importsourcetype CASCADE")
-    op.execute("DROP TYPE IF EXISTS employeestatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS contracttype CASCADE")
-    op.execute("DROP TYPE IF EXISTS leavetype CASCADE")
-    op.execute("DROP TYPE IF EXISTS leavestatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS equipmentstatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS procurementstatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS allocationstatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS resourcetype CASCADE")
-    op.execute("DROP TYPE IF EXISTS documenttype_rm CASCADE")
-    op.execute("DROP TYPE IF EXISTS kpithresholdcolor CASCADE")
-    op.execute("DROP TYPE IF EXISTS reportformat CASCADE")
-    op.execute("DROP TYPE IF EXISTS dashboardwidgettype CASCADE")
-    op.execute("DROP TYPE IF EXISTS prototypeenum CASCADE")
-    op.execute("DROP TYPE IF EXISTS roleenum CASCADE")
-    op.execute("DROP TYPE IF EXISTS notificationchannel CASCADE")
-    op.execute("DROP TYPE IF EXISTS notificationstatus CASCADE")
-    op.execute("DROP TYPE IF EXISTS customfieldtype CASCADE")
