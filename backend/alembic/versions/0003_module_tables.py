@@ -20,7 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Create all module tables (CRM, Pipeline, PM, RM, BI)."""
 
-    op.execute("""CREATE TABLE contacts (
+    op.execute("""CREATE TABLE IF NOT EXISTScontacts (
 	company_name VARCHAR(255) NOT NULL, 
 	cui VARCHAR(20), 
 	registration_number VARCHAR(50), 
@@ -57,7 +57,7 @@ def upgrade() -> None:
 	PRIMARY KEY (id)
 )""")
 
-    op.execute("""CREATE TABLE equipment (
+    op.execute("""CREATE TABLE IF NOT EXISTSequipment (
 	is_p1 BOOLEAN NOT NULL, 
 	is_p2 BOOLEAN NOT NULL, 
 	is_p3 BOOLEAN NOT NULL, 
@@ -89,7 +89,7 @@ def upgrade() -> None:
 	PRIMARY KEY (id)
 )""")
 
-    op.execute("""CREATE TABLE ai_conversations (
+    op.execute("""CREATE TABLE IF NOT EXISTSai_conversations (
 	is_p1 BOOLEAN NOT NULL, 
 	is_p2 BOOLEAN NOT NULL, 
 	is_p3 BOOLEAN NOT NULL, 
@@ -104,7 +104,7 @@ def upgrade() -> None:
 	FOREIGN KEY(user_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE contact_persons (
+    op.execute("""CREATE TABLE IF NOT EXISTScontact_persons (
 	contact_id UUID NOT NULL, 
 	first_name VARCHAR(100) NOT NULL, 
 	last_name VARCHAR(100) NOT NULL, 
@@ -123,7 +123,7 @@ def upgrade() -> None:
 	FOREIGN KEY(contact_id) REFERENCES contacts (id)
 )""")
 
-    op.execute("""CREATE TABLE dashboards (
+    op.execute("""CREATE TABLE IF NOT EXISTSdashboards (
 	is_p1 BOOLEAN NOT NULL, 
 	is_p2 BOOLEAN NOT NULL, 
 	is_p3 BOOLEAN NOT NULL, 
@@ -145,7 +145,7 @@ def upgrade() -> None:
 	FOREIGN KEY(owner_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE employees (
+    op.execute("""CREATE TABLE IF NOT EXISTSemployees (
 	is_p1 BOOLEAN NOT NULL, 
 	is_p2 BOOLEAN NOT NULL, 
 	is_p3 BOOLEAN NOT NULL, 
@@ -189,7 +189,7 @@ def upgrade() -> None:
 	FOREIGN KEY(user_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE interactions (
+    op.execute("""CREATE TABLE IF NOT EXISTSinteractions (
 	contact_id UUID NOT NULL, 
 	interaction_type interactiontype NOT NULL, 
 	subject VARCHAR(500), 
@@ -212,7 +212,7 @@ def upgrade() -> None:
 	FOREIGN KEY(user_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE kpi_values (
+    op.execute("""CREATE TABLE IF NOT EXISTSkpi_values (
 	kpi_definition_id UUID NOT NULL, 
 	value FLOAT NOT NULL, 
 	threshold_color kpithresholdcolor, 
@@ -230,7 +230,7 @@ def upgrade() -> None:
 	FOREIGN KEY(kpi_definition_id) REFERENCES kpi_definitions (id)
 )""")
 
-    op.execute("""CREATE TABLE milestone_templates (
+    op.execute("""CREATE TABLE IF NOT EXISTSmilestone_templates (
 	name VARCHAR(255) NOT NULL, 
 	product_category_id UUID, 
 	template_data JSON NOT NULL, 
@@ -243,7 +243,7 @@ def upgrade() -> None:
 	FOREIGN KEY(product_category_id) REFERENCES product_categories (id)
 )""")
 
-    op.execute("""CREATE TABLE opportunities (
+    op.execute("""CREATE TABLE IF NOT EXISTSopportunities (
 	contact_id UUID NOT NULL, 
 	title VARCHAR(500) NOT NULL, 
 	description TEXT, 
@@ -279,7 +279,7 @@ def upgrade() -> None:
 	FOREIGN KEY(owner_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE products (
+    op.execute("""CREATE TABLE IF NOT EXISTSproducts (
 	category_id UUID, 
 	code VARCHAR(50), 
 	name VARCHAR(255) NOT NULL, 
@@ -306,7 +306,7 @@ def upgrade() -> None:
 	FOREIGN KEY(parent_product_id) REFERENCES products (id)
 )""")
 
-    op.execute("""CREATE TABLE properties (
+    op.execute("""CREATE TABLE IF NOT EXISTSproperties (
 	contact_id UUID NOT NULL, 
 	name VARCHAR(255) NOT NULL, 
 	property_type propertytype NOT NULL, 
@@ -339,7 +339,7 @@ def upgrade() -> None:
 	FOREIGN KEY(contact_id) REFERENCES contacts (id)
 )""")
 
-    op.execute("""CREATE TABLE report_definitions (
+    op.execute("""CREATE TABLE IF NOT EXISTSreport_definitions (
 	is_p1 BOOLEAN NOT NULL, 
 	is_p2 BOOLEAN NOT NULL, 
 	is_p3 BOOLEAN NOT NULL, 
@@ -367,7 +367,7 @@ def upgrade() -> None:
 	FOREIGN KEY(owner_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE activities (
+    op.execute("""CREATE TABLE IF NOT EXISTSactivities (
 	activity_type activitytype NOT NULL, 
 	title VARCHAR(500) NOT NULL, 
 	description TEXT, 
@@ -401,7 +401,7 @@ def upgrade() -> None:
 	FOREIGN KEY(owner_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE ai_messages (
+    op.execute("""CREATE TABLE IF NOT EXISTSai_messages (
 	conversation_id UUID NOT NULL, 
 	role VARCHAR(20) NOT NULL, 
 	content TEXT NOT NULL, 
@@ -413,7 +413,7 @@ def upgrade() -> None:
 	FOREIGN KEY(conversation_id) REFERENCES ai_conversations (id)
 )""")
 
-    op.execute("""CREATE TABLE dashboard_widgets (
+    op.execute("""CREATE TABLE IF NOT EXISTSdashboard_widgets (
 	dashboard_id UUID NOT NULL, 
 	widget_type dashboardwidgettype NOT NULL, 
 	title VARCHAR(255) NOT NULL, 
@@ -434,7 +434,7 @@ def upgrade() -> None:
 	FOREIGN KEY(kpi_definition_id) REFERENCES kpi_definitions (id)
 )""")
 
-    op.execute("""CREATE TABLE documents (
+    op.execute("""CREATE TABLE IF NOT EXISTSdocuments (
 	entity_type VARCHAR(50) NOT NULL, 
 	entity_id UUID NOT NULL, 
 	contact_id UUID, 
@@ -457,7 +457,7 @@ def upgrade() -> None:
 	FOREIGN KEY(property_id) REFERENCES properties (id)
 )""")
 
-    op.execute("""CREATE TABLE energy_profiles (
+    op.execute("""CREATE TABLE IF NOT EXISTSenergy_profiles (
 	property_id UUID NOT NULL, 
 	u_value_walls FLOAT, 
 	u_value_roof FLOAT, 
@@ -488,7 +488,7 @@ def upgrade() -> None:
 	FOREIGN KEY(property_id) REFERENCES properties (id)
 )""")
 
-    op.execute("""CREATE TABLE hr_planning_entries (
+    op.execute("""CREATE TABLE IF NOT EXISTShr_planning_entries (
 	is_p1 BOOLEAN NOT NULL, 
 	is_p2 BOOLEAN NOT NULL, 
 	is_p3 BOOLEAN NOT NULL, 
@@ -507,7 +507,7 @@ def upgrade() -> None:
 	FOREIGN KEY(employee_id) REFERENCES employees (id)
 )""")
 
-    op.execute("""CREATE TABLE leaves (
+    op.execute("""CREATE TABLE IF NOT EXISTSleaves (
 	employee_id UUID NOT NULL, 
 	leave_type leavetype NOT NULL, 
 	start_date TIMESTAMP WITH TIME ZONE NOT NULL, 
@@ -524,7 +524,7 @@ def upgrade() -> None:
 	FOREIGN KEY(approved_by) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE material_stocks (
+    op.execute("""CREATE TABLE IF NOT EXISTSmaterial_stocks (
 	is_p1 BOOLEAN NOT NULL, 
 	is_p2 BOOLEAN NOT NULL, 
 	is_p3 BOOLEAN NOT NULL, 
@@ -551,7 +551,7 @@ def upgrade() -> None:
 	FOREIGN KEY(product_id) REFERENCES products (id)
 )""")
 
-    op.execute("""CREATE TABLE milestones (
+    op.execute("""CREATE TABLE IF NOT EXISTSmilestones (
 	opportunity_id UUID NOT NULL, 
 	parent_id UUID, 
 	title VARCHAR(500) NOT NULL, 
@@ -580,7 +580,7 @@ def upgrade() -> None:
 	FOREIGN KEY(assigned_to) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE offers (
+    op.execute("""CREATE TABLE IF NOT EXISTSoffers (
 	contact_id UUID NOT NULL, 
 	opportunity_id UUID, 
 	property_id UUID, 
@@ -628,7 +628,7 @@ def upgrade() -> None:
 	FOREIGN KEY(template_id) REFERENCES document_templates (id)
 )""")
 
-    op.execute("""CREATE TABLE property_work_history (
+    op.execute("""CREATE TABLE IF NOT EXISTSproperty_work_history (
 	property_id UUID NOT NULL, 
 	title VARCHAR(255) NOT NULL, 
 	description TEXT, 
@@ -647,7 +647,7 @@ def upgrade() -> None:
 	FOREIGN KEY(property_id) REFERENCES properties (id)
 )""")
 
-    op.execute("""CREATE TABLE report_executions (
+    op.execute("""CREATE TABLE IF NOT EXISTSreport_executions (
 	report_definition_id UUID NOT NULL, 
 	format reportformat NOT NULL, 
 	generated_by UUID, 
@@ -664,7 +664,7 @@ def upgrade() -> None:
 	FOREIGN KEY(generated_by) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE surface_calculations (
+    op.execute("""CREATE TABLE IF NOT EXISTSsurface_calculations (
 	property_id UUID NOT NULL, 
 	floor_name VARCHAR(100) NOT NULL, 
 	floor_number INTEGER NOT NULL, 
@@ -680,7 +680,7 @@ def upgrade() -> None:
 	FOREIGN KEY(property_id) REFERENCES properties (id)
 )""")
 
-    op.execute("""CREATE TABLE contracts (
+    op.execute("""CREATE TABLE IF NOT EXISTScontracts (
 	contact_id UUID NOT NULL, 
 	offer_id UUID, 
 	opportunity_id UUID, 
@@ -719,7 +719,7 @@ def upgrade() -> None:
 	FOREIGN KEY(template_id) REFERENCES document_templates (id)
 )""")
 
-    op.execute("""CREATE TABLE energy_measurements (
+    op.execute("""CREATE TABLE IF NOT EXISTSenergy_measurements (
 	energy_profile_id UUID NOT NULL, 
 	measurement_type VARCHAR(10) NOT NULL, 
 	parameter_name VARCHAR(100) NOT NULL, 
@@ -737,7 +737,7 @@ def upgrade() -> None:
 	FOREIGN KEY(measured_by) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE milestone_dependencies (
+    op.execute("""CREATE TABLE IF NOT EXISTSmilestone_dependencies (
 	milestone_id UUID NOT NULL, 
 	depends_on_id UUID NOT NULL, 
 	dependency_type dependencytype NOT NULL, 
@@ -748,7 +748,7 @@ def upgrade() -> None:
 	FOREIGN KEY(depends_on_id) REFERENCES milestones (id)
 )""")
 
-    op.execute("""CREATE TABLE offer_line_items (
+    op.execute("""CREATE TABLE IF NOT EXISTSoffer_line_items (
 	offer_id UUID NOT NULL, 
 	product_id UUID, 
 	description TEXT NOT NULL, 
@@ -768,7 +768,7 @@ def upgrade() -> None:
 	FOREIGN KEY(product_id) REFERENCES products (id)
 )""")
 
-    op.execute("""CREATE TABLE billing_schedules (
+    op.execute("""CREATE TABLE IF NOT EXISTSbilling_schedules (
 	contract_id UUID NOT NULL, 
 	installment_number INTEGER NOT NULL, 
 	description VARCHAR(500), 
@@ -786,7 +786,7 @@ def upgrade() -> None:
 	FOREIGN KEY(contract_id) REFERENCES contracts (id)
 )""")
 
-    op.execute("""CREATE TABLE invoices (
+    op.execute("""CREATE TABLE IF NOT EXISTSinvoices (
 	contract_id UUID NOT NULL, 
 	invoice_number VARCHAR(50) NOT NULL, 
 	status invoicestatus NOT NULL, 
@@ -809,7 +809,7 @@ def upgrade() -> None:
 	FOREIGN KEY(contract_id) REFERENCES contracts (id)
 )""")
 
-    op.execute("""CREATE TABLE projects (
+    op.execute("""CREATE TABLE IF NOT EXISTSprojects (
 	contract_id UUID, 
 	contact_id UUID, 
 	project_number VARCHAR(50) NOT NULL, 
@@ -853,7 +853,7 @@ def upgrade() -> None:
 	FOREIGN KEY(project_manager_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE budget_entries (
+    op.execute("""CREATE TABLE IF NOT EXISTSbudget_entries (
 	is_p1 BOOLEAN NOT NULL, 
 	is_p2 BOOLEAN NOT NULL, 
 	is_p3 BOOLEAN NOT NULL, 
@@ -877,7 +877,7 @@ def upgrade() -> None:
 	FOREIGN KEY(project_id) REFERENCES projects (id)
 )""")
 
-    op.execute("""CREATE TABLE daily_reports (
+    op.execute("""CREATE TABLE IF NOT EXISTSdaily_reports (
 	project_id UUID NOT NULL, 
 	report_date TIMESTAMP WITH TIME ZONE NOT NULL, 
 	weather VARCHAR(100), 
@@ -902,7 +902,7 @@ def upgrade() -> None:
 	FOREIGN KEY(reported_by) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE energy_impacts (
+    op.execute("""CREATE TABLE IF NOT EXISTSenergy_impacts (
 	project_id UUID NOT NULL, 
 	property_id UUID, 
 	pre_kwh_annual FLOAT, 
@@ -940,7 +940,7 @@ def upgrade() -> None:
 	FOREIGN KEY(property_id) REFERENCES properties (id)
 )""")
 
-    op.execute("""CREATE TABLE import_jobs (
+    op.execute("""CREATE TABLE IF NOT EXISTSimport_jobs (
 	project_id UUID, 
 	source_type importsourcetype NOT NULL, 
 	file_name VARCHAR(500) NOT NULL, 
@@ -962,7 +962,7 @@ def upgrade() -> None:
 	FOREIGN KEY(project_id) REFERENCES projects (id)
 )""")
 
-    op.execute("""CREATE TABLE project_cash_flow_entries (
+    op.execute("""CREATE TABLE IF NOT EXISTSproject_cash_flow_entries (
 	project_id UUID NOT NULL, 
 	entry_type VARCHAR(20) NOT NULL, 
 	description TEXT, 
@@ -980,7 +980,7 @@ def upgrade() -> None:
 	FOREIGN KEY(project_id) REFERENCES projects (id)
 )""")
 
-    op.execute("""CREATE TABLE project_finance_entries (
+    op.execute("""CREATE TABLE IF NOT EXISTSproject_finance_entries (
 	project_id UUID NOT NULL, 
 	entry_type VARCHAR(20) NOT NULL, 
 	category VARCHAR(50) NOT NULL, 
@@ -1001,7 +1001,7 @@ def upgrade() -> None:
 	FOREIGN KEY(project_id) REFERENCES projects (id)
 )""")
 
-    op.execute("""CREATE TABLE punch_items (
+    op.execute("""CREATE TABLE IF NOT EXISTSpunch_items (
 	project_id UUID NOT NULL, 
 	title VARCHAR(500) NOT NULL, 
 	description TEXT, 
@@ -1023,7 +1023,7 @@ def upgrade() -> None:
 	FOREIGN KEY(responsible_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE risks (
+    op.execute("""CREATE TABLE IF NOT EXISTSrisks (
 	project_id UUID NOT NULL, 
 	title VARCHAR(500) NOT NULL, 
 	description TEXT, 
@@ -1049,7 +1049,7 @@ def upgrade() -> None:
 	FOREIGN KEY(owner_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE subcontractors (
+    op.execute("""CREATE TABLE IF NOT EXISTSsubcontractors (
 	project_id UUID NOT NULL, 
 	contact_id UUID, 
 	company_name VARCHAR(255) NOT NULL, 
@@ -1074,7 +1074,7 @@ def upgrade() -> None:
 	FOREIGN KEY(contact_id) REFERENCES contacts (id)
 )""")
 
-    op.execute("""CREATE TABLE warranties (
+    op.execute("""CREATE TABLE IF NOT EXISTSwarranties (
 	project_id UUID NOT NULL, 
 	description TEXT NOT NULL, 
 	start_date TIMESTAMP WITH TIME ZONE NOT NULL, 
@@ -1092,7 +1092,7 @@ def upgrade() -> None:
 	FOREIGN KEY(responsible_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE wbs_nodes (
+    op.execute("""CREATE TABLE IF NOT EXISTSwbs_nodes (
 	project_id UUID NOT NULL, 
 	parent_id UUID, 
 	code VARCHAR(50) NOT NULL, 
@@ -1116,7 +1116,7 @@ def upgrade() -> None:
 	FOREIGN KEY(responsible_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE wiki_posts (
+    op.execute("""CREATE TABLE IF NOT EXISTSwiki_posts (
 	project_id UUID, 
 	department VARCHAR(100), 
 	post_type wikiposttype NOT NULL, 
@@ -1143,7 +1143,7 @@ def upgrade() -> None:
 	FOREIGN KEY(author_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE work_situations (
+    op.execute("""CREATE TABLE IF NOT EXISTSwork_situations (
 	project_id UUID NOT NULL, 
 	period_month INTEGER NOT NULL, 
 	period_year INTEGER NOT NULL, 
@@ -1169,7 +1169,7 @@ def upgrade() -> None:
 	FOREIGN KEY(project_id) REFERENCES projects (id)
 )""")
 
-    op.execute("""CREATE TABLE deviz_items (
+    op.execute("""CREATE TABLE IF NOT EXISTSdeviz_items (
 	project_id UUID NOT NULL, 
 	wbs_node_id UUID, 
 	parent_id UUID, 
@@ -1201,7 +1201,7 @@ def upgrade() -> None:
 	FOREIGN KEY(parent_id) REFERENCES deviz_items (id)
 )""")
 
-    op.execute("""CREATE TABLE procurement_orders (
+    op.execute("""CREATE TABLE IF NOT EXISTSprocurement_orders (
 	is_p1 BOOLEAN NOT NULL, 
 	is_p2 BOOLEAN NOT NULL, 
 	is_p3 BOOLEAN NOT NULL, 
@@ -1228,7 +1228,7 @@ def upgrade() -> None:
 	FOREIGN KEY(wbs_node_id) REFERENCES wbs_nodes (id)
 )""")
 
-    op.execute("""CREATE TABLE tasks (
+    op.execute("""CREATE TABLE IF NOT EXISTStasks (
 	project_id UUID NOT NULL, 
 	wbs_node_id UUID, 
 	parent_task_id UUID, 
@@ -1265,7 +1265,7 @@ def upgrade() -> None:
 	FOREIGN KEY(assigned_to) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE wiki_comments (
+    op.execute("""CREATE TABLE IF NOT EXISTSwiki_comments (
 	post_id UUID NOT NULL, 
 	parent_comment_id UUID, 
 	author_id UUID, 
@@ -1280,7 +1280,7 @@ def upgrade() -> None:
 	FOREIGN KEY(author_id) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE material_consumptions (
+    op.execute("""CREATE TABLE IF NOT EXISTSmaterial_consumptions (
 	project_id UUID NOT NULL, 
 	wbs_node_id UUID, 
 	deviz_item_id UUID, 
@@ -1307,7 +1307,7 @@ def upgrade() -> None:
 	FOREIGN KEY(registered_by) REFERENCES users (id)
 )""")
 
-    op.execute("""CREATE TABLE procurement_documents (
+    op.execute("""CREATE TABLE IF NOT EXISTSprocurement_documents (
 	order_id UUID NOT NULL, 
 	document_type documenttype_rm NOT NULL, 
 	document_number VARCHAR(50) NOT NULL, 
@@ -1323,7 +1323,7 @@ def upgrade() -> None:
 	FOREIGN KEY(order_id) REFERENCES procurement_orders (id)
 )""")
 
-    op.execute("""CREATE TABLE procurement_line_items (
+    op.execute("""CREATE TABLE IF NOT EXISTSprocurement_line_items (
 	order_id UUID NOT NULL, 
 	material_stock_id UUID, 
 	product_id UUID, 
@@ -1341,7 +1341,7 @@ def upgrade() -> None:
 	FOREIGN KEY(product_id) REFERENCES products (id)
 )""")
 
-    op.execute("""CREATE TABLE resource_allocations (
+    op.execute("""CREATE TABLE IF NOT EXISTSresource_allocations (
 	is_p1 BOOLEAN NOT NULL, 
 	is_p2 BOOLEAN NOT NULL, 
 	is_p3 BOOLEAN NOT NULL, 
@@ -1376,7 +1376,7 @@ def upgrade() -> None:
 	FOREIGN KEY(task_id) REFERENCES tasks (id)
 )""")
 
-    op.execute("""CREATE TABLE task_dependencies (
+    op.execute("""CREATE TABLE IF NOT EXISTStask_dependencies (
 	task_id UUID NOT NULL, 
 	depends_on_id UUID NOT NULL, 
 	dependency_type taskdependencytype NOT NULL, 
@@ -1387,7 +1387,7 @@ def upgrade() -> None:
 	FOREIGN KEY(depends_on_id) REFERENCES tasks (id)
 )""")
 
-    op.execute("""CREATE TABLE timesheet_entries (
+    op.execute("""CREATE TABLE IF NOT EXISTStimesheet_entries (
 	project_id UUID NOT NULL, 
 	task_id UUID, 
 	user_id UUID NOT NULL, 
