@@ -21,7 +21,7 @@ def upgrade() -> None:
     """Create core/system tables — no FK dependencies on module tables."""
 
     # ── Organizations ──
-    op.execute("""CREATE TABLE IF NOT EXISTSorganizations (
+    op.execute("""CREATE TABLE IF NOT EXISTS organizations (
 	name VARCHAR(255) NOT NULL,
 	slug VARCHAR(100) NOT NULL,
 	cui VARCHAR(20),
@@ -53,7 +53,7 @@ def upgrade() -> None:
 )""")
 
     # ── Permissions ──
-    op.execute("""CREATE TABLE IF NOT EXISTSpermissions (
+    op.execute("""CREATE TABLE IF NOT EXISTS permissions (
 	module VARCHAR(50) NOT NULL,
 	action VARCHAR(50) NOT NULL,
 	description TEXT,
@@ -63,7 +63,7 @@ def upgrade() -> None:
 )""")
 
     # ── Roles ──
-    op.execute("""CREATE TABLE IF NOT EXISTSroles (
+    op.execute("""CREATE TABLE IF NOT EXISTS roles (
 	name VARCHAR(100) NOT NULL,
 	code VARCHAR(50) NOT NULL,
 	description TEXT,
@@ -77,7 +77,7 @@ def upgrade() -> None:
 )""")
 
     # ── Users ──
-    op.execute("""CREATE TABLE IF NOT EXISTSusers (
+    op.execute("""CREATE TABLE IF NOT EXISTS users (
 	email VARCHAR(255) NOT NULL,
 	password_hash VARCHAR(255) NOT NULL,
 	first_name VARCHAR(100) NOT NULL,
@@ -104,7 +104,7 @@ def upgrade() -> None:
 )""")
 
     # ── Role Permissions ──
-    op.execute("""CREATE TABLE IF NOT EXISTSrole_permissions (
+    op.execute("""CREATE TABLE IF NOT EXISTS role_permissions (
 	role_id UUID NOT NULL,
 	permission_id UUID NOT NULL,
 	id UUID NOT NULL,
@@ -115,7 +115,7 @@ def upgrade() -> None:
 )""")
 
     # ── User Roles ──
-    op.execute("""CREATE TABLE IF NOT EXISTSuser_roles (
+    op.execute("""CREATE TABLE IF NOT EXISTS user_roles (
 	user_id UUID NOT NULL,
 	role_id UUID NOT NULL,
 	id UUID NOT NULL,
@@ -126,7 +126,7 @@ def upgrade() -> None:
 )""")
 
     # ── Audit Logs ──
-    op.execute("""CREATE TABLE IF NOT EXISTSaudit_logs (
+    op.execute("""CREATE TABLE IF NOT EXISTS audit_logs (
 	user_id UUID,
 	action VARCHAR(50) NOT NULL,
 	entity_type VARCHAR(100) NOT NULL,
@@ -143,7 +143,7 @@ def upgrade() -> None:
 )""")
 
     # ── Currencies ──
-    op.execute("""CREATE TABLE IF NOT EXISTScurrencies (
+    op.execute("""CREATE TABLE IF NOT EXISTS currencies (
 	code VARCHAR(3) NOT NULL,
 	name VARCHAR(100) NOT NULL,
 	symbol VARCHAR(5) NOT NULL,
@@ -157,7 +157,7 @@ def upgrade() -> None:
 )""")
 
     # ── Exchange Rates ──
-    op.execute("""CREATE TABLE IF NOT EXISTSexchange_rates (
+    op.execute("""CREATE TABLE IF NOT EXISTS exchange_rates (
 	from_currency VARCHAR(3) NOT NULL,
 	to_currency VARCHAR(3) NOT NULL,
 	rate FLOAT NOT NULL,
@@ -168,7 +168,7 @@ def upgrade() -> None:
 )""")
 
     # ── Feature Flags ──
-    op.execute("""CREATE TABLE IF NOT EXISTSfeature_flags (
+    op.execute("""CREATE TABLE IF NOT EXISTS feature_flags (
 	f_code VARCHAR(10) NOT NULL,
 	name VARCHAR(255) NOT NULL,
 	module VARCHAR(50) NOT NULL,
@@ -186,7 +186,7 @@ def upgrade() -> None:
 )""")
 
     # ── Notification Templates ──
-    op.execute("""CREATE TABLE IF NOT EXISTSnotification_templates (
+    op.execute("""CREATE TABLE IF NOT EXISTS notification_templates (
 	name VARCHAR(255) NOT NULL,
 	event_type VARCHAR(100) NOT NULL,
 	channel notificationchannel NOT NULL,
@@ -202,7 +202,7 @@ def upgrade() -> None:
 )""")
 
     # ── Notifications (FK → users, notification_templates) ──
-    op.execute("""CREATE TABLE IF NOT EXISTSnotifications (
+    op.execute("""CREATE TABLE IF NOT EXISTS notifications (
 	user_id UUID NOT NULL,
 	template_id UUID,
 	title VARCHAR(255) NOT NULL,
@@ -222,7 +222,7 @@ def upgrade() -> None:
 )""")
 
     # ── Custom Field Definitions ──
-    op.execute("""CREATE TABLE IF NOT EXISTScustom_field_definitions (
+    op.execute("""CREATE TABLE IF NOT EXISTS custom_field_definitions (
 	entity_type VARCHAR(100) NOT NULL,
 	field_name VARCHAR(100) NOT NULL,
 	field_label VARCHAR(255) NOT NULL,
@@ -241,7 +241,7 @@ def upgrade() -> None:
 )""")
 
     # ── Custom Field Values ──
-    op.execute("""CREATE TABLE IF NOT EXISTScustom_field_values (
+    op.execute("""CREATE TABLE IF NOT EXISTS custom_field_values (
 	field_definition_id UUID NOT NULL,
 	entity_type VARCHAR(100) NOT NULL,
 	entity_id UUID NOT NULL,
@@ -254,7 +254,7 @@ def upgrade() -> None:
 )""")
 
     # ── Document Templates ──
-    op.execute("""CREATE TABLE IF NOT EXISTSdocument_templates (
+    op.execute("""CREATE TABLE IF NOT EXISTS document_templates (
 	name VARCHAR(255) NOT NULL,
 	template_type VARCHAR(50) NOT NULL,
 	content TEXT,
@@ -272,7 +272,7 @@ def upgrade() -> None:
 )""")
 
     # ── ML Model Configs ──
-    op.execute("""CREATE TABLE IF NOT EXISTSml_model_configs (
+    op.execute("""CREATE TABLE IF NOT EXISTS ml_model_configs (
 	is_p1 BOOLEAN NOT NULL,
 	is_p2 BOOLEAN NOT NULL,
 	is_p3 BOOLEAN NOT NULL,
@@ -293,7 +293,7 @@ def upgrade() -> None:
 )""")
 
     # ── Pipeline Stage Configs ──
-    op.execute("""CREATE TABLE IF NOT EXISTSpipeline_stage_configs (
+    op.execute("""CREATE TABLE IF NOT EXISTS pipeline_stage_configs (
 	name VARCHAR(100) NOT NULL,
 	code VARCHAR(50) NOT NULL,
 	sort_order INTEGER NOT NULL,
@@ -314,7 +314,7 @@ def upgrade() -> None:
 )""")
 
     # ── Product Categories ──
-    op.execute("""CREATE TABLE IF NOT EXISTSproduct_categories (
+    op.execute("""CREATE TABLE IF NOT EXISTS product_categories (
 	name VARCHAR(255) NOT NULL,
 	parent_id UUID,
 	sort_order INTEGER NOT NULL,
@@ -328,7 +328,7 @@ def upgrade() -> None:
 )""")
 
     # ── KPI Definitions ──
-    op.execute("""CREATE TABLE IF NOT EXISTSkpi_definitions (
+    op.execute("""CREATE TABLE IF NOT EXISTS kpi_definitions (
 	name VARCHAR(255) NOT NULL,
 	code VARCHAR(50) NOT NULL,
 	description TEXT,
@@ -353,7 +353,7 @@ def upgrade() -> None:
 )""")
 
     # ── Approval Workflows ──
-    op.execute("""CREATE TABLE IF NOT EXISTSapproval_workflows (
+    op.execute("""CREATE TABLE IF NOT EXISTS approval_workflows (
 	entity_type VARCHAR(50) NOT NULL,
 	entity_id UUID NOT NULL,
 	status approvalstatus NOT NULL,
@@ -369,7 +369,7 @@ def upgrade() -> None:
 )""")
 
     # ── Approval Steps ──
-    op.execute("""CREATE TABLE IF NOT EXISTSapproval_steps (
+    op.execute("""CREATE TABLE IF NOT EXISTS approval_steps (
 	workflow_id UUID NOT NULL,
 	approver_id UUID NOT NULL,
 	step_order INTEGER NOT NULL,
