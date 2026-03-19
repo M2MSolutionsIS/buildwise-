@@ -8,6 +8,9 @@ import DashboardPage from "./modules/crm/pages/DashboardPage";
 import ContactsListPage from "./modules/crm/pages/ContactsListPage";
 import ContactDetailPage from "./modules/crm/pages/ContactDetailPage";
 import ContactCreatePage from "./modules/crm/pages/ContactCreatePage";
+import OffersListPage from "./modules/pipeline/pages/OffersListPage";
+import OfferBuilderPage from "./modules/pipeline/pages/OfferBuilderPage";
+import OfferDetailPage from "./modules/pipeline/pages/OfferDetailPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -61,8 +64,13 @@ function App() {
                   <Route path="contacts/:id" element={<ContactDetailPage />} />
                 </Route>
 
-                {/* Placeholder routes for other modules */}
-                <Route path="pipeline" element={<PlaceholderPage title="Sales Pipeline" />} />
+                {/* Pipeline Routes — Offers (E-005, E-006) */}
+                <Route path="pipeline">
+                  <Route index element={<Navigate to="offers" replace />} />
+                  <Route path="offers" element={<OffersListPage />} />
+                  <Route path="offers/new" element={<OfferBuilderPage />} />
+                  <Route path="offers/:id" element={<OfferDetailPage />} />
+                </Route>
                 <Route path="pm" element={<PlaceholderPage title="Project Management" />} />
                 <Route path="rm" element={<PlaceholderPage title="Resource Management" />} />
                 <Route path="bi" element={<PlaceholderPage title="Business Intelligence" />} />

@@ -1,117 +1,114 @@
-import { Typography, Table, Tag, Space, Empty, Card, Statistic, Row, Col } from "antd";
+/**
+ * Tab Oferte & Contracte — Contact Detail (E-003.5)
+ * Connected to real API /api/v1/pipeline/offers
+ * F-codes: F019, F027, F029
+ */
+import { useNavigate } from "react-router-dom";
+import { Typography, Table, Tag, Space, Empty, Card, Statistic, Row, Col, Button } from "antd";
 import {
   DollarOutlined,
   FileTextOutlined,
   TrophyOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
+import { useQuery } from "@tanstack/react-query";
+import { offerService } from "../../pipeline/services/offerService";
+import type { OfferListItem, OfferStatus } from "../../../types";
 import type { ColumnsType } from "antd/es/table";
 
-interface Offer {
-  id: string;
-  offer_number: string;
-  date: string;
-  amount: number;
-  currency: string;
-  status: string;
-  validity_days: number;
-}
-
-interface Contract {
-  id: string;
-  contract_number: string;
-  linked_offer?: string;
-  date_signed: string;
-  amount: number;
-  currency: string;
-  project?: string;
-  status: string;
-  end_date?: string;
-}
-
 const OFFER_STATUS_COLORS: Record<string, string> = {
-  draft: "default",
-  sent: "processing",
-  viewed: "processing",
-  accepted: "success",
-  expired: "warning",
-  rejected: "error",
+  DRAFT: "default",
+  PENDING_APPROVAL: "processing",
+  APPROVED: "cyan",
+  SENT: "blue",
+  NEGOTIATION: "orange",
+  ACCEPTED: "success",
+  REJECTED: "error",
+  EXPIRED: "default",
 };
 
-const CONTRACT_STATUS_COLORS: Record<string, string> = {
-  active: "success",
-  suspended: "warning",
-  completed: "default",
-  terminated: "error",
+const OFFER_STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  PENDING_APPROVAL: "Așteptare aprobare",
+  APPROVED: "Aprobată",
+  SENT: "Trimisă",
+  NEGOTIATION: "Negociere",
+  ACCEPTED: "Acceptată",
+  REJECTED: "Refuzată",
+  EXPIRED: "Expirată",
 };
 
 interface Props {
   contactId: string;
 }
 
-export default function TabOferteContracte({ contactId: _contactId }: Props) {
-  // Offers & Contracts API - will be populated when Pipeline module is implemented
-  const offers: Offer[] = [];
-  const contracts: Contract[] = [];
+export default function TabOferteContracte({ contactId }: Props) {
+  const navigate = useNavigate();
 
-  const offerColumns: ColumnsType<Offer> = [
-    { title: "Nr. ofertă", dataIndex: "offer_number", key: "offer_number" },
+  // Fetch offers for this contact
+  const { data: offersData, isLoading } = useQuery({
+    queryKey: ["offers", { contact_id: contactId }],
+    queryFn: () => offerService.list({ contact_id: contactId, per_page: 50 }),
+    enabled: !!contactId,
+  });
+
+  const offers = offersData?.data || [];
+
+  // Compute stats
+  const totalOffersValue = offers.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+  const acceptedOffers = offers.filter((o) => o.status === "ACCEPTED");
+  const conversionRate = offers.length > 0 ? Math.round((acceptedOffers.length / offers.length) * 100) : 0;
+  const acceptedValue = acceptedOffers.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+
+  const offerColumns: ColumnsType<OfferListItem> = [
+    {
+      title: "Nr. ofertă",
+      dataIndex: "offer_number",
+      key: "offer_number",
+      render: (val: string, record) => (
+        <a onClick={() => navigate(`/pipeline/offers/${record.id}`)}>{val}</a>
+      ),
+    },
+    {
+      title: "Titlu",
+      dataIndex: "title",
+      key: "title",
+      ellipsis: true,
+    },
+    {
+      title: "Versiune",
+      dataIndex: "version",
+      key: "version",
+      width: 70,
+      render: (v: number) => `v${v}`,
+    },
     {
       title: "Data",
-      dataIndex: "date",
+      dataIndex: "created_at",
       key: "date",
+      width: 100,
       render: (d: string) => new Date(d).toLocaleDateString("ro-RO"),
     },
     {
       title: "Valoare",
-      dataIndex: "amount",
+      dataIndex: "total_amount",
       key: "amount",
-      render: (v: number, r: Offer) => `${v?.toLocaleString("ro-RO")} ${r.currency || "RON"}`,
+      width: 130,
+      render: (v: number, r) =>
+        `${v?.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} ${r.currency || "RON"}`,
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (s: string) => (
+      width: 140,
+      render: (s: OfferStatus) => (
         <Tag color={OFFER_STATUS_COLORS[s] || "default"}>
-          {s?.charAt(0).toUpperCase() + s?.slice(1)}
+          {OFFER_STATUS_LABELS[s] || s}
         </Tag>
       ),
     },
   ];
-
-  const contractColumns: ColumnsType<Contract> = [
-    { title: "Nr. contract", dataIndex: "contract_number", key: "contract_number" },
-    {
-      title: "Data semnare",
-      dataIndex: "date_signed",
-      key: "date_signed",
-      render: (d: string) => new Date(d).toLocaleDateString("ro-RO"),
-    },
-    {
-      title: "Valoare",
-      dataIndex: "amount",
-      key: "amount",
-      render: (v: number, r: Contract) => `${v?.toLocaleString("ro-RO")} ${r.currency || "RON"}`,
-    },
-    {
-      title: "Proiect",
-      dataIndex: "project",
-      key: "project",
-      render: (p: string) => p || "—",
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (s: string) => (
-        <Tag color={CONTRACT_STATUS_COLORS[s] || "default"}>
-          {s?.charAt(0).toUpperCase() + s?.slice(1)}
-        </Tag>
-      ),
-    },
-  ];
-
-  const hasData = offers.length > 0 || contracts.length > 0;
 
   return (
     <>
@@ -120,7 +117,8 @@ export default function TabOferteContracte({ contactId: _contactId }: Props) {
           <Card size="small">
             <Statistic
               title="Valoare oferte"
-              value={offers.reduce((sum, o) => sum + (o.amount || 0), 0)}
+              value={totalOffersValue}
+              precision={2}
               prefix={<DollarOutlined />}
               suffix="RON"
             />
@@ -129,8 +127,9 @@ export default function TabOferteContracte({ contactId: _contactId }: Props) {
         <Col xs={8}>
           <Card size="small">
             <Statistic
-              title="Valoare contracte"
-              value={contracts.reduce((sum, c) => sum + (c.amount || 0), 0)}
+              title="Valoare acceptate"
+              value={acceptedValue}
+              precision={2}
               prefix={<FileTextOutlined />}
               suffix="RON"
             />
@@ -140,7 +139,7 @@ export default function TabOferteContracte({ contactId: _contactId }: Props) {
           <Card size="small">
             <Statistic
               title="Rată conversie"
-              value={offers.length > 0 ? Math.round((contracts.length / offers.length) * 100) : 0}
+              value={conversionRate}
               prefix={<TrophyOutlined />}
               suffix="%"
             />
@@ -148,35 +147,37 @@ export default function TabOferteContracte({ contactId: _contactId }: Props) {
         </Col>
       </Row>
 
-      {!hasData ? (
-        <Empty description={
-          <Typography.Text type="secondary">
-            Nicio ofertă sau contract. Ofertele vor apărea aici după crearea lor din modulul Pipeline.
-          </Typography.Text>
-        } />
+      <Space style={{ marginBottom: 16 }}>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => navigate(`/pipeline/offers/new?contact_id=${contactId}`)}
+        >
+          Ofertă nouă
+        </Button>
+      </Space>
+
+      {offers.length === 0 && !isLoading ? (
+        <Empty
+          description={
+            <Typography.Text type="secondary">
+              Nicio ofertă pentru acest contact. Creează prima ofertă folosind butonul de mai sus.
+            </Typography.Text>
+          }
+        />
       ) : (
-        <Space direction="vertical" size="large" style={{ width: "100%" }}>
-          <div>
-            <Typography.Title level={5}>Oferte</Typography.Title>
-            <Table<Offer>
-              rowKey="id"
-              columns={offerColumns}
-              dataSource={offers}
-              pagination={false}
-              size="small"
-            />
-          </div>
-          <div>
-            <Typography.Title level={5}>Contracte</Typography.Title>
-            <Table<Contract>
-              rowKey="id"
-              columns={contractColumns}
-              dataSource={contracts}
-              pagination={false}
-              size="small"
-            />
-          </div>
-        </Space>
+        <Table<OfferListItem>
+          rowKey="id"
+          columns={offerColumns}
+          dataSource={offers}
+          loading={isLoading}
+          pagination={false}
+          size="small"
+          onRow={(record) => ({
+            onClick: () => navigate(`/pipeline/offers/${record.id}`),
+            style: { cursor: "pointer" },
+          })}
+        />
       )}
     </>
   );
