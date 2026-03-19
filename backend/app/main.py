@@ -19,6 +19,15 @@ async def lifespan(app: FastAPI):
     # Temporary debug: log DATABASE_URL prefix to verify Railway env
     db_url = os.environ.get("DATABASE_URL", "NOT SET")
     logger.info("DATABASE_URL prefix: %s", db_url[:20])
+
+    # Run Alembic migrations in background so the server starts immediately
+    import subprocess
+    logger.info("Starting Alembic migrations in background…")
+    subprocess.Popen(
+        ["alembic", "upgrade", "head"],
+        cwd=os.path.dirname(os.path.dirname(__file__)),
+    )
+
     yield
     logger.info("BuildWise ERP shutting down")
 
