@@ -2,8 +2,11 @@
 System module service layer — auth, user management, organization setup.
 """
 
+import logging
 import uuid
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,7 +53,19 @@ async def authenticate_user(
         .where(User.email == email, User.is_active.is_(True), User.is_deleted.is_(False))
     )
     user = result.scalar_one_or_none()
-    if user is None or not verify_password(password, user.password_hash):
+    if user is None:
+        logger.error("LOGIN DIAG — user not found or inactive/deleted: %s", email)
+        return None
+    verified = verify_password(password, user.password_hash)
+    logger.error(
+        "LOGIN DIAG — user=%s is_active=%s is_deleted=%s hash_prefix=%s verified=%s",
+        email,
+        user.is_active,
+        user.is_deleted,
+        user.password_hash[:20] if user.password_hash else "NULL",
+        verified,
+    )
+    if not verified:
         return None
     return user
 
