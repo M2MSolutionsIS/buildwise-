@@ -856,7 +856,7 @@ export default function OfferBuilderPage() {
         style={{ marginBottom: 24 }}
       />
 
-      {steps[currentStep].content()}
+      {steps[currentStep]?.content()}
 
       {currentStep < 4 && (
         <div style={{ marginTop: 24, display: "flex", justifyContent: "space-between" }}>

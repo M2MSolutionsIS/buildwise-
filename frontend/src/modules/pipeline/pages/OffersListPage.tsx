@@ -2,7 +2,6 @@
  * Offers List Page — part of Pipeline module
  * F-codes: F019 (Offer Builder entry), F029 (Offers Analytics overview)
  */
-import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Card,

@@ -4,10 +4,10 @@
  * Side-by-side comparison of offer versions with color-coded changes
  */
 import { useState, useMemo } from "react";
-import { Modal, Select, Table, Tag, Row, Col, Typography, Space, Empty, Statistic, Card } from "antd";
-import type { Offer, OfferLineItem } from "../../../types";
+import { Modal, Select, Table, Tag, Row, Col, Typography, Empty, Statistic, Card } from "antd";
+import type { Offer } from "../../../types";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 interface Props {
   open: boolean;
@@ -58,7 +58,7 @@ export default function VersionDiffModal({ open, onClose, currentOffer, versions
 
       if (matchIdx >= 0) {
         v2Matched.add(matchIdx);
-        const item2 = v2Items[matchIdx];
+        const item2 = v2Items[matchIdx]!;
         const isModified =
           item1.quantity !== item2.quantity ||
           item1.unit_price !== item2.unit_price;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal, Input, Table, Tag, Space, Empty } from "antd";
+import { Modal, Input, Table, Tag, Empty } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import { productService } from "../services/productService";

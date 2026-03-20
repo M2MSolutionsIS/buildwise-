@@ -25,7 +25,6 @@ import {
   Spin,
   Alert,
   Divider,
-  Popconfirm,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -109,18 +108,6 @@ export default function OfferDetailPage() {
     onError: () => message.error("Eroare la trimiterea pentru aprobare"),
   });
 
-  // F028 — Approve
-  const approveMutation = useMutation({
-    mutationFn: (decision: { approved: boolean; comment?: string }) =>
-      offerService.approve(id!, decision),
-    onSuccess: (_, vars) => {
-      message.success(vars.approved ? "Ofertă aprobată" : "Ofertă respinsă");
-      invalidateOffer();
-      setRejectModalOpen(false);
-    },
-    onError: () => message.error("Eroare la procesarea deciziei"),
-  });
-
   // F027 — Send to client
   const sendMutation = useMutation({
     mutationFn: () => offerService.send(id!),
@@ -161,7 +148,7 @@ export default function OfferDetailPage() {
   const isSent = offer.status === "SENT";
   const isAccepted = offer.status === "ACCEPTED";
   const isNegotiation = offer.status === "NEGOTIATION";
-  const isEditable = isDraft;
+  // const isEditable = isDraft; // reserved for future inline editing
 
   // Status pipeline steps (F027)
   const pipelineSteps = [
