@@ -61,6 +61,8 @@ export default function ContactsListPage() {
       stage: searchParams.get("stage") || undefined,
       contact_type: searchParams.get("contact_type") || undefined,
       city: searchParams.get("city") || undefined,
+      county: searchParams.get("county") || undefined,
+      source: searchParams.get("source") || undefined,
     }),
     [searchParams]
   );
@@ -260,6 +262,30 @@ export default function ContactsListPage() {
               allowClear
               value={filters.city || ""}
               onChange={(e) => updateFilter("city", e.target.value || undefined)}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={4} lg={3}>
+            <Input
+              placeholder="Județ"
+              allowClear
+              value={filters.county || ""}
+              onChange={(e) => updateFilter("county", e.target.value || undefined)}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={4} lg={3}>
+            <Select
+              placeholder="Sursă"
+              allowClear
+              style={{ width: "100%" }}
+              value={filters.source}
+              onChange={(v) => updateFilter("source", v)}
+              options={[
+                { label: "Referral", value: "referral" },
+                { label: "Website", value: "website" },
+                { label: "Cold Call", value: "cold_call" },
+                { label: "Eveniment", value: "event" },
+                { label: "Partener", value: "partner" },
+              ]}
             />
           </Col>
         </Row>
