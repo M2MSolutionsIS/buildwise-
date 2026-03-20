@@ -1,7 +1,7 @@
 import api from "./api";
 import type { ApiResponse, TokenResponse, User } from "../types";
 
-const AUTH_BASE = "/api/auth";
+const AUTH_BASE = "/auth";
 
 export const authService = {
   login: async (email: string, password: string): Promise<TokenResponse> => {

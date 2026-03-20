@@ -65,7 +65,7 @@ from app.system.schemas import (
 # ─── Public routers (no auth) ────────────────────────────────────────────────
 
 health_router = APIRouter(tags=["Health"])
-auth_router = APIRouter(prefix="/api/auth", tags=["Auth"])
+auth_router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
 
 # ─── Protected routers ───────────────────────────────────────────────────────
 
