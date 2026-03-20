@@ -44,7 +44,14 @@ const menuItems = [
       { key: "/crm/contacts", label: "Contacte" },
     ],
   },
-  { key: "/pipeline", icon: <FunnelPlotOutlined />, label: "Sales Pipeline" },
+  {
+    key: "/pipeline",
+    icon: <FunnelPlotOutlined />,
+    label: "Sales Pipeline",
+    children: [
+      { key: "/pipeline/offers", label: "Oferte" },
+    ],
+  },
   { key: "/pm", icon: <ProjectOutlined />, label: "Project Management" },
   { key: "/rm", icon: <ToolOutlined />, label: "Resource Management" },
   { key: "/bi", icon: <BarChartOutlined />, label: "Business Intelligence" },
@@ -57,6 +64,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   contacts: "Contacte",
   new: "Contact nou",
   pipeline: "Sales Pipeline",
+  offers: "Oferte",
   pm: "Project Management",
   rm: "Resource Management",
   bi: "Business Intelligence",
