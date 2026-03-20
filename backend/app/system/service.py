@@ -50,7 +50,7 @@ async def authenticate_user(
     result = await db.execute(
         select(User)
         .options(selectinload(User.user_roles).selectinload(UserRole.role))
-        .where(User.email == email, User.is_active.is_(True), User.is_deleted.is_(False))
+        .where(User.email == email, User.is_active.is_not(False), User.is_deleted.is_not(True))
     )
     user = result.scalar_one_or_none()
     if user is None:

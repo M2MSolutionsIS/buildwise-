@@ -1,79 +1,103 @@
-import { useState, useMemo } from "react";
+/**
+ * Offers List Page — part of Pipeline module
+ * F-codes: F019 (Offer Builder entry), F029 (Offers Analytics overview)
+ */
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Typography,
+  Card,
   Table,
   Tag,
   Button,
   Space,
-  Row,
-  Col,
-  Card,
   Input,
   Select,
+  Row,
+  Col,
+  Statistic,
+  Typography,
   Popconfirm,
-  Tooltip,
+  message,
 } from "antd";
 import {
   PlusOutlined,
   SearchOutlined,
+  ThunderboltOutlined,
   DeleteOutlined,
-  ReloadOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
-import { useOffers, useDeleteOffer } from "../hooks/useOffers";
-import type { OfferListItem, OfferStatus } from "../../../types/pipeline";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { offerService } from "../services/offerService";
+import type { OfferListItem, OfferStatus } from "../../../types";
 import type { ColumnsType } from "antd/es/table";
-import type { OfferFilters } from "../services/offerService";
 
-const STATUS_COLORS: Record<OfferStatus, string> = {
-  draft: "default",
-  pending_approval: "processing",
-  approved: "blue",
-  sent: "cyan",
-  negotiation: "orange",
-  accepted: "green",
-  rejected: "red",
-  expired: "red",
+const { Title } = Typography;
+
+const STATUS_COLORS: Record<string, string> = {
+  DRAFT: "default",
+  PENDING_APPROVAL: "processing",
+  APPROVED: "cyan",
+  SENT: "blue",
+  NEGOTIATION: "orange",
+  ACCEPTED: "success",
+  REJECTED: "error",
+  EXPIRED: "default",
 };
 
-const STATUS_LABELS: Record<OfferStatus, string> = {
-  draft: "Draft",
-  pending_approval: "Aprobare",
-  approved: "Aprobată",
-  sent: "Trimisă",
-  negotiation: "Negociere",
-  accepted: "Acceptată",
-  rejected: "Refuzată",
-  expired: "Expirată",
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  PENDING_APPROVAL: "Așteptare aprobare",
+  APPROVED: "Aprobată",
+  SENT: "Trimisă",
+  NEGOTIATION: "Negociere",
+  ACCEPTED: "Acceptată",
+  REJECTED: "Refuzată",
+  EXPIRED: "Expirată",
 };
 
 export default function OffersListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const queryClient = useQueryClient();
 
-  const filters: OfferFilters = useMemo(
-    () => ({
-      page: Number(searchParams.get("page")) || 1,
-      per_page: Number(searchParams.get("per_page")) || 20,
-      search: searchParams.get("search") || undefined,
-      status: searchParams.get("status") || undefined,
-    }),
-    [searchParams]
-  );
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const search = searchParams.get("search") || "";
+  const statusFilter = searchParams.get("status") || "";
 
-  const { data, isLoading, refetch } = useOffers(filters);
-  const deleteMutation = useDeleteOffer();
+  const { data, isLoading } = useQuery({
+    queryKey: ["offers", { page, search, status: statusFilter }],
+    queryFn: () =>
+      offerService.list({
+        page,
+        per_page: 20,
+        search: search || undefined,
+        status: statusFilter || undefined,
+      }),
+  });
 
-  const updateFilter = (key: string, value: string | undefined) => {
-    const params = new URLSearchParams(searchParams);
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
-    params.set("page", "1");
-    setSearchParams(params);
+  const { data: analyticsData } = useQuery({
+    queryKey: ["offers-analytics"],
+    queryFn: () => offerService.getAnalytics(),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => offerService.delete(id),
+    onSuccess: () => {
+      message.success("Ofertă ștearsă");
+      queryClient.invalidateQueries({ queryKey: ["offers"] });
+    },
+    onError: () => message.error("Eroare la ștergere"),
+  });
+
+  const offers = data?.data || [];
+  const total = data?.meta?.total || 0;
+  const analytics = analyticsData?.data;
+
+  const updateParams = (key: string, value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    if (key !== "page") next.set("page", "1");
+    setSearchParams(next);
   };
 
   const columns: ColumnsType<OfferListItem> = [
@@ -81,172 +105,171 @@ export default function OffersListPage() {
       title: "Nr. ofertă",
       dataIndex: "offer_number",
       key: "offer_number",
-      width: 140,
-      render: (text: string, record: OfferListItem) => (
-        <a onClick={() => navigate(`/pipeline/offers/${record.id}`)}>{text}</a>
+      render: (val: string, record) => (
+        <a onClick={() => navigate(`/pipeline/offers/${record.id}`)}>{val}</a>
       ),
     },
+    { title: "Titlu", dataIndex: "title", key: "title", ellipsis: true },
     {
-      title: "Titlu",
-      dataIndex: "title",
-      key: "title",
-      ellipsis: true,
-      render: (text: string, record: OfferListItem) => (
-        <Space>
-          <a onClick={() => navigate(`/pipeline/offers/${record.id}`)}>{text}</a>
-          {record.version > 1 && <Tag>v{record.version}</Tag>}
-        </Space>
-      ),
+      title: "Versiune",
+      dataIndex: "version",
+      key: "version",
+      width: 80,
+      render: (v: number) => `v${v}`,
+    },
+    {
+      title: "Total",
+      dataIndex: "total_amount",
+      key: "total",
+      width: 140,
+      render: (v: number, r) =>
+        `${v?.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} ${r.currency}`,
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: 110,
-      render: (status: OfferStatus) => (
-        <Tag color={STATUS_COLORS[status]}>{STATUS_LABELS[status]}</Tag>
+      width: 140,
+      render: (s: OfferStatus) => (
+        <Tag color={STATUS_COLORS[s] || "default"}>
+          {STATUS_LABELS[s] || s}
+        </Tag>
       ),
     },
     {
-      title: "Total",
-      dataIndex: "total_amount",
-      key: "total_amount",
-      width: 140,
-      align: "right",
-      sorter: (a, b) => a.total_amount - b.total_amount,
-      render: (value: number, record: OfferListItem) =>
-        new Intl.NumberFormat("ro-RO", {
-          style: "currency",
-          currency: record.currency,
-        }).format(value),
-    },
-    {
-      title: "Creat",
+      title: "Data",
       dataIndex: "created_at",
       key: "created_at",
       width: 110,
-      sorter: (a, b) => a.created_at.localeCompare(b.created_at),
-      defaultSortOrder: "descend",
-      render: (date: string) =>
-        new Date(date).toLocaleDateString("ro-RO", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }),
+      render: (d: string) => new Date(d).toLocaleDateString("ro-RO"),
     },
     {
-      title: "",
+      title: "Acțiuni",
       key: "actions",
-      width: 50,
-      render: (_: unknown, record: OfferListItem) =>
-        record.status === "draft" ? (
-          <Popconfirm
-            title="Sigur vrei să ștergi?"
-            onConfirm={() => deleteMutation.mutate(record.id)}
-            okText="Da"
-            cancelText="Nu"
-          >
-            <Tooltip title="Șterge">
-              <Button type="text" danger size="small" icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
-        ) : null,
+      width: 100,
+      render: (_, record) => (
+        <Space>
+          <Button
+            type="text"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => navigate(`/pipeline/offers/${record.id}`)}
+          />
+          {record.status === "DRAFT" && (
+            <Popconfirm title="Ștergi oferta?" onConfirm={() => deleteMutation.mutate(record.id)}>
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
+        </Space>
+      ),
     },
   ];
 
-  const offers = data?.data || [];
-  const total = data?.meta?.total || 0;
-
   return (
-    <>
+    <div>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          Oferte
-        </Typography.Title>
-        <Space>
-          <Tooltip title="Reîncarcă">
-            <Button icon={<ReloadOutlined />} onClick={() => refetch()} />
-          </Tooltip>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate("/pipeline/offers/new")}
-          >
-            Ofertă nouă
-          </Button>
-        </Space>
+        <Col>
+          <Title level={4} style={{ margin: 0 }}>
+            Oferte
+          </Title>
+        </Col>
+        <Col>
+          <Space>
+            <Button
+              icon={<ThunderboltOutlined />}
+              onClick={() => navigate("/pipeline/offers/new?quick=true")}
+            >
+              Ofertă rapidă
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate("/pipeline/offers/new")}
+            >
+              Ofertă nouă
+            </Button>
+          </Space>
+        </Col>
       </Row>
 
-      <Card size="small" style={{ marginBottom: 16 }}>
-        <Row gutter={[12, 12]}>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Input
-              placeholder="Caută nr. ofertă, titlu..."
-              prefix={<SearchOutlined />}
-              allowClear
-              value={filters.search || ""}
-              onChange={(e) => updateFilter("search", e.target.value || undefined)}
-            />
+      {/* Analytics cards (F029) */}
+      {analytics && (
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={12} md={6}>
+            <Card size="small">
+              <Statistic title="Total oferte" value={analytics.total_offers} />
+            </Card>
           </Col>
-          <Col xs={12} sm={6} md={4} lg={3}>
-            <Select
-              placeholder="Status"
-              allowClear
-              style={{ width: "100%" }}
-              value={filters.status}
-              onChange={(v) => updateFilter("status", v)}
-              options={Object.entries(STATUS_LABELS).map(([value, label]) => ({
-                value,
-                label,
-              }))}
-            />
+          <Col xs={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title="Valoare totală"
+                value={analytics.total_value}
+                precision={0}
+                suffix="RON"
+              />
+            </Card>
+          </Col>
+          <Col xs={12} md={6}>
+            <Card size="small">
+              <Statistic title="Valoare medie" value={analytics.average_value} precision={0} suffix="RON" />
+            </Card>
+          </Col>
+          <Col xs={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title="Rată conversie"
+                value={analytics.conversion_rate}
+                precision={1}
+                suffix="%"
+                valueStyle={{ color: analytics.conversion_rate >= 30 ? "#3f8600" : "#cf1322" }}
+              />
+            </Card>
           </Col>
         </Row>
-      </Card>
+      )}
+
+      {/* Filters */}
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col flex="auto">
+          <Input
+            placeholder="Caută după nr. ofertă, titlu..."
+            prefix={<SearchOutlined />}
+            value={search}
+            onChange={(e) => updateParams("search", e.target.value)}
+            allowClear
+          />
+        </Col>
+        <Col>
+          <Select
+            placeholder="Status"
+            value={statusFilter || undefined}
+            onChange={(val) => updateParams("status", val || "")}
+            allowClear
+            style={{ width: 180 }}
+            options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+          />
+        </Col>
+      </Row>
 
       <Table<OfferListItem>
         rowKey="id"
         columns={columns}
         dataSource={offers}
         loading={isLoading}
-        rowSelection={{
-          selectedRowKeys,
-          onChange: setSelectedRowKeys,
-        }}
         pagination={{
-          current: filters.page,
-          pageSize: filters.per_page,
+          current: page,
+          pageSize: 20,
           total,
-          showSizeChanger: true,
-          pageSizeOptions: ["10", "20", "50"],
-          showTotal: (t) => `Total: ${t} oferte`,
-          onChange: (page, pageSize) => {
-            const params = new URLSearchParams(searchParams);
-            params.set("page", String(page));
-            params.set("per_page", String(pageSize));
-            setSearchParams(params);
-          },
+          onChange: (p) => updateParams("page", String(p)),
+          showSizeChanger: false,
+          showTotal: (t) => `${t} oferte`,
         }}
         onRow={(record) => ({
           onClick: () => navigate(`/pipeline/offers/${record.id}`),
           style: { cursor: "pointer" },
         })}
-        scroll={{ x: 800 }}
-        locale={{
-          emptyText: (
-            <Space direction="vertical" style={{ padding: 32 }}>
-              <Typography.Text type="secondary">Nicio ofertă încă</Typography.Text>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate("/pipeline/offers/new")}
-              >
-                Creează prima ofertă
-              </Button>
-            </Space>
-          ),
-        }}
       />
-    </>
+    </div>
   );
 }

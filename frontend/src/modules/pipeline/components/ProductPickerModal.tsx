@@ -1,108 +1,73 @@
-import { useState, useCallback } from "react";
-import { Modal, Input, Table, Button, Tag, Empty } from "antd";
-import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
+import { useState } from "react";
+import { Modal, Input, Table, Tag, Empty } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
-import { offerService } from "../services/offerService";
-import type { Product } from "../../../types/pipeline";
+import { productService } from "../services/productService";
+import type { Product } from "../../../types";
 import type { ColumnsType } from "antd/es/table";
 
-interface ProductPickerModalProps {
+interface Props {
   open: boolean;
   onClose: () => void;
   onSelect: (product: Product) => void;
 }
 
-export default function ProductPickerModal({
-  open,
-  onClose,
-  onSelect,
-}: ProductPickerModalProps) {
+export default function ProductPickerModal({ open, onClose, onSelect }: Props) {
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  const handleSearch = useCallback((value: string) => {
-    setSearch(value);
-    const timer = setTimeout(() => setDebouncedSearch(value), 300);
-    return () => clearTimeout(timer);
-  }, []);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["products", debouncedSearch],
-    queryFn: () => offerService.searchProducts(debouncedSearch || undefined),
+    queryKey: ["products", search],
+    queryFn: () => productService.list({ search: search || undefined, is_active: true, per_page: 20 }),
     enabled: open,
   });
 
   const products = data?.data || [];
 
   const columns: ColumnsType<Product> = [
+    { title: "Cod", dataIndex: "code", key: "code", width: 100 },
+    { title: "Denumire", dataIndex: "name", key: "name" },
     {
-      title: "Cod",
-      dataIndex: "code",
-      key: "code",
-      width: 100,
-      render: (code: string) => <Tag>{code}</Tag>,
+      title: "Categorie",
+      dataIndex: "category",
+      key: "category",
+      render: (c: string) => c ? <Tag>{c}</Tag> : "—",
     },
+    { title: "UM", dataIndex: "unit_of_measure", key: "um", width: 60 },
     {
-      title: "Denumire",
-      dataIndex: "name",
-      key: "name",
-      ellipsis: true,
-    },
-    {
-      title: "UM",
-      dataIndex: "unit_of_measure",
-      key: "unit_of_measure",
-      width: 70,
-    },
-    {
-      title: "Preț unitar",
+      title: "Preț",
       dataIndex: "unit_price",
-      key: "unit_price",
+      key: "price",
       width: 120,
-      align: "right",
-      render: (price: number) =>
-        new Intl.NumberFormat("ro-RO", {
-          style: "currency",
-          currency: "RON",
-        }).format(price),
+      render: (v: number, r: Product) =>
+        `${v?.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} ${r.currency || "RON"}`,
     },
     {
-      title: "",
-      key: "action",
+      title: "Status",
+      dataIndex: "is_active",
+      key: "status",
       width: 80,
-      render: (_: unknown, record: Product) => (
-        <Button
-          type="primary"
-          size="small"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            onSelect(record);
-            onClose();
-          }}
-        >
-          Adaugă
-        </Button>
+      render: (active: boolean) => (
+        <Tag color={active ? "success" : "default"}>{active ? "Activ" : "Inactiv"}</Tag>
       ),
     },
   ];
 
   return (
     <Modal
-      title="Selectare produs din catalog"
+      title="Selectează produs din catalog"
       open={open}
       onCancel={onClose}
       footer={null}
-      width={720}
+      width={800}
       destroyOnClose
     >
       <Input
-        placeholder="Caută produs (denumire, cod)..."
+        placeholder="Caută după cod, denumire sau categorie..."
         prefix={<SearchOutlined />}
-        allowClear
         value={search}
-        onChange={(e) => handleSearch(e.target.value)}
+        onChange={(e) => setSearch(e.target.value)}
+        allowClear
         style={{ marginBottom: 16 }}
-        autoFocus
       />
 
       <Table<Product>
@@ -111,19 +76,16 @@ export default function ProductPickerModal({
         dataSource={products}
         loading={isLoading}
         pagination={false}
-        scroll={{ y: 400 }}
         size="small"
-        locale={{
-          emptyText: (
-            <Empty
-              description={
-                debouncedSearch
-                  ? "Niciun produs găsit"
-                  : "Introduceți un termen de căutare"
-              }
-            />
-          ),
-        }}
+        locale={{ emptyText: <Empty description="Niciun produs găsit" /> }}
+        onRow={(record) => ({
+          onClick: () => {
+            onSelect(record);
+            onClose();
+          },
+          style: { cursor: "pointer" },
+        })}
+        scroll={{ y: 400 }}
       />
     </Modal>
   );

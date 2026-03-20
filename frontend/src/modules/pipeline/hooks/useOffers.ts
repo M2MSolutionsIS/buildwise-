@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { App } from "antd";
+import { message } from "antd";
 import { offerService, type OfferFilters } from "../services/offerService";
-import type { OfferCreate, OfferUpdate } from "../../../types/pipeline";
+import type { OfferCreate, OfferUpdate } from "../../../types";
 
 export function useOffers(filters: OfferFilters = {}) {
   return useQuery({
@@ -12,23 +12,22 @@ export function useOffers(filters: OfferFilters = {}) {
 
 export function useOffer(id: string | undefined) {
   return useQuery({
-    queryKey: ["offers", id],
+    queryKey: ["offer", id],
     queryFn: () => offerService.get(id!),
     enabled: !!id,
   });
 }
 
-export function useOfferTimeline(id: string | undefined) {
+export function useOfferVersions(id: string | undefined) {
   return useQuery({
-    queryKey: ["offers", id, "timeline"],
-    queryFn: () => offerService.getTimeline(id!),
+    queryKey: ["offer-versions", id],
+    queryFn: () => offerService.listVersions(id!),
     enabled: !!id,
   });
 }
 
 export function useCreateOffer() {
   const queryClient = useQueryClient();
-  const { message } = App.useApp();
 
   return useMutation({
     mutationFn: (payload: OfferCreate) => offerService.create(payload),
@@ -42,7 +41,6 @@ export function useCreateOffer() {
 
 export function useUpdateOffer() {
   const queryClient = useQueryClient();
-  const { message } = App.useApp();
 
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: OfferUpdate }) =>
@@ -50,6 +48,7 @@ export function useUpdateOffer() {
     onSuccess: () => {
       message.success("Ofertă actualizată.");
       queryClient.invalidateQueries({ queryKey: ["offers"] });
+      queryClient.invalidateQueries({ queryKey: ["offer"] });
     },
     onError: () => message.error("Eroare la actualizare."),
   });
@@ -57,7 +56,6 @@ export function useUpdateOffer() {
 
 export function useDeleteOffer() {
   const queryClient = useQueryClient();
-  const { message } = App.useApp();
 
   return useMutation({
     mutationFn: offerService.delete,
@@ -71,12 +69,12 @@ export function useDeleteOffer() {
 
 export function useSubmitOffer() {
   const queryClient = useQueryClient();
-  const { message } = App.useApp();
 
   return useMutation({
     mutationFn: (id: string) => offerService.submit(id),
     onSuccess: () => {
       message.success("Ofertă trimisă pentru aprobare.");
+      queryClient.invalidateQueries({ queryKey: ["offer"] });
       queryClient.invalidateQueries({ queryKey: ["offers"] });
     },
     onError: () => message.error("Eroare la trimitere."),
@@ -85,13 +83,13 @@ export function useSubmitOffer() {
 
 export function useCreateOfferVersion() {
   const queryClient = useQueryClient();
-  const { message } = App.useApp();
 
   return useMutation({
     mutationFn: (id: string) => offerService.createVersion(id),
     onSuccess: () => {
       message.success("Versiune nouă creată.");
       queryClient.invalidateQueries({ queryKey: ["offers"] });
+      queryClient.invalidateQueries({ queryKey: ["offer-versions"] });
     },
     onError: () => message.error("Eroare la creare versiune."),
   });
@@ -99,37 +97,44 @@ export function useCreateOfferVersion() {
 
 export function useSendOffer() {
   const queryClient = useQueryClient();
-  const { message } = App.useApp();
 
   return useMutation({
     mutationFn: (id: string) => offerService.send(id),
     onSuccess: () => {
       message.success("Ofertă trimisă clientului.");
+      queryClient.invalidateQueries({ queryKey: ["offer"] });
       queryClient.invalidateQueries({ queryKey: ["offers"] });
     },
     onError: () => message.error("Eroare la trimitere."),
   });
 }
 
-export function useConvertToContract() {
+export function useApproveOffer() {
   const queryClient = useQueryClient();
-  const { message } = App.useApp();
 
   return useMutation({
-    mutationFn: (id: string) => offerService.convertToContract(id),
-    onSuccess: () => {
-      message.success("Contract creat din ofertă.");
+    mutationFn: ({ id, decision }: { id: string; decision: { approved: boolean; comment?: string } }) =>
+      offerService.approve(id, decision),
+    onSuccess: (_, vars) => {
+      message.success(vars.decision.approved ? "Ofertă aprobată." : "Ofertă respinsă.");
+      queryClient.invalidateQueries({ queryKey: ["offer"] });
       queryClient.invalidateQueries({ queryKey: ["offers"] });
-      queryClient.invalidateQueries({ queryKey: ["contracts"] });
     },
-    onError: () => message.error("Eroare la conversie."),
+    onError: () => message.error("Eroare la procesare."),
   });
 }
 
-export function useSearchProducts(search?: string, category?: string) {
-  return useQuery({
-    queryKey: ["products", search, category],
-    queryFn: () => offerService.searchProducts(search, category),
-    enabled: search !== undefined,
+export function useUpdateOfferStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, status, reason }: { id: string; status: string; reason?: string }) =>
+      offerService.updateStatus(id, status, reason),
+    onSuccess: () => {
+      message.success("Status actualizat.");
+      queryClient.invalidateQueries({ queryKey: ["offer"] });
+      queryClient.invalidateQueries({ queryKey: ["offers"] });
+    },
+    onError: () => message.error("Eroare la actualizare status."),
   });
 }

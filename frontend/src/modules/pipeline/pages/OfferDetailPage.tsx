@@ -1,23 +1,30 @@
+/**
+ * E-006 — Offer Detail / Lifecycle
+ * F-codes: F027 (Status tracking), F028 (Approval flow), F029 (Analytics/Versions), F049 (Quick quote)
+ */
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Typography,
   Card,
-  Row,
-  Col,
+  Descriptions,
   Tag,
   Button,
   Space,
+  Typography,
   Table,
-  Descriptions,
   Steps,
   Timeline,
+  Tabs,
+  Row,
+  Col,
+  Statistic,
+  Dropdown,
+  Modal,
+  Input,
+  message,
   Spin,
-  Popconfirm,
-  App,
+  Alert,
   Divider,
-  Result,
-  Tooltip,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -25,514 +32,609 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   CopyOutlined,
-  SwapOutlined,
   FilePdfOutlined,
+  HistoryOutlined,
   EditOutlined,
-  ClockCircleOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  FileTextOutlined,
+  MoreOutlined,
+  ExclamationCircleOutlined,
+  DiffOutlined,
 } from "@ant-design/icons";
-import {
-  useOffer,
-  useOfferTimeline,
-  useSubmitOffer,
-  useSendOffer,
-  useCreateOfferVersion,
-  useConvertToContract,
-} from "../hooks/useOffers";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { offerService } from "../services/offerService";
+import { contactService } from "../../../services/contactService";
 import VersionDiffModal from "../components/VersionDiffModal";
-import type { OfferStatus, OfferLineItem } from "../../../types/pipeline";
-import type { ColumnsType } from "antd/es/table";
+import type { Offer, OfferLineItem, OfferStatus } from "../../../types";
 
-const STATUS_CONFIG: Record<
-  OfferStatus,
-  { color: string; label: string; step: number }
-> = {
-  draft: { color: "default", label: "Draft", step: 0 },
-  pending_approval: { color: "processing", label: "Aprobare", step: 1 },
-  approved: { color: "blue", label: "Aprobată", step: 2 },
-  sent: { color: "cyan", label: "Trimisă", step: 3 },
-  negotiation: { color: "orange", label: "Negociere", step: 4 },
-  accepted: { color: "green", label: "Acceptată", step: 5 },
-  rejected: { color: "red", label: "Refuzată", step: 5 },
-  expired: { color: "red", label: "Expirată", step: 5 },
-};
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
 
-const TIMELINE_ICONS: Record<string, React.ReactNode> = {
-  email: <MailOutlined />,
-  call: <PhoneOutlined />,
-  status_change: <SwapOutlined />,
-  version: <CopyOutlined />,
-  document: <FileTextOutlined />,
+const STATUS_CONFIG: Record<OfferStatus, { color: string; label: string; step: number }> = {
+  DRAFT: { color: "default", label: "Draft", step: 0 },
+  PENDING_APPROVAL: { color: "processing", label: "Așteptare aprobare", step: 1 },
+  APPROVED: { color: "cyan", label: "Aprobată", step: 2 },
+  SENT: { color: "blue", label: "Trimisă", step: 3 },
+  NEGOTIATION: { color: "orange", label: "Negociere", step: 4 },
+  ACCEPTED: { color: "green", label: "Acceptată", step: 5 },
+  REJECTED: { color: "red", label: "Refuzată", step: 5 },
+  EXPIRED: { color: "default", label: "Expirată", step: 5 },
 };
 
 export default function OfferDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { message } = App.useApp();
+  const queryClient = useQueryClient();
 
-  const [diffModalOpen, setDiffModalOpen] = useState(false);
+  const [versionDiffOpen, setVersionDiffOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
 
-  const { data, isLoading } = useOffer(id);
-  const { data: timelineData } = useOfferTimeline(id);
-  const submitOffer = useSubmitOffer();
-  const sendOffer = useSendOffer();
-  const createVersion = useCreateOfferVersion();
-  const convertToContract = useConvertToContract();
+  // Fetch offer
+  const { data: offerData, isLoading } = useQuery({
+    queryKey: ["offer", id],
+    queryFn: () => offerService.get(id!),
+    enabled: !!id,
+  });
 
-  const offer = data?.data;
-  const timeline = timelineData?.data || [];
+  const offer = offerData?.data;
 
-  if (isLoading) {
-    return (
-      <div style={{ textAlign: "center", padding: 80 }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
+  // Fetch contact
+  const { data: contactData } = useQuery({
+    queryKey: ["contact", offer?.contact_id],
+    queryFn: () => contactService.get(offer!.contact_id),
+    enabled: !!offer?.contact_id,
+  });
 
-  if (!offer) {
-    return (
-      <Result
-        status="404"
-        title="Ofertă negăsită"
-        subTitle="Oferta nu a fost găsită sau a fost ștearsă."
-        extra={
-          <Button type="primary" onClick={() => navigate("/pipeline/offers")}>
-            Înapoi la oferte
-          </Button>
-        }
-      />
-    );
-  }
+  const contact = contactData?.data;
 
-  const statusConfig = STATUS_CONFIG[offer.status];
-  const isEditable = offer.status === "draft";
-  const canSubmit = offer.status === "draft" && offer.line_items.length > 0;
-  const canSend = offer.status === "approved";
-  const canConvert = offer.status === "accepted";
-  const canCreateVersion = ["sent", "negotiation"].includes(offer.status);
+  // Fetch versions (F026)
+  const { data: versionsData } = useQuery({
+    queryKey: ["offer-versions", id],
+    queryFn: () => offerService.listVersions(id!),
+    enabled: !!id,
+  });
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("ro-RO", {
-      style: "currency",
-      currency: offer.currency,
-    }).format(value);
+  const versions = versionsData?.data || [];
 
-  const handleGenerateDocument = async () => {
-    try {
-      await offerService.generateDocument(offer.id);
-      message.success("Document generat.");
-    } catch {
-      message.error("Eroare la generare document.");
-    }
+  // Mutations
+  const invalidateOffer = () => {
+    queryClient.invalidateQueries({ queryKey: ["offer", id] });
+    queryClient.invalidateQueries({ queryKey: ["offers"] });
   };
 
-  const handleConvert = async () => {
-    try {
-      const result = await convertToContract.mutateAsync(offer.id);
-      navigate(`/pipeline/contracts/${result.data.contract_id}`);
-    } catch {
-      // handled by mutation
-    }
-  };
+  // F028 — Submit for approval
+  const submitMutation = useMutation({
+    mutationFn: () => offerService.submit(id!),
+    onSuccess: () => { message.success("Oferta trimisă pentru aprobare"); invalidateOffer(); },
+    onError: () => message.error("Eroare la trimiterea pentru aprobare"),
+  });
 
-  const handleCreateVersion = async () => {
-    try {
-      const result = await createVersion.mutateAsync(offer.id);
-      navigate(`/pipeline/offers/${result.data.id}`);
-    } catch {
-      // handled by mutation
-    }
-  };
+  // F027 — Send to client
+  const sendMutation = useMutation({
+    mutationFn: () => offerService.send(id!),
+    onSuccess: () => { message.success("Oferta trimisă clientului"); invalidateOffer(); },
+    onError: () => message.error("Eroare la trimiterea ofertei"),
+  });
 
-  const lineItemColumns: ColumnsType<OfferLineItem> = [
-    {
-      title: "#",
-      key: "idx",
-      width: 40,
-      render: (_: unknown, __: unknown, idx: number) => idx + 1,
-    },
-    {
-      title: "Descriere",
-      dataIndex: "description",
-      key: "description",
-    },
-    {
-      title: "UM",
-      dataIndex: "unit_of_measure",
-      key: "um",
-      width: 70,
-    },
-    {
-      title: "Cantitate",
-      dataIndex: "quantity",
-      key: "quantity",
-      width: 90,
-      align: "right",
-    },
-    {
-      title: "Preț unitar",
-      dataIndex: "unit_price",
-      key: "unit_price",
-      width: 120,
-      align: "right",
-      render: (v: number) => formatCurrency(v),
-    },
-    {
-      title: "Discount",
-      dataIndex: "discount_percent",
-      key: "discount",
-      width: 90,
-      align: "right",
-      render: (v: number) => (v ? `${v}%` : "—"),
-    },
-    {
-      title: "Total",
-      dataIndex: "total_price",
-      key: "total",
-      width: 130,
-      align: "right",
-      render: (v: number) => (
-        <Typography.Text strong>{formatCurrency(v)}</Typography.Text>
-      ),
-    },
-  ];
+  // F027 — Update status
+  const statusMutation = useMutation({
+    mutationFn: (params: { status: string; reason?: string }) =>
+      offerService.updateStatus(id!, params.status, params.reason),
+    onSuccess: () => { message.success("Status actualizat"); invalidateOffer(); },
+    onError: () => message.error("Eroare la actualizarea statusului"),
+  });
 
-  // Status pipeline step items
-  const statusSteps = [
+  // F026 — Create new version
+  const versionMutation = useMutation({
+    mutationFn: () => offerService.createVersion(id!),
+    onSuccess: (res) => {
+      message.success(`Versiune v${res.data.version} creată`);
+      navigate(`/pipeline/offers/${res.data.id}`);
+    },
+    onError: () => message.error("Eroare la crearea versiunii"),
+  });
+
+  // F023 — Generate document
+  const generateMutation = useMutation({
+    mutationFn: () => offerService.generateDocument(id!),
+    onSuccess: () => message.success("Document generat"),
+    onError: () => message.error("Eroare la generarea documentului"),
+  });
+
+  if (isLoading) return <Spin size="large" style={{ display: "block", margin: "100px auto" }} />;
+  if (!offer) return <Alert type="error" message="Oferta nu a fost găsită" showIcon />;
+
+  const statusCfg = STATUS_CONFIG[offer.status] || STATUS_CONFIG.DRAFT;
+  const isDraft = offer.status === "DRAFT";
+  const isSent = offer.status === "SENT";
+  const isAccepted = offer.status === "ACCEPTED";
+  const isNegotiation = offer.status === "NEGOTIATION";
+  // const isEditable = isDraft; // reserved for future inline editing
+
+  // Status pipeline steps (F027)
+  const pipelineSteps = [
     { title: "Draft" },
     { title: "Aprobare" },
     { title: "Aprobată" },
     { title: "Trimisă" },
     { title: "Negociere" },
+    { title: offer.status === "REJECTED" ? "Refuzată" : offer.status === "EXPIRED" ? "Expirată" : "Acceptată" },
+  ];
+
+  // Action dropdown items
+  const actionItems = [
+    isDraft && {
+      key: "edit",
+      icon: <EditOutlined />,
+      label: "Editează în Builder",
+      onClick: () => navigate(`/pipeline/offers/new?edit=${id}`),
+    },
+    isDraft && {
+      key: "submit",
+      icon: <SendOutlined />,
+      label: "Trimite pentru aprobare",
+      onClick: () => submitMutation.mutate(),
+    },
+    (offer.status === "APPROVED" || isDraft) && {
+      key: "send",
+      icon: <SendOutlined />,
+      label: "Trimite la client",
+      onClick: () => sendMutation.mutate(),
+    },
+    (isSent || isNegotiation) && {
+      key: "negotiation",
+      icon: <ExclamationCircleOutlined />,
+      label: "Marchează Negociere",
+      onClick: () => statusMutation.mutate({ status: "NEGOTIATION" }),
+    },
+    (isSent || isNegotiation) && {
+      key: "accept",
+      icon: <CheckCircleOutlined />,
+      label: "Marchează Acceptată",
+      onClick: () => statusMutation.mutate({ status: "ACCEPTED" }),
+    },
+    (isSent || isNegotiation) && {
+      key: "reject",
+      icon: <CloseCircleOutlined />,
+      label: "Marchează Refuzată",
+      danger: true,
+      onClick: () => setRejectModalOpen(true),
+    },
     {
-      title:
-        offer.status === "rejected"
-          ? "Refuzată"
-          : offer.status === "expired"
-            ? "Expirată"
-            : "Acceptată",
+      key: "version",
+      icon: <CopyOutlined />,
+      label: "Creează versiune nouă",
+      onClick: () => versionMutation.mutate(),
+    },
+    {
+      key: "pdf",
+      icon: <FilePdfOutlined />,
+      label: "Generează PDF",
+      onClick: () => generateMutation.mutate(),
+    },
+  ].filter(Boolean);
+
+  // Line items columns
+  const lineItemColumns = [
+    { title: "#", render: (_: unknown, __: unknown, i: number) => i + 1, width: 40 },
+    { title: "Descriere", dataIndex: "description", key: "description" },
+    { title: "UM", dataIndex: "unit_of_measure", key: "um", width: 60 },
+    {
+      title: "Cantitate",
+      dataIndex: "quantity",
+      key: "qty",
+      width: 90,
+      render: (v: number) => v?.toLocaleString("ro-RO"),
+    },
+    {
+      title: `Preț unitar (${offer.currency})`,
+      dataIndex: "unit_price",
+      key: "price",
+      width: 130,
+      render: (v: number) => v?.toLocaleString("ro-RO", { minimumFractionDigits: 2 }),
+    },
+    {
+      title: "Disc. %",
+      dataIndex: "discount_percent",
+      key: "discount",
+      width: 70,
+      render: (v: number) => (v > 0 ? `${v}%` : "—"),
+    },
+    {
+      title: `Total (${offer.currency})`,
+      dataIndex: "total_price",
+      key: "total",
+      width: 130,
+      render: (v: number) => v?.toLocaleString("ro-RO", { minimumFractionDigits: 2 }),
     },
   ];
 
   return (
-    <>
+    <div>
       {/* Header */}
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Space>
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate("/pipeline/offers")}
-          >
-            Oferte
-          </Button>
-          <Typography.Title level={3} style={{ margin: 0 }}>
-            {offer.offer_number}
-          </Typography.Title>
-          <Tag color={statusConfig.color}>{statusConfig.label}</Tag>
-          {offer.version > 1 && <Tag>v{offer.version}</Tag>}
-        </Space>
+      <Space style={{ marginBottom: 16 }} align="start">
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/pipeline/offers")}>
+          Înapoi la oferte
+        </Button>
+      </Space>
 
-        <Space>
-          {isEditable && (
-            <Button
-              icon={<EditOutlined />}
-              onClick={() =>
-                navigate(
-                  `/pipeline/offers/new?contact_id=${offer.contact_id}&opportunity_id=${offer.opportunity_id || ""}`
-                )
-              }
-            >
-              Editează
-            </Button>
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col flex="auto">
+          <Space align="center">
+            <Title level={3} style={{ margin: 0 }}>
+              {offer.offer_number}
+            </Title>
+            <Tag color={statusCfg.color} style={{ fontSize: 14, padding: "2px 12px" }}>
+              {statusCfg.label}
+            </Tag>
+            {offer.version > 1 && <Tag>v{offer.version}</Tag>}
+          </Space>
+          <br />
+          <Text type="secondary">{offer.title}</Text>
+          {contact && (
+            <>
+              {" — "}
+              <a onClick={() => navigate(`/crm/contacts/${contact.id}`)}>{contact.company_name}</a>
+            </>
           )}
-          {canSubmit && (
-            <Popconfirm
-              title="Trimiteți oferta pentru aprobare?"
-              onConfirm={() => submitOffer.mutate(offer.id)}
-              okText="Da"
-              cancelText="Nu"
-            >
-              <Button type="primary" loading={submitOffer.isPending}>
-                Trimite pentru aprobare
+        </Col>
+        <Col>
+          <Space>
+            {isAccepted && (
+              <Button type="primary" icon={<CheckCircleOutlined />}>
+                Convertește → Contract
               </Button>
-            </Popconfirm>
-          )}
-          {canSend && (
-            <Button
-              type="primary"
-              icon={<SendOutlined />}
-              loading={sendOffer.isPending}
-              onClick={() => sendOffer.mutate(offer.id)}
-            >
-              Trimite clientului
-            </Button>
-          )}
-          {canCreateVersion && (
-            <Button
-              icon={<CopyOutlined />}
-              loading={createVersion.isPending}
-              onClick={handleCreateVersion}
-            >
-              Versiune nouă
-            </Button>
-          )}
-          {canConvert && (
-            <Button
-              type="primary"
-              icon={<CheckCircleOutlined />}
-              style={{ background: "#52c41a" }}
-              loading={convertToContract.isPending}
-              onClick={handleConvert}
-            >
-              Convertește în Contract
-            </Button>
-          )}
-          <Button icon={<FilePdfOutlined />} onClick={handleGenerateDocument}>
-            Export PDF
-          </Button>
-          {offer.version > 1 && (
-            <Button icon={<SwapOutlined />} onClick={() => setDiffModalOpen(true)}>
-              Compară versiuni
-            </Button>
-          )}
-        </Space>
+            )}
+            <Dropdown menu={{ items: actionItems as never[] }} trigger={["click"]}>
+              <Button icon={<MoreOutlined />}>Acțiuni</Button>
+            </Dropdown>
+          </Space>
+        </Col>
       </Row>
 
-      {/* Status Pipeline */}
+      {/* Status pipeline (F027) */}
       <Card size="small" style={{ marginBottom: 16 }}>
         <Steps
-          current={statusConfig.step}
-          status={
-            offer.status === "rejected" || offer.status === "expired"
-              ? "error"
-              : undefined
-          }
-          items={statusSteps}
+          current={statusCfg.step}
+          status={offer.status === "REJECTED" ? "error" : undefined}
+          items={pipelineSteps}
           size="small"
         />
       </Card>
 
-      <Row gutter={[16, 16]}>
-        {/* Main content */}
-        <Col xs={24} lg={16}>
-          {/* Offer details */}
-          <Card title="Detalii ofertă" style={{ marginBottom: 16 }}>
-            <Descriptions column={{ xs: 1, sm: 2 }} size="small">
-              <Descriptions.Item label="Titlu">{offer.title}</Descriptions.Item>
-              <Descriptions.Item label="Status">
-                <Tag color={statusConfig.color}>{statusConfig.label}</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Versiune">v{offer.version}</Descriptions.Item>
-              <Descriptions.Item label="Monedă">{offer.currency}</Descriptions.Item>
-              <Descriptions.Item label="Valabilitate">
-                {offer.validity_days} zile
-              </Descriptions.Item>
-              {offer.valid_until && (
-                <Descriptions.Item label="Valabilă până la">
-                  {new Date(offer.valid_until).toLocaleDateString("ro-RO")}
-                </Descriptions.Item>
-              )}
-              {offer.sent_at && (
-                <Descriptions.Item label="Trimisă la">
-                  {new Date(offer.sent_at).toLocaleDateString("ro-RO")}
-                </Descriptions.Item>
-              )}
-              {offer.accepted_at && (
-                <Descriptions.Item label="Acceptată la">
-                  {new Date(offer.accepted_at).toLocaleDateString("ro-RO")}
-                </Descriptions.Item>
-              )}
-              {offer.next_follow_up && (
-                <Descriptions.Item label="Următor follow-up">
-                  <Tag icon={<ClockCircleOutlined />} color="warning">
-                    {new Date(offer.next_follow_up).toLocaleDateString("ro-RO")}
-                  </Tag>
-                </Descriptions.Item>
-              )}
-              {offer.description && (
-                <Descriptions.Item label="Descriere" span={2}>
-                  {offer.description}
-                </Descriptions.Item>
-              )}
-            </Descriptions>
-          </Card>
-
-          {/* Line items */}
-          <Card
-            title="Produse și servicii"
-            style={{ marginBottom: 16 }}
-            extra={
-              !isEditable && (
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  Read-only — oferta a fost trimisă
-                </Typography.Text>
-              )
-            }
-          >
-            <Table<OfferLineItem>
-              rowKey="id"
-              columns={lineItemColumns}
-              dataSource={offer.line_items}
-              pagination={false}
-              size="small"
-            />
-
-            <Divider />
-
-            <Row justify="end">
-              <Col>
-                <Descriptions column={1} size="small" style={{ width: 300 }}>
-                  <Descriptions.Item label="Subtotal">
-                    {formatCurrency(offer.subtotal)}
-                  </Descriptions.Item>
-                  {offer.discount_percent > 0 && (
-                    <Descriptions.Item label={`Discount (${offer.discount_percent}%)`}>
-                      <Typography.Text type="danger">
-                        -{formatCurrency(offer.discount_amount)}
-                      </Typography.Text>
-                    </Descriptions.Item>
-                  )}
-                  <Descriptions.Item label="TVA">
-                    {formatCurrency(offer.vat_amount)}
-                  </Descriptions.Item>
-                  <Descriptions.Item
-                    label={<Typography.Text strong>TOTAL</Typography.Text>}
-                  >
-                    <Typography.Title level={4} style={{ margin: 0 }}>
-                      {formatCurrency(offer.total_amount)}
-                    </Typography.Title>
-                  </Descriptions.Item>
-                </Descriptions>
-              </Col>
-            </Row>
-          </Card>
-
-          {/* Terms & Conditions */}
-          {offer.terms_and_conditions && (
-            <Card title="Termeni și Condiții" style={{ marginBottom: 16 }}>
-              <Typography.Paragraph style={{ whiteSpace: "pre-line" }}>
-                {offer.terms_and_conditions}
-              </Typography.Paragraph>
-            </Card>
-          )}
-        </Col>
-
-        {/* Sidebar — Timeline & Actions */}
-        <Col xs={24} lg={8}>
-          {/* Follow-up alert */}
-          {offer.status === "negotiation" && offer.next_follow_up && (
-            <Card
-              size="small"
-              style={{
-                marginBottom: 16,
-                background: "#fff7e6",
-                border: "1px solid #ffd591",
-              }}
-            >
-              <Space>
-                <ClockCircleOutlined style={{ color: "#fa8c16" }} />
-                <div>
-                  <Typography.Text strong>Follow-up programat</Typography.Text>
-                  <br />
-                  <Typography.Text type="secondary">
-                    {new Date(offer.next_follow_up).toLocaleDateString("ro-RO")}
-                    {" · "}Follow-up #{offer.follow_up_count + 1}
-                  </Typography.Text>
-                </div>
-              </Space>
-            </Card>
-          )}
-
-          {/* Quick actions */}
-          <Card title="Acțiuni" size="small" style={{ marginBottom: 16 }}>
-            <Space direction="vertical" style={{ width: "100%" }}>
-              {offer.status === "negotiation" && (
-                <>
-                  <Tooltip title="Marchează oferta ca acceptată">
-                    <Button
-                      block
-                      icon={<CheckCircleOutlined />}
-                      style={{ color: "#52c41a", borderColor: "#52c41a" }}
-                      onClick={async () => {
-                        try {
-                          await offerService.updateStatus(offer.id, "accepted");
-                          message.success("Ofertă acceptată!");
-                          window.location.reload();
-                        } catch {
-                          message.error("Eroare la actualizare status.");
-                        }
-                      }}
-                    >
-                      Marchează Acceptată
-                    </Button>
-                  </Tooltip>
-                  <Button
-                    block
-                    danger
-                    icon={<CloseCircleOutlined />}
-                    onClick={async () => {
-                      try {
-                        await offerService.updateStatus(offer.id, "rejected");
-                        message.success("Ofertă refuzată.");
-                        window.location.reload();
-                      } catch {
-                        message.error("Eroare la actualizare status.");
-                      }
-                    }}
-                  >
-                    Marchează Refuzată
-                  </Button>
-                </>
-              )}
-            </Space>
-          </Card>
-
-          {/* Timeline */}
-          <Card title="Istoric activități" size="small">
-            {timeline.length > 0 ? (
-              <Timeline
-                items={timeline.map((event) => ({
-                  dot: TIMELINE_ICONS[event.event_type],
-                  children: (
-                    <div>
-                      <Typography.Text>{event.description}</Typography.Text>
-                      <br />
-                      <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                        {event.user_name && `${event.user_name} · `}
-                        {new Date(event.created_at).toLocaleString("ro-RO", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </Typography.Text>
-                    </div>
-                  ),
-                }))}
-              />
-            ) : (
-              <Typography.Text type="secondary">
-                Nicio activitate înregistrată.
-              </Typography.Text>
-            )}
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Version Diff Modal */}
-      {diffModalOpen && (
-        <VersionDiffModal
-          open={diffModalOpen}
-          onClose={() => setDiffModalOpen(false)}
-          offerId={offer.id}
-          currentVersion={offer.version}
+      {/* Follow-up alert */}
+      {isNegotiation && offer.next_follow_up && (
+        <Alert
+          type="warning"
+          message={`Follow-up programat: ${new Date(offer.next_follow_up).toLocaleDateString("ro-RO")}`}
+          description="Oferta este în negociere. Contactează clientul pentru a avansa."
+          showIcon
+          style={{ marginBottom: 16 }}
         />
       )}
-    </>
+
+      {/* Main content tabs */}
+      <Tabs
+        defaultActiveKey="details"
+        items={[
+          {
+            key: "details",
+            label: "Detalii ofertă",
+            children: (
+              <Row gutter={[16, 16]}>
+                {/* Stats cards */}
+                <Col xs={8}>
+                  <Card size="small">
+                    <Statistic
+                      title="Subtotal"
+                      value={offer.subtotal}
+                      precision={2}
+                      suffix={offer.currency}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={8}>
+                  <Card size="small">
+                    <Statistic
+                      title="TVA"
+                      value={offer.vat_amount}
+                      precision={2}
+                      suffix={offer.currency}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={8}>
+                  <Card size="small">
+                    <Statistic
+                      title="TOTAL"
+                      value={offer.total_amount}
+                      precision={2}
+                      suffix={offer.currency}
+                      valueStyle={{ color: "#1677ff", fontWeight: "bold" }}
+                    />
+                  </Card>
+                </Col>
+
+                {/* Offer info */}
+                <Col span={24}>
+                  <Card size="small" title="Informații ofertă">
+                    <Descriptions column={{ xs: 1, sm: 2, md: 3 }} size="small">
+                      <Descriptions.Item label="Nr. ofertă">{offer.offer_number}</Descriptions.Item>
+                      <Descriptions.Item label="Versiune">v{offer.version}</Descriptions.Item>
+                      <Descriptions.Item label="Status">
+                        <Tag color={statusCfg.color}>{statusCfg.label}</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Monedă">{offer.currency}</Descriptions.Item>
+                      <Descriptions.Item label="Valabilitate">{offer.validity_days} zile</Descriptions.Item>
+                      <Descriptions.Item label="Expiră la">
+                        {offer.valid_until
+                          ? new Date(offer.valid_until).toLocaleDateString("ro-RO")
+                          : "—"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Creat la">
+                        {new Date(offer.created_at).toLocaleDateString("ro-RO")}
+                      </Descriptions.Item>
+                      {offer.sent_at && (
+                        <Descriptions.Item label="Trimisă la">
+                          {new Date(offer.sent_at).toLocaleDateString("ro-RO")}
+                        </Descriptions.Item>
+                      )}
+                      {offer.accepted_at && (
+                        <Descriptions.Item label="Acceptată la">
+                          {new Date(offer.accepted_at).toLocaleDateString("ro-RO")}
+                        </Descriptions.Item>
+                      )}
+                      {offer.rejected_at && (
+                        <Descriptions.Item label="Respinsă la">
+                          {new Date(offer.rejected_at).toLocaleDateString("ro-RO")}
+                        </Descriptions.Item>
+                      )}
+                    </Descriptions>
+                    {offer.description && (
+                      <>
+                        <Divider style={{ margin: "8px 0" }} />
+                        <Paragraph type="secondary">{offer.description}</Paragraph>
+                      </>
+                    )}
+                    {offer.rejection_reason && (
+                      <Alert
+                        type="error"
+                        message="Motiv respingere"
+                        description={offer.rejection_reason}
+                        style={{ marginTop: 8 }}
+                      />
+                    )}
+                  </Card>
+                </Col>
+
+                {/* Line items */}
+                <Col span={24}>
+                  <Card size="small" title="Produse și servicii">
+                    <Table<OfferLineItem>
+                      rowKey="id"
+                      columns={lineItemColumns}
+                      dataSource={offer.line_items || []}
+                      pagination={false}
+                      size="small"
+                      footer={() => (
+                        <Row justify="end">
+                          <Col>
+                            <Space direction="vertical" size={2} style={{ textAlign: "right" }}>
+                              <Text>
+                                Subtotal: {offer.subtotal?.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}{" "}
+                                {offer.currency}
+                              </Text>
+                              {offer.discount_amount > 0 && (
+                                <Text type="secondary">
+                                  Discount: -{offer.discount_amount?.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}{" "}
+                                  {offer.currency}
+                                </Text>
+                              )}
+                              <Text type="secondary">
+                                TVA: {offer.vat_amount?.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}{" "}
+                                {offer.currency}
+                              </Text>
+                              <Title level={5} style={{ margin: 0 }}>
+                                TOTAL: {offer.total_amount?.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}{" "}
+                                {offer.currency}
+                              </Title>
+                            </Space>
+                          </Col>
+                        </Row>
+                      )}
+                    />
+                  </Card>
+                </Col>
+
+                {/* T&C */}
+                {offer.terms_and_conditions && (
+                  <Col span={24}>
+                    <Card size="small" title="Termeni și condiții">
+                      <Paragraph style={{ whiteSpace: "pre-wrap", fontSize: 13 }}>
+                        {offer.terms_and_conditions}
+                      </Paragraph>
+                    </Card>
+                  </Col>
+                )}
+              </Row>
+            ),
+          },
+          {
+            key: "versions",
+            label: (
+              <Space>
+                <HistoryOutlined />
+                Versiuni ({versions.length || offer.version})
+              </Space>
+            ),
+            children: (
+              <Card size="small">
+                {versions.length > 1 && (
+                  <Button
+                    icon={<DiffOutlined />}
+                    onClick={() => setVersionDiffOpen(true)}
+                    style={{ marginBottom: 16 }}
+                  >
+                    Compară versiuni
+                  </Button>
+                )}
+
+                <Timeline
+                  items={
+                    versions.length > 0
+                      ? versions.map((v: Offer) => ({
+                          color: v.id === id ? "blue" : "gray",
+                          children: (
+                            <Space direction="vertical" size={0}>
+                              <Space>
+                                <Text strong>v{v.version}</Text>
+                                <Tag color={STATUS_CONFIG[v.status]?.color || "default"}>
+                                  {STATUS_CONFIG[v.status]?.label || v.status}
+                                </Tag>
+                                {v.id === id && <Tag color="blue">Curentă</Tag>}
+                              </Space>
+                              <Text type="secondary">
+                                {new Date(v.created_at).toLocaleDateString("ro-RO")} —{" "}
+                                {v.total_amount?.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}{" "}
+                                {v.currency}
+                              </Text>
+                              {v.id !== id && (
+                                <a onClick={() => navigate(`/pipeline/offers/${v.id}`)}>
+                                  Vezi această versiune
+                                </a>
+                              )}
+                            </Space>
+                          ),
+                        }))
+                      : [
+                          {
+                            color: "blue",
+                            children: (
+                              <Space direction="vertical" size={0}>
+                                <Text strong>v{offer.version}</Text>
+                                <Tag color={statusCfg.color}>{statusCfg.label}</Tag>
+                                <Text type="secondary">
+                                  {new Date(offer.created_at).toLocaleDateString("ro-RO")} —{" "}
+                                  {offer.total_amount?.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}{" "}
+                                  {offer.currency}
+                                </Text>
+                              </Space>
+                            ),
+                          },
+                        ]
+                  }
+                />
+
+                <Divider />
+                <Button
+                  icon={<CopyOutlined />}
+                  onClick={() => versionMutation.mutate()}
+                  loading={versionMutation.isPending}
+                >
+                  Creează versiune nouă (v{offer.version + 1})
+                </Button>
+              </Card>
+            ),
+          },
+          {
+            key: "timeline",
+            label: "Activitate",
+            children: (
+              <Card size="small">
+                <Timeline
+                  items={[
+                    {
+                      color: "green",
+                      children: (
+                        <Space direction="vertical" size={0}>
+                          <Text strong>Ofertă creată</Text>
+                          <Text type="secondary">
+                            {new Date(offer.created_at).toLocaleString("ro-RO")}
+                          </Text>
+                        </Space>
+                      ),
+                    },
+                    ...(offer.sent_at
+                      ? [
+                          {
+                            color: "blue" as const,
+                            children: (
+                              <Space direction="vertical" size={0}>
+                                <Text strong>Trimisă la client</Text>
+                                <Text type="secondary">
+                                  {new Date(offer.sent_at).toLocaleString("ro-RO")}
+                                </Text>
+                              </Space>
+                            ),
+                          },
+                        ]
+                      : []),
+                    ...(offer.accepted_at
+                      ? [
+                          {
+                            color: "green" as const,
+                            children: (
+                              <Space direction="vertical" size={0}>
+                                <Text strong>Acceptată de client</Text>
+                                <Text type="secondary">
+                                  {new Date(offer.accepted_at).toLocaleString("ro-RO")}
+                                </Text>
+                              </Space>
+                            ),
+                          },
+                        ]
+                      : []),
+                    ...(offer.rejected_at
+                      ? [
+                          {
+                            color: "red" as const,
+                            children: (
+                              <Space direction="vertical" size={0}>
+                                <Text strong>Refuzată</Text>
+                                {offer.rejection_reason && (
+                                  <Text type="secondary">Motiv: {offer.rejection_reason}</Text>
+                                )}
+                                <Text type="secondary">
+                                  {new Date(offer.rejected_at).toLocaleString("ro-RO")}
+                                </Text>
+                              </Space>
+                            ),
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
+              </Card>
+            ),
+          },
+        ]}
+      />
+
+      {/* Reject modal */}
+      <Modal
+        title="Respinge oferta"
+        open={rejectModalOpen}
+        onCancel={() => setRejectModalOpen(false)}
+        onOk={() =>
+          statusMutation.mutate({ status: "REJECTED", reason: rejectionReason })
+        }
+        okText="Respinge"
+        okButtonProps={{ danger: true }}
+      >
+        <TextArea
+          rows={3}
+          placeholder="Motivul respingerii (opțional)..."
+          value={rejectionReason}
+          onChange={(e) => setRejectionReason(e.target.value)}
+        />
+      </Modal>
+
+      {/* Version diff modal (F029) */}
+      <VersionDiffModal
+        open={versionDiffOpen}
+        onClose={() => setVersionDiffOpen(false)}
+        currentOffer={offer}
+        versions={versions}
+      />
+    </div>
   );
 }

@@ -64,7 +64,7 @@ function App() {
                   <Route path="contacts/:id" element={<ContactDetailPage />} />
                 </Route>
 
-                {/* Pipeline Routes */}
+                {/* Pipeline Routes — Offers (E-005, E-006) */}
                 <Route path="pipeline">
                   <Route index element={<Navigate to="offers" replace />} />
                   <Route path="offers" element={<OffersListPage />} />

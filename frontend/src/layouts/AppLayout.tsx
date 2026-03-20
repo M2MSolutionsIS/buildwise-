@@ -62,7 +62,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   "": "Dashboard",
   crm: "CRM",
   contacts: "Contacte",
-  new: "Contact nou",
+  new: "Nou",
   pipeline: "Sales Pipeline",
   offers: "Oferte",
   pm: "Project Management",
