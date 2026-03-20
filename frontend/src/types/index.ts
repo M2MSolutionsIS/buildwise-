@@ -294,6 +294,180 @@ export interface OfferAnalytics {
   total_value: number;
 }
 
+// ─── Pipeline Types — Opportunities (F042, F050-F053) ───────────────────────
+
+export type OpportunityStage =
+  | "new"
+  | "qualified"
+  | "scoping"
+  | "offering"
+  | "sent"
+  | "negotiation"
+  | "won"
+  | "lost";
+
+export interface Opportunity {
+  id: string;
+  contact_id: string;
+  title: string;
+  description?: string;
+  stage: OpportunityStage;
+  stage_entered_at?: string;
+  estimated_value?: number;
+  currency: string;
+  win_probability?: number;
+  weighted_value?: number;
+  expected_close_date?: string;
+  actual_close_date?: string;
+  owner_id?: string;
+  loss_reason?: string;
+  loss_reason_detail?: string;
+  won_reason?: string;
+  qualification_checklist?: Record<string, unknown>;
+  is_qualified: boolean;
+  rm_validated: boolean;
+  source?: string;
+  tags?: string[];
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface OpportunityListItem {
+  id: string;
+  title: string;
+  stage: OpportunityStage;
+  estimated_value?: number;
+  currency: string;
+  win_probability?: number;
+  weighted_value?: number;
+  contact_id: string;
+  owner_id?: string;
+  expected_close_date?: string;
+  created_at: string;
+}
+
+export interface OpportunityCreate {
+  contact_id: string;
+  title: string;
+  description?: string;
+  stage?: string;
+  estimated_value?: number;
+  currency?: string;
+  expected_close_date?: string;
+  owner_id?: string;
+  source?: string;
+  tags?: string[];
+  notes?: string;
+}
+
+export interface OpportunityUpdate {
+  title?: string;
+  description?: string;
+  estimated_value?: number;
+  currency?: string;
+  expected_close_date?: string;
+  owner_id?: string;
+  source?: string;
+  tags?: string[];
+  notes?: string;
+}
+
+export interface PipelineBoardStage {
+  stage: string;
+  count: number;
+  total_value: number;
+  weighted_value: number;
+  opportunities: OpportunityListItem[];
+}
+
+export interface PipelineBoard {
+  stages: PipelineBoardStage[];
+  total_pipeline_value: number;
+  total_weighted_value: number;
+  currency: string;
+}
+
+// ─── Activity Types (F054-F056) ─────────────────────────────────────────────
+
+export interface Activity {
+  id: string;
+  activity_type: string;
+  title: string;
+  description?: string;
+  status: string;
+  scheduled_date: string;
+  scheduled_end_date?: string;
+  duration_minutes?: number;
+  completed_at?: string;
+  contact_id?: string;
+  opportunity_id?: string;
+  owner_id?: string;
+  visit_data?: Record<string, unknown>;
+  measurements?: Record<string, unknown>;
+  call_duration_seconds?: number;
+  call_outcome?: string;
+  email_subject?: string;
+  email_tracked: boolean;
+  is_recurring: boolean;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface ActivityListItem {
+  id: string;
+  activity_type: string;
+  title: string;
+  status: string;
+  scheduled_date: string;
+  contact_id?: string;
+  opportunity_id?: string;
+  owner_id?: string;
+  created_at: string;
+}
+
+// ─── Sales KPI / Dashboard (F058) ───────────────────────────────────────────
+
+export interface SalesKPI {
+  total_contacts: number;
+  active_contacts: number;
+  total_opportunities: number;
+  open_opportunities: number;
+  won_opportunities: number;
+  lost_opportunities: number;
+  pipeline_value: number;
+  weighted_pipeline_value: number;
+  total_offers: number;
+  offers_sent: number;
+  offers_accepted: number;
+  offers_rejected: number;
+  conversion_rate: number;
+  total_contracts: number;
+  active_contracts: number;
+  total_revenue: number;
+  total_invoiced: number;
+  total_paid: number;
+  avg_deal_value: number;
+  currency: string;
+  funnel: { stage: string; count: number; value: number }[];
+}
+
+export interface WeightedPipelineStage {
+  stage: string;
+  count: number;
+  total_value: number;
+  weighted_value: number;
+  win_probability: number;
+}
+
+export interface WeightedPipeline {
+  stages: WeightedPipelineStage[];
+  total_pipeline_value: number;
+  total_weighted_value: number;
+  currency: string;
+}
+
 // Product types (F017)
 export interface Product {
   id: string;

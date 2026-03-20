@@ -49,6 +49,8 @@ const menuItems = [
     icon: <FunnelPlotOutlined />,
     label: "Sales Pipeline",
     children: [
+      { key: "/pipeline/board", label: "Pipeline Kanban" },
+      { key: "/pipeline/dashboard", label: "Sales Dashboard" },
       { key: "/pipeline/offers", label: "Oferte" },
     ],
   },
@@ -64,6 +66,9 @@ const BREADCRUMB_MAP: Record<string, string> = {
   contacts: "Contacte",
   new: "Nou",
   pipeline: "Sales Pipeline",
+  board: "Pipeline Kanban",
+  dashboard: "Sales Dashboard",
+  opportunities: "Oportunități",
   offers: "Oferte",
   pm: "Project Management",
   rm: "Resource Management",

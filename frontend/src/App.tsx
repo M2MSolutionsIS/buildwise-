@@ -11,6 +11,10 @@ import ContactCreatePage from "./modules/crm/pages/ContactCreatePage";
 import OffersListPage from "./modules/pipeline/pages/OffersListPage";
 import OfferBuilderPage from "./modules/pipeline/pages/OfferBuilderPage";
 import OfferDetailPage from "./modules/pipeline/pages/OfferDetailPage";
+import PipelineBoardPage from "./modules/pipeline/pages/PipelineBoardPage";
+import OpportunityDetailPage from "./modules/pipeline/pages/OpportunityDetailPage";
+import OpportunityCreatePage from "./modules/pipeline/pages/OpportunityCreatePage";
+import SalesDashboardPage from "./modules/pipeline/pages/SalesDashboardPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -64,13 +68,22 @@ function App() {
                   <Route path="contacts/:id" element={<ContactDetailPage />} />
                 </Route>
 
-                {/* Pipeline Routes — Offers (E-005, E-006) */}
+                {/* Pipeline Routes */}
                 <Route path="pipeline">
-                  <Route index element={<Navigate to="offers" replace />} />
+                  <Route index element={<Navigate to="board" replace />} />
+                  {/* E-009: Kanban Board */}
+                  <Route path="board" element={<PipelineBoardPage />} />
+                  {/* E-012: Sales Dashboard */}
+                  <Route path="dashboard" element={<SalesDashboardPage />} />
+                  {/* Opportunities */}
+                  <Route path="opportunities/new" element={<OpportunityCreatePage />} />
+                  <Route path="opportunities/:id" element={<OpportunityDetailPage />} />
+                  {/* Offers (E-005, E-006) */}
                   <Route path="offers" element={<OffersListPage />} />
                   <Route path="offers/new" element={<OfferBuilderPage />} />
                   <Route path="offers/:id" element={<OfferDetailPage />} />
                 </Route>
+
                 <Route path="pm" element={<PlaceholderPage title="Project Management" />} />
                 <Route path="rm" element={<PlaceholderPage title="Resource Management" />} />
                 <Route path="bi" element={<PlaceholderPage title="Business Intelligence" />} />
