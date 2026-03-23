@@ -22,6 +22,8 @@ import type {
   PunchItem,
   PMWarranty,
   EnergyImpact,
+  ProjectReport,
+  EnergyPortfolio,
 } from "../../../types";
 
 const BASE = "/pm";
@@ -456,6 +458,54 @@ export const pmService = {
     payload: Record<string, unknown>
   ): Promise<ApiResponse<EnergyImpact>> => {
     const { data } = await api.put(`${BASE}/projects/${projectId}/energy-impact`, payload);
+    return data;
+  },
+
+  // ─── Project Report 3-in-1 (F095) ─────────────────────────────────────────
+
+  getProjectReport: async (
+    projectId: string
+  ): Promise<ApiResponse<ProjectReport>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/reports`);
+    return data;
+  },
+
+  // ─── Completed Projects Archive (F090) ─────────────────────────────────────
+
+  listCompletedProjects: async (
+    params: { page?: number; per_page?: number; search?: string } = {}
+  ): Promise<ApiResponse<PMProjectListItem[]>> => {
+    const { data } = await api.get(`${BASE}/completed-projects`, { params });
+    return data;
+  },
+
+  // ─── Energy Portfolio (F161) ───────────────────────────────────────────────
+
+  getEnergyPortfolio: async (): Promise<ApiResponse<EnergyPortfolio>> => {
+    const { data } = await api.get(`${BASE}/energy-portfolio`);
+    return data;
+  },
+
+  // ─── Export (F142) ─────────────────────────────────────────────────────────
+
+  exportProjectReport: async (
+    projectId: string,
+    format: "pdf" | "excel" = "pdf"
+  ): Promise<Blob> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/reports/export`, {
+      params: { format },
+      responseType: "blob",
+    });
+    return data;
+  },
+
+  exportCompletedProjects: async (
+    format: "pdf" | "excel" = "excel"
+  ): Promise<Blob> => {
+    const { data } = await api.get(`${BASE}/completed-projects/export`, {
+      params: { format },
+      responseType: "blob",
+    });
     return data;
   },
 };
