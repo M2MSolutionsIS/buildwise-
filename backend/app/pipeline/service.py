@@ -1603,6 +1603,22 @@ async def sign_contract(
         user_agent=user_agent,
     )
     await db.flush()
+
+    # F063: Auto-create PM project from signed contract
+    try:
+        from app.pm import service as pm_service
+        project = await pm_service.create_project_from_contract(
+            db, org_id, user_id, contract.id,
+            import_milestones=True,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+        contract.project_id = project.id
+        await db.flush()
+    except Exception:
+        # Project creation failure should not block contract signing
+        pass
+
     return contract
 
 

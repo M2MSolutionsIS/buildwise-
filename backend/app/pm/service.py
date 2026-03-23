@@ -135,6 +135,162 @@ async def create_project(
     return project
 
 
+async def create_project_from_contract(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    contract_id: uuid.UUID,
+    *,
+    name: str | None = None,
+    project_type: str = "client",
+    planned_start_date: datetime | None = None,
+    planned_end_date: datetime | None = None,
+    import_milestones: bool = True,
+    kickoff_checklist: dict | None = None,
+    notes: str | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> Project:
+    """F063: Auto-create project from signed contract with milestone import to WBS."""
+    from app.pipeline.models import Contract, Milestone, Opportunity
+
+    # Fetch contract
+    contract = (await db.execute(
+        select(Contract).where(
+            Contract.id == contract_id,
+            Contract.organization_id == org_id,
+        )
+    )).scalar_one_or_none()
+    if contract is None:
+        raise ValueError("Contract not found")
+
+    # Generate project number
+    count = (await db.execute(
+        select(func.count()).select_from(Project).where(
+            Project.organization_id == org_id,
+        )
+    )).scalar() or 0
+    project_number = f"PRJ-{count + 1:04d}"
+
+    project_name = name or f"Proiect — {contract.title}"
+
+    # Create project
+    project = Project(
+        id=uuid.uuid4(),
+        organization_id=org_id,
+        contract_id=contract.id,
+        contact_id=contract.contact_id,
+        project_number=project_number,
+        name=project_name,
+        project_type=project_type,
+        status="kickoff",
+        planned_start_date=planned_start_date or datetime.now(timezone.utc),
+        planned_end_date=planned_end_date,
+        budget_allocated=float(contract.total_value) if contract.total_value else None,
+        currency=getattr(contract, "currency", "RON") or "RON",
+        kickoff_checklist=kickoff_checklist or {
+            "contract_signed": True,
+            "team_assigned": False,
+            "wbs_created": False,
+            "budget_approved": False,
+            "kickoff_meeting": False,
+        },
+        notes=notes,
+        created_by=user_id,
+        updated_by=user_id,
+    )
+    db.add(project)
+    await db.flush()
+
+    # Link contract back to project
+    contract.project_id = project.id
+    await db.flush()
+
+    await log_audit(
+        db,
+        user_id=user_id,
+        organization_id=org_id,
+        action="CREATE",
+        entity_type="projects",
+        entity_id=project.id,
+        new_values=model_to_dict(project),
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
+    # Import milestones from pipeline opportunity as WBS nodes
+    if import_milestones and contract.opportunity_id:
+        milestones = (await db.execute(
+            select(Milestone).where(
+                Milestone.opportunity_id == contract.opportunity_id,
+                Milestone.organization_id == org_id,
+            ).order_by(Milestone.sort_order)
+        )).scalars().all()
+
+        for idx, ms in enumerate(milestones):
+            wbs_node = WBSNode(
+                id=uuid.uuid4(),
+                organization_id=org_id,
+                project_id=project.id,
+                code=f"WBS-{idx + 1:03d}",
+                name=ms.title,
+                description=ms.description,
+                node_type="chapter",
+                sort_order=ms.sort_order or idx,
+                level=1,
+                budget_allocated=ms.estimated_cost,
+                responsible_id=ms.assigned_to,
+                created_by=user_id,
+                updated_by=user_id,
+            )
+            db.add(wbs_node)
+
+            # Also create a task from the milestone for Gantt
+            task = Task(
+                id=uuid.uuid4(),
+                organization_id=org_id,
+                project_id=project.id,
+                wbs_node_id=wbs_node.id,
+                title=ms.title,
+                description=ms.description,
+                status="todo",
+                planned_start_date=ms.start_date,
+                planned_end_date=ms.end_date,
+                planned_duration_days=ms.estimated_duration_days,
+                estimated_hours=float(ms.estimated_duration_days * 8) if ms.estimated_duration_days else None,
+                estimated_cost=ms.estimated_cost,
+                assigned_to=ms.assigned_to,
+                sort_order=ms.sort_order or idx,
+                created_by=user_id,
+                updated_by=user_id,
+            )
+            db.add(task)
+
+        await db.flush()
+
+        # Update kickoff checklist
+        if project.kickoff_checklist:
+            project.kickoff_checklist = {
+                **project.kickoff_checklist,
+                "wbs_created": len(milestones) > 0,
+            }
+
+        await log_audit(
+            db,
+            user_id=user_id,
+            organization_id=org_id,
+            action="CREATE",
+            entity_type="wbs_import",
+            entity_id=project.id,
+            new_values={"milestones_imported": len(milestones), "source": "pipeline_deal"},
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+    await db.flush()
+    return project
+
+
 async def update_project(
     db: AsyncSession,
     org_id: uuid.UUID,
