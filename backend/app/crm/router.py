@@ -67,6 +67,9 @@ from app.crm.schemas import (
     ContactImportResult,
     ContactListOut,
     ContactMergeRequest,
+    DocumentCreate,
+    DocumentListOut,
+    DocumentOut,
     ContactOut,
     ContactPersonCreate,
     ContactPersonOut,
@@ -940,3 +943,103 @@ async def merge_contacts(
         raise HTTPException(status_code=404, detail="One or both contacts not found")
     contact = await service.get_contact(db, current_user.organization_id, contact.id)
     return ApiResponse(data=ContactOut.model_validate(contact))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F005/F016 — Documents
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@crm_router.get(
+    "/documents",
+    response_model=ApiResponse,
+)
+async def list_documents(
+    entity_type: str = "contact",
+    entity_id: uuid.UUID | None = None,
+    category: str | None = None,
+    page: int = 1,
+    per_page: int = 20,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F005/F016: List documents for an entity (contact, property, etc.)."""
+    if entity_id is None:
+        raise HTTPException(status_code=400, detail="entity_id is required")
+    docs, total = await service.list_documents(
+        db,
+        current_user.organization_id,
+        entity_type,
+        entity_id,
+        page=page,
+        per_page=per_page,
+        category=category,
+    )
+    return ApiResponse(
+        data=[DocumentListOut.model_validate(d) for d in docs],
+        meta=Meta(total=total, page=page, per_page=per_page),
+    )
+
+
+@crm_router.post(
+    "/documents",
+    response_model=ApiResponse,
+    status_code=201,
+)
+async def create_document(
+    body: DocumentCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F005/F016: Create a document record (metadata)."""
+    req_info = await get_request_info(request)
+    doc = await service.create_document(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        body.model_dump(exclude_unset=True),
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=DocumentOut.model_validate(doc))
+
+
+@crm_router.get(
+    "/documents/{document_id}",
+    response_model=ApiResponse,
+)
+async def get_document_detail(
+    document_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F005/F016: Get a document by ID."""
+    doc = await service.get_document(db, current_user.organization_id, document_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return ApiResponse(data=DocumentOut.model_validate(doc))
+
+
+@crm_router.delete(
+    "/documents/{document_id}",
+    status_code=204,
+)
+async def delete_document(
+    document_id: uuid.UUID,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F005/F016: Delete a document."""
+    req_info = await get_request_info(request)
+    deleted = await service.delete_document(
+        db,
+        current_user.organization_id,
+        current_user.id,
+        document_id,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Document not found")

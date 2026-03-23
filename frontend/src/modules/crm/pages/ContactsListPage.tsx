@@ -30,6 +30,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { contactService, type ContactFilters } from "../../../services/contactService";
 import type { ContactListItem } from "../../../types";
 import type { ColumnsType } from "antd/es/table";
+import ImportExportContacts from "../components/ImportExportContacts";
 
 const STAGE_COLORS: Record<string, string> = {
   prospect: "blue",
@@ -203,9 +204,7 @@ export default function ContactsListPage() {
           <Tooltip title="Reîncarcă">
             <Button icon={<ReloadOutlined />} onClick={() => refetch()} />
           </Tooltip>
-          <Button icon={<ExportOutlined />} disabled={contacts.length === 0}>
-            Export CSV
-          </Button>
+          <ImportExportContacts />
           <Button
             type="primary"
             icon={<PlusOutlined />}
