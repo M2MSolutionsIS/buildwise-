@@ -943,6 +943,106 @@ async def create_notification_template(
     return tmpl
 
 
+async def generate_follow_up_notifications(
+    db: AsyncSession, org_id: uuid.UUID, user_id: uuid.UUID,
+) -> list[Notification]:
+    """
+    F141: Auto-generate follow-up reminder notifications.
+    Checks activities and interactions that need follow-up and creates notifications.
+    """
+    from app.pipeline.models import Activity
+    from app.crm.models import Interaction
+
+    now = datetime.now(timezone.utc)
+    created = []
+
+    # Check overdue activities (scheduled in the past, still planned)
+    overdue_q = select(Activity).where(
+        Activity.organization_id == org_id,
+        Activity.status == "planned",
+        Activity.scheduled_date < now,
+    ).limit(50)
+    overdue_activities = (await db.execute(overdue_q)).scalars().all()
+
+    for act in overdue_activities:
+        # Check if notification already exists for this entity
+        existing = await db.execute(
+            select(Notification).where(
+                Notification.organization_id == org_id,
+                Notification.entity_type == "activity",
+                Notification.entity_id == act.id,
+                Notification.status == "unread",
+            )
+        )
+        if existing.scalar_one_or_none():
+            continue
+
+        notif = Notification(
+            id=uuid.uuid4(),
+            organization_id=org_id,
+            user_id=act.owner_id or user_id,
+            title=f"Activitate restantă: {act.title}",
+            message=f"Activitatea '{act.title}' programată pentru {act.scheduled_date.strftime('%d.%m.%Y')} nu a fost finalizată.",
+            entity_type="activity",
+            entity_id=act.id,
+            link=f"/pipeline/opportunities/{act.opportunity_id}" if act.opportunity_id else None,
+        )
+        db.add(notif)
+        created.append(notif)
+
+    # Check contacts without recent interactions (>30 days)
+    thirty_days_ago = now - __import__("datetime").timedelta(days=30)
+    from sqlalchemy import and_
+    from app.crm.models import Contact
+
+    stale_contacts_q = (
+        select(Contact)
+        .where(
+            Contact.organization_id == org_id,
+            Contact.is_deleted.is_(False),
+            Contact.stage.in_(["prospect", "active", "lead"]),
+        )
+        .outerjoin(
+            Interaction,
+            and_(
+                Interaction.contact_id == Contact.id,
+                Interaction.interaction_date > thirty_days_ago,
+            ),
+        )
+        .where(Interaction.id.is_(None))
+        .limit(20)
+    )
+    stale_contacts = (await db.execute(stale_contacts_q)).scalars().all()
+
+    for contact in stale_contacts:
+        existing = await db.execute(
+            select(Notification).where(
+                Notification.organization_id == org_id,
+                Notification.entity_type == "contact",
+                Notification.entity_id == contact.id,
+                Notification.status == "unread",
+            )
+        )
+        if existing.scalar_one_or_none():
+            continue
+
+        notif = Notification(
+            id=uuid.uuid4(),
+            organization_id=org_id,
+            user_id=contact.created_by or user_id,
+            title=f"Follow-up necesar: {contact.company_name}",
+            message=f"Contactul '{contact.company_name}' nu a avut interacțiuni în ultimele 30 de zile.",
+            entity_type="contact",
+            entity_id=contact.id,
+            link=f"/crm/contacts/{contact.id}",
+        )
+        db.add(notif)
+        created.append(notif)
+
+    await db.flush()
+    return created
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # F142 — Report Export
 # ═══════════════════════════════════════════════════════════════════════════════

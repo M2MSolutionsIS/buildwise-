@@ -538,3 +538,53 @@ class ContactMergeRequest(BaseModel):
     source_id: uuid.UUID
     target_id: uuid.UUID
     fields_from_source: list[str] = []
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F005/F016 — Documents
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class DocumentCreate(BaseModel):
+    """Create document metadata (file uploaded separately)."""
+    entity_type: str = "contact"  # contact | property | project
+    entity_id: uuid.UUID
+    file_name: str = Field(..., min_length=1, max_length=500)
+    file_path: str = Field(..., min_length=1, max_length=1000)
+    file_size: int | None = None
+    mime_type: str | None = None
+    category: str = "other"  # certificate|photo|technical|contract|offer|invoice|other
+    description: str | None = None
+
+
+class DocumentOut(BaseModel):
+    id: uuid.UUID
+    entity_type: str
+    entity_id: uuid.UUID
+    contact_id: uuid.UUID | None = None
+    property_id: uuid.UUID | None = None
+    file_name: str
+    file_path: str
+    file_size: int | None = None
+    mime_type: str | None = None
+    category: str
+    description: str | None = None
+    version: int
+    created_by: uuid.UUID | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class DocumentListOut(BaseModel):
+    id: uuid.UUID
+    file_name: str
+    file_size: int | None = None
+    mime_type: str | None = None
+    category: str
+    description: str | None = None
+    version: int
+    created_by: uuid.UUID | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

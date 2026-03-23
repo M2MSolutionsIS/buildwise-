@@ -1,4 +1,4 @@
-import { Typography, Table, Tag, Button, Space, Empty, Upload } from "antd";
+import { Typography, Table, Tag, Button, Space, Empty, Upload, App, Popconfirm, Spin } from "antd";
 import {
   UploadOutlined,
   FileOutlined,
@@ -6,22 +6,15 @@ import {
   FileImageOutlined,
   FileExcelOutlined,
   FileWordOutlined,
-  DownloadOutlined,
+  DeleteOutlined,
   InboxOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { documentService } from "../services/documentService";
+import type { CrmDocumentListItem } from "../../../types";
 
 const { Dragger } = Upload;
-
-interface Document {
-  id: string;
-  name: string;
-  category: string;
-  size: number;
-  uploaded_by: string;
-  uploaded_at: string;
-  mime_type: string;
-}
 
 const FILE_ICONS: Record<string, React.ReactNode> = {
   pdf: <FilePdfOutlined style={{ color: "#ff4d4f" }} />,
@@ -52,15 +45,65 @@ interface Props {
   contactId: string;
 }
 
-export default function TabDocumente({ contactId: _contactId }: Props) {
-  // Documents API not yet implemented in backend - placeholder UI
-  const documents: Document[] = [];
+export default function TabDocumente({ contactId }: Props) {
+  const { message } = App.useApp();
+  const queryClient = useQueryClient();
 
-  const columns: ColumnsType<Document> = [
+  const { data, isLoading } = useQuery({
+    queryKey: ["documents", "contact", contactId],
+    queryFn: () => documentService.list("contact", contactId),
+    enabled: !!contactId,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: documentService.create,
+    onSuccess: () => {
+      message.success("Document înregistrat.");
+      queryClient.invalidateQueries({ queryKey: ["documents", "contact", contactId] });
+    },
+    onError: () => message.error("Eroare la înregistrarea documentului."),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: documentService.delete,
+    onSuccess: () => {
+      message.success("Document șters.");
+      queryClient.invalidateQueries({ queryKey: ["documents", "contact", contactId] });
+    },
+    onError: () => message.error("Eroare la ștergerea documentului."),
+  });
+
+  const handleUpload = (file: File) => {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    const category = ["jpg", "jpeg", "png"].includes(ext)
+      ? "photos"
+      : ["pdf"].includes(ext)
+        ? "contracts"
+        : ["doc", "docx"].includes(ext)
+          ? "technical"
+          : ["xls", "xlsx"].includes(ext)
+            ? "offers"
+            : "other";
+
+    createMutation.mutate({
+      entity_type: "contact",
+      entity_id: contactId,
+      file_name: file.name,
+      file_path: `/uploads/contacts/${contactId}/${file.name}`,
+      file_size: file.size,
+      mime_type: file.type,
+      category,
+    });
+    return false;
+  };
+
+  const documents = data?.data ?? [];
+
+  const columns: ColumnsType<CrmDocumentListItem> = [
     {
       title: "Fișier",
-      dataIndex: "name",
-      key: "name",
+      dataIndex: "file_name",
+      key: "file_name",
       render: (name: string) => {
         const ext = name.split(".").pop()?.toLowerCase() || "";
         return (
@@ -80,21 +123,22 @@ export default function TabDocumente({ contactId: _contactId }: Props) {
     },
     {
       title: "Dimensiune",
-      dataIndex: "size",
-      key: "size",
+      dataIndex: "file_size",
+      key: "file_size",
       width: 100,
-      render: (size: number) => formatFileSize(size),
+      render: (size: number) => (size ? formatFileSize(size) : "—"),
     },
     {
-      title: "Încărcat de",
-      dataIndex: "uploaded_by",
-      key: "uploaded_by",
-      width: 140,
+      title: "Versiune",
+      dataIndex: "version",
+      key: "version",
+      width: 80,
+      render: (v: number) => `v${v}`,
     },
     {
       title: "Data",
-      dataIndex: "uploaded_at",
-      key: "uploaded_at",
+      dataIndex: "created_at",
+      key: "created_at",
       width: 120,
       render: (date: string) =>
         new Date(date).toLocaleDateString("ro-RO", {
@@ -107,11 +151,22 @@ export default function TabDocumente({ contactId: _contactId }: Props) {
       title: "",
       key: "actions",
       width: 50,
-      render: () => (
-        <Button type="text" size="small" icon={<DownloadOutlined />} />
+      render: (_: unknown, record: CrmDocumentListItem) => (
+        <Popconfirm
+          title="Ștergi documentul?"
+          onConfirm={() => deleteMutation.mutate(record.id)}
+          okText="Da"
+          cancelText="Nu"
+        >
+          <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+        </Popconfirm>
       ),
     },
   ];
+
+  if (isLoading) {
+    return <Spin style={{ display: "block", margin: "40px auto" }} />;
+  }
 
   if (documents.length === 0) {
     return (
@@ -119,7 +174,8 @@ export default function TabDocumente({ contactId: _contactId }: Props) {
         <Dragger
           multiple
           accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip"
-          beforeUpload={() => false}
+          beforeUpload={(file) => handleUpload(file as File)}
+          showUploadList={false}
           style={{ padding: 24 }}
         >
           <p className="ant-upload-drag-icon">
@@ -135,8 +191,7 @@ export default function TabDocumente({ contactId: _contactId }: Props) {
         <Empty
           description={
             <Typography.Text type="secondary">
-              Niciun document încărcat. Documentele vor fi disponibile după
-              implementarea API-ului de upload.
+              Niciun document încărcat pentru acest contact.
             </Typography.Text>
           }
           style={{ marginTop: 24 }}
@@ -148,11 +203,17 @@ export default function TabDocumente({ contactId: _contactId }: Props) {
   return (
     <>
       <Space style={{ marginBottom: 16, width: "100%", justifyContent: "flex-end" }}>
-        <Upload beforeUpload={() => false} multiple>
-          <Button icon={<UploadOutlined />}>Încarcă document</Button>
+        <Upload
+          beforeUpload={(file) => handleUpload(file as File)}
+          showUploadList={false}
+          multiple
+        >
+          <Button icon={<UploadOutlined />} loading={createMutation.isPending}>
+            Încarcă document
+          </Button>
         </Upload>
       </Space>
-      <Table<Document>
+      <Table<CrmDocumentListItem>
         rowKey="id"
         columns={columns}
         dataSource={documents}

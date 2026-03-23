@@ -8,6 +8,7 @@ F141: Notifications  |  F142: Report Export  |  F143: Sync Journal
 """
 
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
@@ -905,6 +906,50 @@ async def create_notification_template(
         user_id=current_user.id, ip_address=req_info["ip_address"], user_agent=req_info["user_agent"],
     )
     return ApiResponse(data=NotificationTemplateOut.model_validate(tmpl))
+
+
+@system_router.post(
+    "/notifications/follow-up",
+    response_model=ApiResponse,
+)
+async def generate_follow_ups(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate follow-up reminder notifications for overdue activities and stale contacts."""
+    created = await service.generate_follow_up_notifications(
+        db, current_user.organization_id, current_user.id,
+    )
+    return ApiResponse(
+        data=[NotificationOut.model_validate(n) for n in created],
+        meta=Meta(total=len(created)),
+    )
+
+
+@system_router.put(
+    "/notifications/read-all",
+    response_model=ApiResponse,
+)
+async def mark_all_notifications_read(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark all notifications as read for the current user."""
+    from app.system.models import Notification
+    result = await db.execute(
+        select(Notification).where(
+            Notification.user_id == current_user.id,
+            Notification.organization_id == current_user.organization_id,
+            Notification.status == "unread",
+        )
+    )
+    notifs = result.scalars().all()
+    now = datetime.now(timezone.utc)
+    for n in notifs:
+        n.status = "read"
+        n.read_at = now
+    await db.flush()
+    return ApiResponse(data={"marked_read": len(notifs)}, meta=Meta(total=len(notifs)))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

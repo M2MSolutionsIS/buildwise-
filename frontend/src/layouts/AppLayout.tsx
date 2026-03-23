@@ -9,7 +9,6 @@ import {
   Dropdown,
   Avatar,
   Space,
-  Badge,
   Button,
   Tooltip,
 } from "antd";
@@ -21,7 +20,6 @@ import {
   ToolOutlined,
   BarChartOutlined,
   SettingOutlined,
-  BellOutlined,
   SearchOutlined,
   UserOutlined,
   LogoutOutlined,
@@ -31,6 +29,7 @@ import {
 import { useAuthStore } from "../stores/authStore";
 import { useQuery } from "@tanstack/react-query";
 import { authService } from "../services/authService";
+import NotificationsDropdown from "../modules/system/components/NotificationsDropdown";
 
 const { Header, Sider, Content } = Layout;
 
@@ -223,11 +222,7 @@ export default function AppLayout() {
               <Button type="text" icon={<SearchOutlined />} />
             </Tooltip>
 
-            <Tooltip title="Notificări">
-              <Badge count={0} size="small">
-                <Button type="text" icon={<BellOutlined />} />
-              </Badge>
-            </Tooltip>
+            <NotificationsDropdown />
 
             <Dropdown
               menu={{

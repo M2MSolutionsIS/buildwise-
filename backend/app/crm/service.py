@@ -1212,3 +1212,118 @@ async def merge_contacts(
     )
     await db.flush()
     return target
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DOCUMENTS — F005/F016
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def list_documents(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    entity_type: str,
+    entity_id: uuid.UUID,
+    *,
+    page: int = 1,
+    per_page: int = 20,
+    category: str | None = None,
+) -> tuple[list[Document], int]:
+    """F005/F016: List documents for an entity (contact or property)."""
+    query = select(Document).where(
+        Document.organization_id == org_id,
+        Document.entity_type == entity_type,
+        Document.entity_id == entity_id,
+    )
+    if category:
+        query = query.where(Document.category == category)
+
+    count_q = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_q)).scalar()
+
+    query = query.order_by(Document.created_at.desc())
+    query = query.offset((page - 1) * per_page).limit(per_page)
+    result = await db.execute(query)
+    return result.scalars().all(), total
+
+
+async def create_document(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    data: dict,
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> Document:
+    """F005/F016: Create a document record."""
+    entity_type = data.get("entity_type", "contact")
+    entity_id = data.get("entity_id")
+
+    doc = Document(
+        id=uuid.uuid4(),
+        organization_id=org_id,
+        created_by=user_id,
+        updated_by=user_id,
+        contact_id=entity_id if entity_type == "contact" else None,
+        property_id=entity_id if entity_type == "property" else None,
+        **data,
+    )
+    db.add(doc)
+
+    await log_audit(
+        db,
+        user_id=user_id,
+        organization_id=org_id,
+        action="CREATE",
+        entity_type="documents",
+        entity_id=doc.id,
+        new_values=model_to_dict(doc),
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+    await db.flush()
+    return doc
+
+
+async def get_document(
+    db: AsyncSession, org_id: uuid.UUID, doc_id: uuid.UUID
+) -> Document | None:
+    """Get a single document."""
+    result = await db.execute(
+        select(Document).where(
+            Document.id == doc_id,
+            Document.organization_id == org_id,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def delete_document(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    doc_id: uuid.UUID,
+    *,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> bool:
+    """Delete a document record."""
+    doc = await get_document(db, org_id, doc_id)
+    if doc is None:
+        return False
+
+    await log_audit(
+        db,
+        user_id=user_id,
+        organization_id=org_id,
+        action="DELETE",
+        entity_type="documents",
+        entity_id=doc.id,
+        old_values=model_to_dict(doc),
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+    await db.delete(doc)
+    await db.flush()
+    return True

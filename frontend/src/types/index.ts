@@ -468,6 +468,71 @@ export interface WeightedPipeline {
   currency: string;
 }
 
+// ─── Document Types (F005, F016) ─────────────────────────────────────────────
+
+export interface CrmDocument {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  contact_id?: string;
+  property_id?: string;
+  file_name: string;
+  file_path: string;
+  file_size?: number;
+  mime_type?: string;
+  category: string;
+  description?: string;
+  version: number;
+  created_by?: string;
+  created_at: string;
+}
+
+export interface CrmDocumentListItem {
+  id: string;
+  file_name: string;
+  file_size?: number;
+  mime_type?: string;
+  category: string;
+  description?: string;
+  version: number;
+  created_by?: string;
+  created_at: string;
+}
+
+export interface CrmDocumentCreate {
+  entity_type: string;
+  entity_id: string;
+  file_name: string;
+  file_path: string;
+  file_size?: number;
+  mime_type?: string;
+  category?: string;
+  description?: string;
+}
+
+// ─── Notification Types (F141) ───────────────────────────────────────────────
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  status: "unread" | "read" | "archived";
+  link?: string;
+  entity_type?: string;
+  entity_id?: string;
+  read_at?: string;
+  created_at: string;
+}
+
+export interface NotificationCreate {
+  title: string;
+  message: string;
+  link?: string;
+  entity_type?: string;
+  entity_id?: string;
+}
+
 // Product types (F017)
 export interface Product {
   id: string;
