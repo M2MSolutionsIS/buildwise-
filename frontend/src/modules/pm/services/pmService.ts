@@ -1,5 +1,5 @@
 /**
- * PM module API service — F063, F069, F070, F072–F075, F077, F083
+ * PM module API service — F063, F069, F070, F072–F080, F083, F084
  */
 import api from "../../../services/api";
 import type {
@@ -13,6 +13,12 @@ import type {
   MaterialConsumption,
   PMSubcontractor,
   DailyReport,
+  WorkSituation,
+  PMRisk,
+  ProjectFinanceEntry,
+  ProjectCashFlowEntry,
+  ProgressMonitoring,
+  BudgetControl,
 } from "../../../types";
 
 const BASE = "/pm";
@@ -264,5 +270,114 @@ export const pmService = {
 
   deleteDailyReport: async (reportId: string): Promise<void> => {
     await api.delete(`${BASE}/daily-reports/${reportId}`);
+  },
+
+  // ─── Progress Monitoring / S-Curve (F078) ─────────────────────────────────
+
+  getProgressMonitoring: async (
+    projectId: string
+  ): Promise<ApiResponse<ProgressMonitoring>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/progress-monitoring`);
+    return data;
+  },
+
+  // ─── Budget Control / EVM (F080) ──────────────────────────────────────────
+
+  getBudgetControl: async (
+    projectId: string
+  ): Promise<ApiResponse<BudgetControl>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/budget-control`);
+    return data;
+  },
+
+  // ─── Work Situations / Situații de Lucrări (F079) ─────────────────────────
+
+  listWorkSituations: async (
+    projectId: string
+  ): Promise<ApiResponse<WorkSituation[]>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/work-situations`);
+    return data;
+  },
+
+  createWorkSituation: async (
+    projectId: string,
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<WorkSituation>> => {
+    const { data } = await api.post(`${BASE}/projects/${projectId}/work-situations`, payload);
+    return data;
+  },
+
+  updateWorkSituation: async (
+    sdlId: string,
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<WorkSituation>> => {
+    const { data } = await api.put(`${BASE}/work-situations/${sdlId}`, payload);
+    return data;
+  },
+
+  approveWorkSituation: async (sdlId: string): Promise<ApiResponse<WorkSituation>> => {
+    const { data } = await api.post(`${BASE}/work-situations/${sdlId}/approve`);
+    return data;
+  },
+
+  // ─── Risk Register (F084) ─────────────────────────────────────────────────
+
+  listRisks: async (projectId: string): Promise<ApiResponse<PMRisk[]>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/risks`);
+    return data;
+  },
+
+  createRisk: async (
+    projectId: string,
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<PMRisk>> => {
+    const { data } = await api.post(`${BASE}/projects/${projectId}/risks`, payload);
+    return data;
+  },
+
+  updateRisk: async (
+    riskId: string,
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<PMRisk>> => {
+    const { data } = await api.put(`${BASE}/risks/${riskId}`, payload);
+    return data;
+  },
+
+  deleteRisk: async (riskId: string): Promise<void> => {
+    await api.delete(`${BASE}/risks/${riskId}`);
+  },
+
+  // ─── Project Finance P&L (F091) ──────────────────────────────────────────
+
+  listFinanceEntries: async (
+    projectId: string
+  ): Promise<ApiResponse<ProjectFinanceEntry[]>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/finance`);
+    return data;
+  },
+
+  createFinanceEntry: async (
+    projectId: string,
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<ProjectFinanceEntry>> => {
+    const { data } = await api.post(`${BASE}/projects/${projectId}/finance`, payload);
+    return data;
+  },
+
+  // ─── Project Cash Flow (F092) ─────────────────────────────────────────────
+
+  listCashFlow: async (
+    projectId: string
+  ): Promise<ApiResponse<ProjectCashFlowEntry[]>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/cash-flow`);
+    return data;
+  },
+
+  createCashFlow: async (
+    projectId: string,
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<ProjectCashFlowEntry>> => {
+    const { data } = await api.post(`${BASE}/projects/${projectId}/cash-flow`, payload);
+    return data;
   },
 };
