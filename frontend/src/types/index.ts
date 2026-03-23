@@ -636,6 +636,150 @@ export interface ResourceAllocation {
   created_at: string;
 }
 
+// ─── PM Types — Execution: Timesheet, Materials, Subcontractors, Daily Reports ──
+
+export type TimesheetStatus = "draft" | "submitted" | "approved" | "rejected";
+
+export interface TimesheetEntry {
+  id: string;
+  project_id: string;
+  task_id?: string;
+  user_id: string;
+  work_date: string;
+  hours: number;
+  hourly_rate?: number;
+  cost?: number;
+  description?: string;
+  status: TimesheetStatus;
+  approved_by?: string;
+  approved_at?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface TimesheetCreate {
+  task_id?: string;
+  user_id?: string;
+  work_date: string;
+  hours: number;
+  hourly_rate?: number;
+  description?: string;
+}
+
+export interface MaterialConsumption {
+  id: string;
+  project_id: string;
+  wbs_node_id?: string;
+  deviz_item_id?: string;
+  product_id?: string;
+  material_name: string;
+  unit_of_measure: string;
+  planned_quantity: number;
+  consumed_quantity: number;
+  unit_price?: number;
+  total_cost?: number;
+  consumption_date: string;
+  registered_by?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface MaterialConsumptionCreate {
+  wbs_node_id?: string;
+  deviz_item_id?: string;
+  product_id?: string;
+  material_name: string;
+  unit_of_measure: string;
+  planned_quantity: number;
+  consumed_quantity: number;
+  unit_price?: number;
+  consumption_date: string;
+}
+
+export interface PMSubcontractor {
+  id: string;
+  project_id: string;
+  contact_id?: string;
+  company_name: string;
+  contract_number?: string;
+  contract_value?: number;
+  currency: string;
+  scope_description?: string;
+  start_date?: string;
+  end_date?: string;
+  percent_complete: number;
+  invoiced_amount: number;
+  paid_amount: number;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface PMSubcontractorCreate {
+  contact_id?: string;
+  company_name: string;
+  contract_number?: string;
+  contract_value?: number;
+  currency?: string;
+  scope_description?: string;
+  start_date?: string;
+  end_date?: string;
+  notes?: string;
+}
+
+export interface DailyReport {
+  id: string;
+  project_id: string;
+  report_date: string;
+  weather?: string;
+  temperature_min?: number;
+  temperature_max?: number;
+  activities_summary?: string;
+  personnel_present?: PersonnelEntry[];
+  equipment_used?: EquipmentEntry[];
+  materials_received?: MaterialDelivery[];
+  observations?: string;
+  issues?: string;
+  photos?: string[];
+  reported_by?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface PersonnelEntry {
+  name: string;
+  role: string;
+  hours: number;
+}
+
+export interface EquipmentEntry {
+  name: string;
+  hours: number;
+  notes?: string;
+}
+
+export interface MaterialDelivery {
+  material_name: string;
+  quantity: number;
+  unit_of_measure: string;
+  supplier?: string;
+  delivery_note?: string;
+  date?: string;
+}
+
+export interface DailyReportCreate {
+  report_date: string;
+  weather?: string;
+  temperature_min?: number;
+  temperature_max?: number;
+  activities_summary?: string;
+  personnel_present?: PersonnelEntry[];
+  equipment_used?: EquipmentEntry[];
+  materials_received?: MaterialDelivery[];
+  observations?: string;
+  issues?: string;
+}
+
 // ─── Document Types (F005, F016) ─────────────────────────────────────────────
 
 export interface CrmDocument {
