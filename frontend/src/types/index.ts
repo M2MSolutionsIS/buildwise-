@@ -1061,6 +1061,37 @@ export interface EnergyImpactCreate {
   duration_days?: number;
 }
 
+// ─── PM Types — Project Reports, Archive, Energy Portfolio (F090, F091, F095, F142, F161) ──
+
+export interface ProjectReport {
+  project_id: string;
+  project_name: string;
+  status: string;
+  percent_complete: number;
+  planned_start?: string;
+  planned_end?: string;
+  actual_start?: string;
+  actual_end?: string;
+  budget_allocated?: number;
+  budget_actual?: number;
+  budget_variance?: number;
+  cpi?: number;
+  spi?: number;
+  total_tasks: number;
+  completed_tasks: number;
+  open_risks: number;
+  open_punch_items: number;
+}
+
+export interface EnergyPortfolio {
+  total_kwh_saved: number;
+  total_co2_reduced: number;
+  total_projects: number;
+  total_area_treated_sqm: number;
+  avg_u_value_pre?: number;
+  avg_u_value_post?: number;
+}
+
 // ─── Document Types (F005, F016) ─────────────────────────────────────────────
 
 export interface CrmDocument {
