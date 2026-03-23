@@ -780,6 +780,180 @@ export interface DailyReportCreate {
   issues?: string;
 }
 
+// ─── PM Types — Monitoring: EVM, Work Situations, Risks (F078-F084) ─────────
+
+export interface WorkSituation {
+  id: string;
+  project_id: string;
+  period_month: number;
+  period_year: number;
+  sdl_number: string;
+  contracted_total: number;
+  executed_current: number;
+  executed_cumulated: number;
+  remaining: number;
+  currency: string;
+  is_approved: boolean;
+  approved_by?: string;
+  approved_at?: string;
+  is_invoiced: boolean;
+  line_items?: WorkSituationLineItem[];
+  pdf_path?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface WorkSituationLineItem {
+  description: string;
+  unit_of_measure: string;
+  contracted_qty: number;
+  contracted_price: number;
+  executed_current_qty: number;
+  executed_cumulated_qty: number;
+  remaining_qty: number;
+  total_value: number;
+}
+
+export interface WorkSituationCreate {
+  period_month: number;
+  period_year: number;
+  sdl_number: string;
+  contracted_total: number;
+  executed_current: number;
+  executed_cumulated: number;
+  remaining: number;
+  currency?: string;
+  line_items?: WorkSituationLineItem[];
+}
+
+export type RiskProbability = "very_low" | "low" | "medium" | "high" | "very_high";
+export type RiskImpact = "negligible" | "minor" | "moderate" | "major" | "critical";
+export type RiskStatus = "identified" | "assessed" | "mitigating" | "resolved" | "accepted";
+
+export interface PMRisk {
+  id: string;
+  project_id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  probability: RiskProbability;
+  impact: RiskImpact;
+  risk_score?: number;
+  status: RiskStatus;
+  mitigation_plan?: string;
+  contingency_plan?: string;
+  owner_id?: string;
+  identified_date?: string;
+  review_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface PMRiskCreate {
+  title: string;
+  description?: string;
+  category?: string;
+  probability: RiskProbability;
+  impact: RiskImpact;
+  status?: RiskStatus;
+  mitigation_plan?: string;
+  contingency_plan?: string;
+  owner_id?: string;
+  identified_date?: string;
+  review_date?: string;
+  notes?: string;
+}
+
+export interface ProjectFinanceEntry {
+  id: string;
+  project_id: string;
+  entry_type: string;
+  category: string;
+  subcategory?: string;
+  period_month: number;
+  period_year: number;
+  forecast_amount: number;
+  actual_amount: number;
+  variance: number;
+  currency: string;
+  source_entity_type?: string;
+  source_entity_id?: string;
+  created_at: string;
+}
+
+export interface ProjectCashFlowEntry {
+  id: string;
+  project_id: string;
+  entry_type: string;
+  description?: string;
+  amount: number;
+  currency: string;
+  transaction_date: string;
+  invoice_id?: string;
+  source_entity_type?: string;
+  source_entity_id?: string;
+  created_at: string;
+}
+
+export interface ProgressMonitoring {
+  project_id: string;
+  project_name: string;
+  percent_complete: number;
+  planned_progress: number;
+  schedule_variance: number;
+  status: string;
+  health_indicator: string;
+  cpi: number;
+  spi: number;
+  tasks_summary: {
+    total: number;
+    done: number;
+    in_progress: number;
+    blocked: number;
+    todo: number;
+  };
+  delay_alerts: { task_title: string; days_delayed: number }[];
+  milestones: { title: string; planned_date: string; actual_date?: string; status: string }[];
+  s_curve_data: SCurveDataPoint[];
+}
+
+export interface SCurveDataPoint {
+  date: string;
+  planned_percent: number;
+  actual_percent: number;
+  earned_value?: number;
+}
+
+export interface BudgetControl {
+  project_id: string;
+  budget_allocated: number;
+  budget_committed: number;
+  budget_actual: number;
+  currency: string;
+  cpi: number;
+  spi: number;
+  eac: number;
+  etc: number;
+  vac: number;
+  ev: number;
+  pv: number;
+  ac: number;
+  sv: number;
+  cv: number;
+  by_category: BudgetCategory[];
+  alerts: string[];
+}
+
+export interface BudgetCategory {
+  category: string;
+  allocated: number;
+  committed: number;
+  actual: number;
+  variance: number;
+  variance_pct: number;
+}
+
 // ─── Document Types (F005, F016) ─────────────────────────────────────────────
 
 export interface CrmDocument {

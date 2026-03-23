@@ -22,6 +22,10 @@ import MaterialConsumptionPage from "./modules/pm/pages/MaterialConsumptionPage"
 import SubcontractorsPage from "./modules/pm/pages/SubcontractorsPage";
 import DeliveriesPage from "./modules/pm/pages/DeliveriesPage";
 import DailyReportPage from "./modules/pm/pages/DailyReportPage";
+import ProgressMonitoringPage from "./modules/pm/pages/ProgressMonitoringPage";
+import BudgetControlPage from "./modules/pm/pages/BudgetControlPage";
+import WorkSituationsPage from "./modules/pm/pages/WorkSituationsPage";
+import RiskRegisterPage from "./modules/pm/pages/RiskRegisterPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -102,6 +106,11 @@ function App() {
                   <Route path="projects/:projectId/subcontractors" element={<SubcontractorsPage />} />
                   <Route path="projects/:projectId/deliveries" element={<DeliveriesPage />} />
                   <Route path="projects/:projectId/daily-reports" element={<DailyReportPage />} />
+                  {/* Task 16: Monitoring — F078, F079, F080, F084 */}
+                  <Route path="projects/:projectId/progress" element={<ProgressMonitoringPage />} />
+                  <Route path="projects/:projectId/budget" element={<BudgetControlPage />} />
+                  <Route path="projects/:projectId/work-situations" element={<WorkSituationsPage />} />
+                  <Route path="projects/:projectId/risks" element={<RiskRegisterPage />} />
                 </Route>
                 <Route path="rm" element={<PlaceholderPage title="Resource Management" />} />
                 <Route path="bi" element={<PlaceholderPage title="Business Intelligence" />} />
