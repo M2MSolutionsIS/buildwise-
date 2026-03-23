@@ -640,6 +640,67 @@ class SalesKPIOut(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PIPELINE ANALYTICS — F058 (E-012: Funnel, Agent Perf, Forecast)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class FunnelStageOut(BaseModel):
+    """Single stage in conversion funnel with drop-off %."""
+    stage: str
+    count: int
+    value: float = 0.0
+    conversion_rate: float = 0.0
+    drop_off_rate: float = 0.0
+
+
+class AgentPerformanceOut(BaseModel):
+    """Per-agent performance metrics."""
+    agent_id: str | None = None
+    agent_name: str = "Neatribuit"
+    total_deals: int = 0
+    won_deals: int = 0
+    lost_deals: int = 0
+    open_deals: int = 0
+    total_value: float = 0.0
+    won_value: float = 0.0
+    win_rate: float = 0.0
+    avg_deal_value: float = 0.0
+    avg_cycle_days: float = 0.0
+    activities_count: int = 0
+
+
+class ForecastMonthOut(BaseModel):
+    """Revenue forecast per month."""
+    month: str
+    confirmed_value: float = 0.0
+    weighted_value: float = 0.0
+    deal_count: int = 0
+
+
+class ProductMixItemOut(BaseModel):
+    """Product category contribution analysis."""
+    category: str
+    deal_count: int = 0
+    total_value: float = 0.0
+    percentage: float = 0.0
+
+
+class PipelineAnalyticsOut(BaseModel):
+    """F058: Complete pipeline analytics for E-012 dashboard."""
+    # KPIs
+    kpis: dict = {}
+    # Conversion funnel
+    funnel: list[FunnelStageOut] = []
+    # Agent performance
+    agent_performance: list[AgentPerformanceOut] = []
+    # Revenue forecast
+    forecast: list[ForecastMonthOut] = []
+    # Product mix
+    product_mix: list[ProductMixItemOut] = []
+    currency: str = "RON"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # F023/F033 — Document Generation (PDF/DOC)
 # ═══════════════════════════════════════════════════════════════════════════════
 
