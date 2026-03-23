@@ -17,6 +17,11 @@ import OpportunityCreatePage from "./modules/pipeline/pages/OpportunityCreatePag
 import SalesDashboardPage from "./modules/pipeline/pages/SalesDashboardPage";
 import ActivityPlannerPage from "./modules/pipeline/pages/ActivityPlannerPage";
 import GanttChartPage from "./modules/pm/pages/GanttChartPage";
+import TimesheetPage from "./modules/pm/pages/TimesheetPage";
+import MaterialConsumptionPage from "./modules/pm/pages/MaterialConsumptionPage";
+import SubcontractorsPage from "./modules/pm/pages/SubcontractorsPage";
+import DeliveriesPage from "./modules/pm/pages/DeliveriesPage";
+import DailyReportPage from "./modules/pm/pages/DailyReportPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -88,10 +93,15 @@ function App() {
                   <Route path="offers/:id" element={<OfferDetailPage />} />
                 </Route>
 
-                {/* PM Routes — E-016 Gantt Chart */}
+                {/* PM Routes — E-016 Gantt, E-018 Timesheet, E-019 Consum, F075, F077 */}
                 <Route path="pm">
                   <Route index element={<PlaceholderPage title="Project Management" />} />
                   <Route path="projects/:projectId/gantt" element={<GanttChartPage />} />
+                  <Route path="projects/:projectId/timesheet" element={<TimesheetPage />} />
+                  <Route path="projects/:projectId/consumption" element={<MaterialConsumptionPage />} />
+                  <Route path="projects/:projectId/subcontractors" element={<SubcontractorsPage />} />
+                  <Route path="projects/:projectId/deliveries" element={<DeliveriesPage />} />
+                  <Route path="projects/:projectId/daily-reports" element={<DailyReportPage />} />
                 </Route>
                 <Route path="rm" element={<PlaceholderPage title="Resource Management" />} />
                 <Route path="bi" element={<PlaceholderPage title="Business Intelligence" />} />
