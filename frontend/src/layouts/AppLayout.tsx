@@ -49,6 +49,7 @@ const menuItems = [
     label: "Sales Pipeline",
     children: [
       { key: "/pipeline/board", label: "Pipeline Kanban" },
+      { key: "/pipeline/activities", label: "Activități" },
       { key: "/pipeline/dashboard", label: "Sales Dashboard" },
       { key: "/pipeline/offers", label: "Oferte" },
     ],
@@ -68,6 +69,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   board: "Pipeline Kanban",
   dashboard: "Sales Dashboard",
   opportunities: "Oportunități",
+  activities: "Activități",
   offers: "Oferte",
   pm: "Project Management",
   rm: "Resource Management",
