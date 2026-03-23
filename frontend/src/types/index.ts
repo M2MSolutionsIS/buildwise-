@@ -527,6 +527,115 @@ export interface PipelineAnalytics {
   currency: string;
 }
 
+// ─── PM Types — Projects, Tasks, Gantt (F063, F069-F073, F083) ──────────────
+
+export type ProjectStatus =
+  | "draft" | "kickoff" | "planning" | "in_progress"
+  | "on_hold" | "post_execution" | "closing" | "completed" | "cancelled";
+
+export interface PMProject {
+  id: string;
+  project_number: string;
+  name: string;
+  description?: string;
+  project_type: string;
+  status: ProjectStatus;
+  health_indicator?: string;
+  percent_complete: number;
+  planned_start_date?: string;
+  planned_end_date?: string;
+  actual_start_date?: string;
+  actual_end_date?: string;
+  budget_allocated?: number;
+  budget_actual?: number;
+  currency: string;
+  project_manager_id?: string;
+  contract_id?: string;
+  contact_id?: string;
+  cpi?: number;
+  spi?: number;
+  created_at: string;
+}
+
+export interface PMProjectListItem {
+  id: string;
+  project_number: string;
+  name: string;
+  project_type: string;
+  status: ProjectStatus;
+  health_indicator?: string;
+  percent_complete: number;
+  planned_start_date?: string;
+  planned_end_date?: string;
+  budget_allocated?: number;
+  budget_actual?: number;
+  currency: string;
+  project_manager_id?: string;
+  created_at: string;
+}
+
+export type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
+
+export interface PMTask {
+  id: string;
+  project_id: string;
+  wbs_node_id?: string;
+  parent_task_id?: string;
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  blocked_reason?: string;
+  escalated: boolean;
+  planned_start?: string;
+  planned_end?: string;
+  planned_duration_days?: number;
+  actual_start?: string;
+  actual_end?: string;
+  percent_complete: number;
+  estimated_hours?: number;
+  actual_hours?: number;
+  estimated_cost?: number;
+  actual_cost?: number;
+  assigned_to?: string;
+  is_critical_path: boolean;
+  is_milestone: boolean;
+  sort_order: number;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface TaskDependency {
+  id: string;
+  task_id: string;
+  depends_on_id: string;
+  dependency_type: "finish_to_start" | "start_to_start" | "finish_to_finish" | "start_to_finish";
+  lag_days: number;
+}
+
+export interface ResourceAllocation {
+  id: string;
+  organization_id: string;
+  resource_type: string;
+  employee_id?: string;
+  equipment_id?: string;
+  project_id: string;
+  wbs_node_id?: string;
+  task_id?: string;
+  start_date: string;
+  end_date: string;
+  allocated_hours?: number;
+  actual_hours?: number;
+  planned_cost?: number;
+  actual_cost?: number;
+  currency: string;
+  status: string;
+  has_conflict: boolean;
+  conflict_details?: Record<string, unknown>;
+  allocation_percent: number;
+  created_at: string;
+}
+
 // ─── Document Types (F005, F016) ─────────────────────────────────────────────
 
 export interface CrmDocument {
