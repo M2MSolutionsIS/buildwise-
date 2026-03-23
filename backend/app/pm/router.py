@@ -38,6 +38,7 @@ from app.pm.schemas import (
     ProjectCancelRequest,
     ProjectCloseRequest,
     ProjectCreate,
+    ProjectFromContractRequest,
     ProjectFinanceCreate,
     ProjectFinanceOut,
     ProjectListOut,
@@ -129,6 +130,34 @@ async def create_project(
         ip_address=req_info["ip_address"],
         user_agent=req_info["user_agent"],
     )
+    return ApiResponse(data=ProjectOut.model_validate(project))
+
+
+@pm_router.post("/projects/from-contract", response_model=ApiResponse, status_code=201)
+async def create_project_from_contract(
+    body: ProjectFromContractRequest,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F063: Auto-create project from signed contract — import milestones as WBS."""
+    req_info = await get_request_info(request)
+    try:
+        project = await service.create_project_from_contract(
+            db, current_user.organization_id, current_user.id,
+            body.contract_id,
+            name=body.name,
+            project_type=body.project_type,
+            planned_start_date=body.planned_start_date,
+            planned_end_date=body.planned_end_date,
+            import_milestones=body.import_milestones,
+            kickoff_checklist=body.kickoff_checklist,
+            notes=body.notes,
+            ip_address=req_info["ip_address"],
+            user_agent=req_info["user_agent"],
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     return ApiResponse(data=ProjectOut.model_validate(project))
 
 

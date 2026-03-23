@@ -130,6 +130,18 @@ class ProjectCancelRequest(BaseModel):
     cancellation_reason: str = Field(..., min_length=1)
 
 
+class ProjectFromContractRequest(BaseModel):
+    """F063: Auto-create project from signed contract — import milestones as WBS."""
+    contract_id: uuid.UUID
+    name: str | None = None
+    project_type: str = "client"
+    planned_start_date: datetime | None = None
+    planned_end_date: datetime | None = None
+    import_milestones: bool = True
+    kickoff_checklist: dict | None = None
+    notes: str | None = None
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # WBS — F069
 # ═══════════════════════════════════════════════════════════════════════════════
