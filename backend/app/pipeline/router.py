@@ -61,6 +61,8 @@ Endpoints:
   GET    /api/v1/pipeline/kpi/sales                    — Sales Dashboard (F058)
   GET    /api/v1/pipeline/analytics/offers             — Offers analytics (F029)
   GET    /api/v1/pipeline/analytics/contracts          — Contracts analytics (F037)
+  GET    /api/v1/pipeline/analytics/pipeline           — Pipeline Analytics: funnel, agents, forecast (F058, E-012)
+  GET    /api/v1/pipeline/analytics/pipeline/export-csv — Export analytics CSV (F058)
 """
 
 import uuid
@@ -119,6 +121,7 @@ from app.pipeline.schemas import (
     PredefinedLossReasonCreate,
     PredefinedLossReasonOut,
     PredefinedLossReasonUpdate,
+    PipelineAnalyticsOut,
     SalesKPIOut,
     SimplifiedOfferCreate,
     WeightedPipelineOut,
@@ -1182,6 +1185,44 @@ async def get_contract_analytics(
     """F037: Contracts Analytics."""
     analytics = await service.get_contract_analytics(db, current_user.organization_id)
     return ApiResponse(data=ContractAnalyticsOut(**analytics))
+
+
+@pipeline_router.get("/analytics/pipeline", response_model=ApiResponse)
+async def get_pipeline_analytics(
+    period_start: datetime | None = None,
+    period_end: datetime | None = None,
+    agent_id: uuid.UUID | None = None,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F058: Complete pipeline analytics — funnel, agent performance, forecast, product mix (E-012)."""
+    analytics = await service.get_pipeline_analytics(
+        db, current_user.organization_id,
+        period_start=period_start,
+        period_end=period_end,
+        agent_id=agent_id,
+    )
+    return ApiResponse(data=PipelineAnalyticsOut(**analytics))
+
+
+@pipeline_router.get("/analytics/pipeline/export-csv")
+async def export_pipeline_analytics_csv(
+    section: str = "all",
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """F058: Export pipeline analytics as CSV."""
+    from fastapi.responses import StreamingResponse
+    import io
+
+    csv_content = await service.export_analytics_csv(
+        db, current_user.organization_id, section=section,
+    )
+    return StreamingResponse(
+        io.StringIO(csv_content),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=pipeline_analytics.csv"},
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

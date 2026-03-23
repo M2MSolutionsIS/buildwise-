@@ -8,6 +8,7 @@ import type {
   PipelineBoard,
   SalesKPI,
   WeightedPipeline,
+  PipelineAnalytics,
   Activity,
   ActivityListItem,
 } from "../../../types";
@@ -111,6 +112,25 @@ export const pipelineService = {
   // F058: Sales KPI Dashboard
   getSalesKPI: async (): Promise<ApiResponse<SalesKPI>> => {
     const { data } = await api.get(`${BASE}/kpi/sales`);
+    return data;
+  },
+
+  // ─── Pipeline Analytics (F058, E-012) ───────────────────────────────────────
+
+  getPipelineAnalytics: async (params?: {
+    period_start?: string;
+    period_end?: string;
+    agent_id?: string;
+  }): Promise<ApiResponse<PipelineAnalytics>> => {
+    const { data } = await api.get(`${BASE}/analytics/pipeline`, { params });
+    return data;
+  },
+
+  exportAnalyticsCSV: async (section: string = "all"): Promise<Blob> => {
+    const { data } = await api.get(`${BASE}/analytics/pipeline/export-csv`, {
+      params: { section },
+      responseType: "blob",
+    });
     return data;
   },
 

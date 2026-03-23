@@ -468,6 +468,65 @@ export interface WeightedPipeline {
   currency: string;
 }
 
+// ─── Pipeline Analytics (F058, E-012) ────────────────────────────────────────
+
+export interface FunnelStage {
+  stage: string;
+  count: number;
+  value: number;
+  conversion_rate: number;
+  drop_off_rate: number;
+}
+
+export interface AgentPerformance {
+  agent_id: string | null;
+  agent_name: string;
+  total_deals: number;
+  won_deals: number;
+  lost_deals: number;
+  open_deals: number;
+  total_value: number;
+  won_value: number;
+  win_rate: number;
+  avg_deal_value: number;
+  avg_cycle_days: number;
+  activities_count: number;
+}
+
+export interface ForecastMonth {
+  month: string;
+  confirmed_value: number;
+  weighted_value: number;
+  deal_count: number;
+}
+
+export interface ProductMixItem {
+  category: string;
+  deal_count: number;
+  total_value: number;
+  percentage: number;
+}
+
+export interface PipelineAnalytics {
+  kpis: {
+    total_opportunities: number;
+    open_opportunities: number;
+    won_opportunities: number;
+    lost_opportunities: number;
+    pipeline_value: number;
+    won_value: number;
+    weighted_value: number;
+    win_rate: number;
+    avg_deal_value: number;
+    avg_cycle_days: number;
+  };
+  funnel: FunnelStage[];
+  agent_performance: AgentPerformance[];
+  forecast: ForecastMonth[];
+  product_mix: ProductMixItem[];
+  currency: string;
+}
+
 // ─── Document Types (F005, F016) ─────────────────────────────────────────────
 
 export interface CrmDocument {

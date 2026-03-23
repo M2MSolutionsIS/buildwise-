@@ -2453,3 +2453,357 @@ async def get_weighted_pipeline(
         "total_weighted_value": round(total_weighted, 2),
         "currency": "RON",
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# F058 — PIPELINE ANALYTICS (E-012: Funnel, Agent Performance, Forecast)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def get_pipeline_analytics(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    period_start: datetime | None = None,
+    period_end: datetime | None = None,
+    agent_id: uuid.UUID | None = None,
+) -> dict:
+    """F058: Complete pipeline analytics — funnel, agent performance, forecast, product mix."""
+    from app.system.models import User
+
+    now = datetime.now(timezone.utc)
+    if not period_end:
+        period_end = now
+    if not period_start:
+        period_start = now - timedelta(days=365)
+
+    # Base filters
+    base_filters = [
+        Opportunity.organization_id == org_id,
+        Opportunity.is_deleted.is_(False),
+    ]
+    if agent_id:
+        base_filters.append(Opportunity.owner_id == agent_id)
+
+    # ── KPIs ──────────────────────────────────────────────────────────────────
+    total_opps = (await db.execute(
+        select(func.count()).select_from(Opportunity).where(*base_filters)
+    )).scalar() or 0
+
+    won_opps = (await db.execute(
+        select(func.count()).select_from(Opportunity).where(
+            *base_filters, Opportunity.stage == OpportunityStage.WON.value,
+        )
+    )).scalar() or 0
+
+    lost_opps = (await db.execute(
+        select(func.count()).select_from(Opportunity).where(
+            *base_filters, Opportunity.stage == OpportunityStage.LOST.value,
+        )
+    )).scalar() or 0
+
+    open_opps = total_opps - won_opps - lost_opps
+
+    pipeline_value = (await db.execute(
+        select(func.coalesce(func.sum(Opportunity.estimated_value), 0.0)).where(
+            *base_filters,
+            Opportunity.stage.notin_([OpportunityStage.WON.value, OpportunityStage.LOST.value]),
+        )
+    )).scalar() or 0.0
+
+    won_value = (await db.execute(
+        select(func.coalesce(func.sum(Opportunity.estimated_value), 0.0)).where(
+            *base_filters, Opportunity.stage == OpportunityStage.WON.value,
+        )
+    )).scalar() or 0.0
+
+    weighted_val = (await db.execute(
+        select(func.coalesce(func.sum(Opportunity.weighted_value), 0.0)).where(
+            *base_filters,
+            Opportunity.stage.notin_([OpportunityStage.WON.value, OpportunityStage.LOST.value]),
+        )
+    )).scalar() or 0.0
+
+    win_rate = (won_opps / (won_opps + lost_opps) * 100) if (won_opps + lost_opps) > 0 else 0.0
+    avg_deal = (won_value / won_opps) if won_opps > 0 else 0.0
+
+    # Avg cycle time (days from created_at to actual_close_date for WON)
+    cycle_result = await db.execute(
+        select(
+            func.avg(
+                func.extract("epoch", Opportunity.actual_close_date - Opportunity.created_at) / 86400
+            )
+        ).where(
+            *base_filters,
+            Opportunity.stage == OpportunityStage.WON.value,
+            Opportunity.actual_close_date.isnot(None),
+        )
+    )
+    avg_cycle_days = cycle_result.scalar() or 0.0
+
+    kpis = {
+        "total_opportunities": total_opps,
+        "open_opportunities": open_opps,
+        "won_opportunities": won_opps,
+        "lost_opportunities": lost_opps,
+        "pipeline_value": round(float(pipeline_value), 2),
+        "won_value": round(float(won_value), 2),
+        "weighted_value": round(float(weighted_val), 2),
+        "win_rate": round(win_rate, 1),
+        "avg_deal_value": round(avg_deal, 2),
+        "avg_cycle_days": round(float(avg_cycle_days), 1),
+    }
+
+    # ── Conversion Funnel with drop-off % ─────────────────────────────────────
+    funnel_stages = [
+        OpportunityStage.NEW.value,
+        OpportunityStage.QUALIFIED.value,
+        OpportunityStage.SCOPING.value,
+        OpportunityStage.OFFERING.value,
+        OpportunityStage.SENT.value,
+        OpportunityStage.NEGOTIATION.value,
+        OpportunityStage.WON.value,
+    ]
+
+    funnel = []
+    prev_count = 0
+    for i, stage in enumerate(funnel_stages):
+        count = (await db.execute(
+            select(func.count()).select_from(Opportunity).where(
+                *base_filters, Opportunity.stage == stage,
+            )
+        )).scalar() or 0
+        value = (await db.execute(
+            select(func.coalesce(func.sum(Opportunity.estimated_value), 0.0)).where(
+                *base_filters, Opportunity.stage == stage,
+            )
+        )).scalar() or 0.0
+
+        if i == 0:
+            conv_rate = 100.0
+            drop_off = 0.0
+            prev_count = count
+        else:
+            conv_rate = (count / prev_count * 100) if prev_count > 0 else 0.0
+            drop_off = 100.0 - conv_rate
+            if count > 0:
+                prev_count = count
+
+        funnel.append({
+            "stage": stage,
+            "count": count,
+            "value": round(float(value), 2),
+            "conversion_rate": round(conv_rate, 1),
+            "drop_off_rate": round(max(drop_off, 0.0), 1),
+        })
+
+    # ── Agent Performance ─────────────────────────────────────────────────────
+    agent_rows = (await db.execute(
+        select(
+            Opportunity.owner_id,
+            func.count().label("total_deals"),
+            func.count().filter(Opportunity.stage == OpportunityStage.WON.value).label("won_deals"),
+            func.count().filter(Opportunity.stage == OpportunityStage.LOST.value).label("lost_deals"),
+            func.coalesce(func.sum(Opportunity.estimated_value), 0.0).label("total_value"),
+            func.coalesce(
+                func.sum(case(
+                    (Opportunity.stage == OpportunityStage.WON.value, Opportunity.estimated_value),
+                    else_=0.0,
+                )), 0.0
+            ).label("won_value"),
+        ).where(*base_filters).group_by(Opportunity.owner_id)
+    )).all()
+
+    agent_perf = []
+    for row in agent_rows:
+        owner_id = row.owner_id
+        agent_name = "Neatribuit"
+        if owner_id:
+            user = (await db.execute(
+                select(User).where(User.id == owner_id)
+            )).scalar_one_or_none()
+            if user:
+                agent_name = f"{user.first_name} {user.last_name}"
+
+        total_d = row.total_deals or 0
+        won_d = row.won_deals or 0
+        lost_d = row.lost_deals or 0
+        open_d = total_d - won_d - lost_d
+        total_v = float(row.total_value or 0)
+        won_v = float(row.won_value or 0)
+        wr = (won_d / (won_d + lost_d) * 100) if (won_d + lost_d) > 0 else 0.0
+        avg_dv = (won_v / won_d) if won_d > 0 else 0.0
+
+        # Avg cycle for this agent
+        agent_cycle_filters = [
+            Opportunity.organization_id == org_id,
+            Opportunity.is_deleted.is_(False),
+            Opportunity.stage == OpportunityStage.WON.value,
+            Opportunity.actual_close_date.isnot(None),
+        ]
+        if owner_id:
+            agent_cycle_filters.append(Opportunity.owner_id == owner_id)
+        else:
+            agent_cycle_filters.append(Opportunity.owner_id.is_(None))
+
+        cycle_d = (await db.execute(
+            select(func.avg(
+                func.extract("epoch", Opportunity.actual_close_date - Opportunity.created_at) / 86400
+            )).where(*agent_cycle_filters)
+        )).scalar() or 0.0
+
+        # Activity count
+        act_filters = [
+            Activity.organization_id == org_id,
+            Activity.is_deleted.is_(False),
+        ]
+        if owner_id:
+            act_filters.append(Activity.owner_id == owner_id)
+        else:
+            act_filters.append(Activity.owner_id.is_(None))
+
+        act_count = (await db.execute(
+            select(func.count()).select_from(Activity).where(*act_filters)
+        )).scalar() or 0
+
+        agent_perf.append({
+            "agent_id": str(owner_id) if owner_id else None,
+            "agent_name": agent_name,
+            "total_deals": total_d,
+            "won_deals": won_d,
+            "lost_deals": lost_d,
+            "open_deals": open_d,
+            "total_value": round(total_v, 2),
+            "won_value": round(won_v, 2),
+            "win_rate": round(wr, 1),
+            "avg_deal_value": round(avg_dv, 2),
+            "avg_cycle_days": round(float(cycle_d), 1),
+            "activities_count": act_count,
+        })
+
+    agent_perf.sort(key=lambda x: x["won_value"], reverse=True)
+
+    # ── Forecast (next 6 months) ──────────────────────────────────────────────
+    forecast = []
+    for m in range(6):
+        month_start = (now.replace(day=1) + timedelta(days=32 * m)).replace(day=1)
+        month_end = (month_start + timedelta(days=32)).replace(day=1)
+
+        # Confirmed = WON deals with close date in this month
+        confirmed = (await db.execute(
+            select(func.coalesce(func.sum(Opportunity.estimated_value), 0.0)).where(
+                Opportunity.organization_id == org_id,
+                Opportunity.is_deleted.is_(False),
+                Opportunity.stage == OpportunityStage.WON.value,
+                Opportunity.actual_close_date >= month_start,
+                Opportunity.actual_close_date < month_end,
+            )
+        )).scalar() or 0.0
+
+        # Weighted = open deals expected to close this month × probability
+        weighted_fc = (await db.execute(
+            select(func.coalesce(func.sum(Opportunity.weighted_value), 0.0)).where(
+                Opportunity.organization_id == org_id,
+                Opportunity.is_deleted.is_(False),
+                Opportunity.stage.notin_([OpportunityStage.WON.value, OpportunityStage.LOST.value]),
+                Opportunity.expected_close_date >= month_start,
+                Opportunity.expected_close_date < month_end,
+            )
+        )).scalar() or 0.0
+
+        deal_count = (await db.execute(
+            select(func.count()).select_from(Opportunity).where(
+                Opportunity.organization_id == org_id,
+                Opportunity.is_deleted.is_(False),
+                Opportunity.stage.notin_([OpportunityStage.LOST.value]),
+                Opportunity.expected_close_date >= month_start,
+                Opportunity.expected_close_date < month_end,
+            )
+        )).scalar() or 0
+
+        forecast.append({
+            "month": month_start.strftime("%Y-%m"),
+            "confirmed_value": round(float(confirmed), 2),
+            "weighted_value": round(float(weighted_fc), 2),
+            "deal_count": deal_count,
+        })
+
+    # ── Product Mix (by source as proxy for product category) ─────────────────
+    source_rows = (await db.execute(
+        select(
+            func.coalesce(Opportunity.source, "Necategorizat").label("category"),
+            func.count().label("deal_count"),
+            func.coalesce(func.sum(Opportunity.estimated_value), 0.0).label("total_value"),
+        ).where(*base_filters).group_by(
+            func.coalesce(Opportunity.source, "Necategorizat")
+        )
+    )).all()
+
+    total_all_value = sum(float(r.total_value) for r in source_rows) if source_rows else 1.0
+    product_mix = []
+    for r in source_rows:
+        val = float(r.total_value)
+        product_mix.append({
+            "category": r.category,
+            "deal_count": r.deal_count,
+            "total_value": round(val, 2),
+            "percentage": round(val / total_all_value * 100, 1) if total_all_value > 0 else 0.0,
+        })
+    product_mix.sort(key=lambda x: x["total_value"], reverse=True)
+
+    return {
+        "kpis": kpis,
+        "funnel": funnel,
+        "agent_performance": agent_perf,
+        "forecast": forecast,
+        "product_mix": product_mix,
+        "currency": "RON",
+    }
+
+
+async def export_analytics_csv(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    section: str = "all",
+) -> str:
+    """F058: Export analytics data as CSV string."""
+    import csv
+    import io
+
+    analytics = await get_pipeline_analytics(db, org_id)
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    if section in ("all", "funnel"):
+        writer.writerow(["=== FUNNEL CONVERSIE ==="])
+        writer.writerow(["Stadiu", "Nr. Oportunități", "Valoare", "Rata Conversie %", "Drop-off %"])
+        for f in analytics["funnel"]:
+            writer.writerow([f["stage"], f["count"], f["value"], f["conversion_rate"], f["drop_off_rate"]])
+        writer.writerow([])
+
+    if section in ("all", "agents"):
+        writer.writerow(["=== PERFORMANȚĂ AGENȚI ==="])
+        writer.writerow(["Agent", "Total Deals", "Câștigate", "Pierdute", "Deschise",
+                         "Valoare Totală", "Valoare Câștigată", "Win Rate %",
+                         "Val. Medie Deal", "Ciclu Mediu (zile)", "Activități"])
+        for a in analytics["agent_performance"]:
+            writer.writerow([
+                a["agent_name"], a["total_deals"], a["won_deals"], a["lost_deals"],
+                a["open_deals"], a["total_value"], a["won_value"], a["win_rate"],
+                a["avg_deal_value"], a["avg_cycle_days"], a["activities_count"],
+            ])
+        writer.writerow([])
+
+    if section in ("all", "forecast"):
+        writer.writerow(["=== FORECAST VENITURI ==="])
+        writer.writerow(["Luna", "Confirmat", "Ponderat", "Nr. Deals"])
+        for f in analytics["forecast"]:
+            writer.writerow([f["month"], f["confirmed_value"], f["weighted_value"], f["deal_count"]])
+        writer.writerow([])
+
+    if section in ("all", "product_mix"):
+        writer.writerow(["=== MIX PRODUSE ==="])
+        writer.writerow(["Categorie", "Nr. Deals", "Valoare", "Procent %"])
+        for p in analytics["product_mix"]:
+            writer.writerow([p["category"], p["deal_count"], p["total_value"], p["percentage"]])
+
+    return output.getvalue()
