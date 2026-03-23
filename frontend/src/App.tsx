@@ -32,6 +32,7 @@ import EnergyImpactPage from "./modules/pm/pages/EnergyImpactPage";
 import ProjectReportPage from "./modules/pm/pages/ProjectReportPage";
 import CompletedProjectsArchivePage from "./modules/pm/pages/CompletedProjectsArchivePage";
 import EnergyPortfolioPage from "./modules/pm/pages/EnergyPortfolioPage";
+import ModuleGridPage from "./pages/ModuleGridPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -75,11 +76,13 @@ function App() {
                   </RequireAuth>
                 }
               >
-                <Route index element={<DashboardPage />} />
+                {/* F157: Module Grid Navigation — Home */}
+                <Route index element={<ModuleGridPage />} />
 
                 {/* CRM Routes */}
                 <Route path="crm">
                   <Route index element={<Navigate to="contacts" replace />} />
+                  <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="contacts" element={<ContactsListPage />} />
                   <Route path="contacts/new" element={<ContactCreatePage />} />
                   <Route path="contacts/:id" element={<ContactDetailPage />} />
