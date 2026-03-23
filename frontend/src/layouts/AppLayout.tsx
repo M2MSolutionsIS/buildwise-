@@ -90,6 +90,7 @@ const menuItems = [
       { key: "/pipeline/board", icon: <AimOutlined />, label: "Pipeline Kanban" },
       { key: "/pipeline/opportunities/new", icon: <FlagOutlined />, label: "Oportunitate Nouă" },
       { key: "/pipeline/offers", icon: <FileTextOutlined />, label: "Oferte" },
+      { key: "/pipeline/contracts", icon: <FileTextOutlined />, label: "Contracte" },
       { key: "/pipeline/activities", icon: <ScheduleOutlined />, label: "Activități" },
       { key: "/pipeline/dashboard", icon: <PieChartOutlined />, label: "Sales Dashboard" },
     ],

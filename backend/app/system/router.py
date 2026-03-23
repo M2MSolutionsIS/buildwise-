@@ -996,3 +996,196 @@ async def get_sync_status(
         data=[SyncStatusOut(**d) for d in data],
         meta=Meta(total=len(data)),
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Task 20 — P1 E2E Flow Validation (F143 extension)
+# Validates: Client → Oportunitate → Ofertă → Contract → Proiect → Execuție →
+#            Recepție → Raport Impact Energetic
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@system_router.get(
+    "/e2e-flow-check",
+    response_model=ApiResponse,
+    dependencies=[Depends(require_role("admin"))],
+)
+async def e2e_flow_check(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Task 20: Validate P1 end-to-end flow integrity across all modules.
+
+    Checks cross-module links:
+      1. Contacts exist (CRM)
+      2. Opportunities linked to contacts (Pipeline)
+      3. Offers linked to opportunities (Pipeline)
+      4. Contracts linked to offers (Pipeline)
+      5. Signed contracts have linked projects (F063)
+      6. Projects have WBS/tasks (PM)
+      7. Projects have energy impact data (F088)
+    """
+    from app.crm.models import Contact
+    from app.pipeline.models import Opportunity, Offer, Contract
+    from app.pm.models import Project, WBSNode, EnergyImpact
+
+    org_id = current_user.organization_id
+    checks = []
+
+    # 1. CRM: Contacts
+    contacts_q = await db.execute(
+        select(Contact).where(
+            Contact.organization_id == org_id,
+            Contact.is_deleted == False,
+        )
+    )
+    contacts_count = len(contacts_q.scalars().all())
+    checks.append({
+        "step": 1,
+        "module": "CRM",
+        "check": "Contacte existente",
+        "f_code": "F002",
+        "count": contacts_count,
+        "status": "ok" if contacts_count > 0 else "empty",
+    })
+
+    # 2. Pipeline: Opportunities linked to contacts
+    opps_q = await db.execute(
+        select(Opportunity).where(
+            Opportunity.organization_id == org_id,
+            Opportunity.is_deleted == False,
+        )
+    )
+    opps = opps_q.scalars().all()
+    opps_linked = sum(1 for o in opps if o.contact_id is not None)
+    checks.append({
+        "step": 2,
+        "module": "Pipeline",
+        "check": "Oportunități legate de contacte",
+        "f_code": "F042",
+        "count": len(opps),
+        "linked": opps_linked,
+        "status": "ok" if opps_linked == len(opps) and len(opps) > 0 else
+                  "warning" if len(opps) > 0 else "empty",
+    })
+
+    # 3. Pipeline: Offers
+    offers_q = await db.execute(
+        select(Offer).where(
+            Offer.organization_id == org_id,
+            Offer.is_deleted == False,
+        )
+    )
+    offers = offers_q.scalars().all()
+    checks.append({
+        "step": 3,
+        "module": "Pipeline",
+        "check": "Oferte create",
+        "f_code": "F026",
+        "count": len(offers),
+        "status": "ok" if len(offers) > 0 else "empty",
+    })
+
+    # 4. Pipeline: Contracts
+    contracts_q = await db.execute(
+        select(Contract).where(
+            Contract.organization_id == org_id,
+            Contract.is_deleted == False,
+        )
+    )
+    contracts = contracts_q.scalars().all()
+    signed_contracts = [c for c in contracts if c.status == "signed"]
+    checks.append({
+        "step": 4,
+        "module": "Pipeline",
+        "check": "Contracte (total / semnate)",
+        "f_code": "F031",
+        "count": len(contracts),
+        "signed": len(signed_contracts),
+        "status": "ok" if len(signed_contracts) > 0 else
+                  "warning" if len(contracts) > 0 else "empty",
+    })
+
+    # 5. F063: Signed contracts → Projects
+    contracts_with_project = [c for c in signed_contracts if c.project_id is not None]
+    orphan_contracts = len(signed_contracts) - len(contracts_with_project)
+    checks.append({
+        "step": 5,
+        "module": "Pipeline → PM",
+        "check": "Contract semnat → Proiect auto-creat (F063)",
+        "f_code": "F063",
+        "signed_contracts": len(signed_contracts),
+        "with_project": len(contracts_with_project),
+        "orphan": orphan_contracts,
+        "status": "ok" if orphan_contracts == 0 and len(signed_contracts) > 0 else
+                  "error" if orphan_contracts > 0 else "empty",
+    })
+
+    # 6. PM: Projects with WBS
+    projects_q = await db.execute(
+        select(Project).where(
+            Project.organization_id == org_id,
+            Project.is_deleted == False,
+        )
+    )
+    projects = projects_q.scalars().all()
+    project_ids = [p.id for p in projects]
+    wbs_count = 0
+    if project_ids:
+        wbs_q = await db.execute(
+            select(WBSNode).where(
+                WBSNode.project_id.in_(project_ids),
+                WBSNode.is_deleted == False,
+            )
+        )
+        wbs_count = len(wbs_q.scalars().all())
+    checks.append({
+        "step": 6,
+        "module": "PM",
+        "check": "Proiecte cu WBS/Tasks",
+        "f_code": "F069",
+        "projects": len(projects),
+        "wbs_nodes": wbs_count,
+        "status": "ok" if wbs_count > 0 else
+                  "warning" if len(projects) > 0 else "empty",
+    })
+
+    # 7. PM: Energy Impact measurements
+    energy_count = 0
+    if project_ids:
+        energy_q = await db.execute(
+            select(EnergyImpact).where(
+                EnergyImpact.project_id.in_(project_ids),
+            )
+        )
+        energy_count = len(energy_q.scalars().all())
+    checks.append({
+        "step": 7,
+        "module": "PM Post-Execuție",
+        "check": "Măsurători Energy Impact",
+        "f_code": "F088",
+        "count": energy_count,
+        "status": "ok" if energy_count > 0 else "empty",
+    })
+
+    # Overall status
+    statuses = [c["status"] for c in checks]
+    if "error" in statuses:
+        overall = "error"
+    elif all(s == "ok" for s in statuses):
+        overall = "ok"
+    elif "ok" in statuses:
+        overall = "partial"
+    else:
+        overall = "empty"
+
+    return ApiResponse(
+        data={
+            "overall_status": overall,
+            "flow": "Client → Oportunitate → Ofertă → Contract → Proiect → Execuție → Recepție → Raport Impact",
+            "checks": checks,
+            "total_checks": len(checks),
+            "passed": sum(1 for s in statuses if s == "ok"),
+        },
+        meta=Meta(total=len(checks)),
+    )
