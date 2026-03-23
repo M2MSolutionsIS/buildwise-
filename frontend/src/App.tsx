@@ -15,6 +15,7 @@ import PipelineBoardPage from "./modules/pipeline/pages/PipelineBoardPage";
 import OpportunityDetailPage from "./modules/pipeline/pages/OpportunityDetailPage";
 import OpportunityCreatePage from "./modules/pipeline/pages/OpportunityCreatePage";
 import SalesDashboardPage from "./modules/pipeline/pages/SalesDashboardPage";
+import ActivityPlannerPage from "./modules/pipeline/pages/ActivityPlannerPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -78,6 +79,8 @@ function App() {
                   {/* Opportunities */}
                   <Route path="opportunities/new" element={<OpportunityCreatePage />} />
                   <Route path="opportunities/:id" element={<OpportunityDetailPage />} />
+                  {/* E-011: Activity Planner */}
+                  <Route path="activities" element={<ActivityPlannerPage />} />
                   {/* Offers (E-005, E-006) */}
                   <Route path="offers" element={<OffersListPage />} />
                   <Route path="offers/new" element={<OfferBuilderPage />} />

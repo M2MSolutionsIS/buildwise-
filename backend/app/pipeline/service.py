@@ -364,7 +364,9 @@ async def delete_opportunity(
 
 
 async def get_pipeline_board(
-    db: AsyncSession, org_id: uuid.UUID
+    db: AsyncSession, org_id: uuid.UUID,
+    owner_id: uuid.UUID | None = None,
+    min_value: float | None = None,
 ) -> dict:
     """F050: Build Kanban board data grouped by stage."""
     stages_order = [
@@ -378,12 +380,15 @@ async def get_pipeline_board(
         OpportunityStage.LOST.value,
     ]
 
-    result = await db.execute(
-        select(Opportunity).where(
-            Opportunity.organization_id == org_id,
-            Opportunity.is_deleted.is_(False),
-        ).order_by(Opportunity.stage_entered_at.desc())
+    q = select(Opportunity).where(
+        Opportunity.organization_id == org_id,
+        Opportunity.is_deleted.is_(False),
     )
+    if owner_id:
+        q = q.where(Opportunity.owner_id == owner_id)
+    if min_value is not None:
+        q = q.where(Opportunity.estimated_value >= min_value)
+    result = await db.execute(q.order_by(Opportunity.stage_entered_at.desc()))
     all_opps = result.scalars().all()
 
     # Group by stage
