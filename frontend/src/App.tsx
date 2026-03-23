@@ -26,6 +26,9 @@ import ProgressMonitoringPage from "./modules/pm/pages/ProgressMonitoringPage";
 import BudgetControlPage from "./modules/pm/pages/BudgetControlPage";
 import WorkSituationsPage from "./modules/pm/pages/WorkSituationsPage";
 import RiskRegisterPage from "./modules/pm/pages/RiskRegisterPage";
+import ReceptionPunchListPage from "./modules/pm/pages/ReceptionPunchListPage";
+import WarrantyTrackingPage from "./modules/pm/pages/WarrantyTrackingPage";
+import EnergyImpactPage from "./modules/pm/pages/EnergyImpactPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -111,6 +114,10 @@ function App() {
                   <Route path="projects/:projectId/budget" element={<BudgetControlPage />} />
                   <Route path="projects/:projectId/work-situations" element={<WorkSituationsPage />} />
                   <Route path="projects/:projectId/risks" element={<RiskRegisterPage />} />
+                  {/* Task 17: Recepție + Garanție + Măsurători — F081, F082, F086, F088 */}
+                  <Route path="projects/:projectId/reception" element={<ReceptionPunchListPage />} />
+                  <Route path="projects/:projectId/warranties" element={<WarrantyTrackingPage />} />
+                  <Route path="projects/:projectId/energy-impact" element={<EnergyImpactPage />} />
                 </Route>
                 <Route path="rm" element={<PlaceholderPage title="Resource Management" />} />
                 <Route path="bi" element={<PlaceholderPage title="Business Intelligence" />} />
