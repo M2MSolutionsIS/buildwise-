@@ -260,6 +260,14 @@ export default function OpportunityDetailPage() {
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/pipeline/board")}>
           Înapoi la Pipeline
         </Button>
+        {opp?.contact_id && (
+          <Button
+            icon={<TeamOutlined />}
+            onClick={() => navigate(`/crm/contacts/${opp.contact_id}`)}
+          >
+            Contact
+          </Button>
+        )}
       </Space>
 
       {/* F051: Stagnation alert */}

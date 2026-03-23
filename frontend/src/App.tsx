@@ -16,6 +16,8 @@ import OpportunityDetailPage from "./modules/pipeline/pages/OpportunityDetailPag
 import OpportunityCreatePage from "./modules/pipeline/pages/OpportunityCreatePage";
 import SalesDashboardPage from "./modules/pipeline/pages/SalesDashboardPage";
 import ActivityPlannerPage from "./modules/pipeline/pages/ActivityPlannerPage";
+import ContractsListPage from "./modules/pipeline/pages/ContractsListPage";
+import ContractDetailPage from "./modules/pipeline/pages/ContractDetailPage";
 import GanttChartPage from "./modules/pm/pages/GanttChartPage";
 import TimesheetPage from "./modules/pm/pages/TimesheetPage";
 import MaterialConsumptionPage from "./modules/pm/pages/MaterialConsumptionPage";
@@ -32,6 +34,7 @@ import EnergyImpactPage from "./modules/pm/pages/EnergyImpactPage";
 import ProjectReportPage from "./modules/pm/pages/ProjectReportPage";
 import CompletedProjectsArchivePage from "./modules/pm/pages/CompletedProjectsArchivePage";
 import EnergyPortfolioPage from "./modules/pm/pages/EnergyPortfolioPage";
+import ProjectsListPage from "./modules/pm/pages/ProjectsListPage";
 import ModuleGridPage from "./pages/ModuleGridPage";
 import { useAuthStore } from "./stores/authStore";
 
@@ -104,11 +107,14 @@ function App() {
                   <Route path="offers" element={<OffersListPage />} />
                   <Route path="offers/new" element={<OfferBuilderPage />} />
                   <Route path="offers/:id" element={<OfferDetailPage />} />
+                  {/* Contracts (E-007, E-008) — F031, F035, F063 */}
+                  <Route path="contracts" element={<ContractsListPage />} />
+                  <Route path="contracts/:id" element={<ContractDetailPage />} />
                 </Route>
 
                 {/* PM Routes — E-016 Gantt, E-018 Timesheet, E-019 Consum, F075, F077 */}
                 <Route path="pm">
-                  <Route index element={<PlaceholderPage title="Project Management" />} />
+                  <Route index element={<ProjectsListPage />} />
                   <Route path="projects/:projectId/gantt" element={<GanttChartPage />} />
                   <Route path="projects/:projectId/timesheet" element={<TimesheetPage />} />
                   <Route path="projects/:projectId/consumption" element={<MaterialConsumptionPage />} />

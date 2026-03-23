@@ -30,6 +30,7 @@ import {
   DollarOutlined,
   WarningOutlined,
   DeleteOutlined,
+  FunnelPlotOutlined,
 } from "@ant-design/icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { contactService } from "../../../services/contactService";
@@ -221,8 +222,14 @@ export default function ContactDetailPage() {
 
           <Space>
             <Button
+              icon={<FunnelPlotOutlined />}
+              onClick={() => navigate(`/pipeline/opportunities/new?contact_id=${contact.id}`)}
+            >
+              Oportunitate nouă
+            </Button>
+            <Button
               icon={<PlusOutlined />}
-              onClick={() => navigate(`/pipeline?contact_id=${contact.id}`)}
+              onClick={() => navigate(`/pipeline/offers/new?contact_id=${contact.id}`)}
             >
               Ofertă nouă
             </Button>

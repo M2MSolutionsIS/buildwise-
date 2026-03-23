@@ -41,6 +41,7 @@ import {
 } from "@ant-design/icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { offerService } from "../services/offerService";
+import { pipelineService } from "../services/pipelineService";
 import { contactService } from "../../../services/contactService";
 import VersionDiffModal from "../components/VersionDiffModal";
 import type { Offer, OfferLineItem, OfferStatus } from "../../../types";
@@ -280,7 +281,19 @@ export default function OfferDetailPage() {
         <Col>
           <Space>
             {isAccepted && (
-              <Button type="primary" icon={<CheckCircleOutlined />}>
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                onClick={async () => {
+                  try {
+                    const res = await pipelineService.createContractFromOffer(id!);
+                    message.success("Contract creat din ofertă!");
+                    navigate(`/pipeline/contracts/${res.data.id}`);
+                  } catch {
+                    message.error("Eroare la crearea contractului");
+                  }
+                }}
+              >
                 Convertește → Contract
               </Button>
             )}

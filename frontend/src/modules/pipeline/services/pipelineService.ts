@@ -11,6 +11,8 @@ import type {
   PipelineAnalytics,
   Activity,
   ActivityListItem,
+  Contract,
+  ContractListItem,
 } from "../../../types";
 
 const BASE = "/pipeline";
@@ -165,5 +167,57 @@ export const pipelineService = {
 
   deleteActivity: async (id: string): Promise<void> => {
     await api.delete(`${BASE}/activities/${id}`);
+  },
+
+  // ─── Contracts (F031, F035, F063) ────────────────────────────────────────────
+
+  listContracts: async (
+    params: { page?: number; per_page?: number; status?: string; contact_id?: string } = {}
+  ): Promise<ApiResponse<ContractListItem[]>> => {
+    const { data } = await api.get(`${BASE}/contracts`, { params });
+    return data;
+  },
+
+  getContract: async (id: string): Promise<ApiResponse<Contract>> => {
+    const { data } = await api.get(`${BASE}/contracts/${id}`);
+    return data;
+  },
+
+  createContract: async (
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<Contract>> => {
+    const { data } = await api.post(`${BASE}/contracts`, payload);
+    return data;
+  },
+
+  createContractFromOffer: async (
+    offerId: string,
+    payload?: { title?: string; start_date?: string; end_date?: string; additional_terms?: string }
+  ): Promise<ApiResponse<Contract>> => {
+    const { data } = await api.post(`${BASE}/contracts/from-offer`, {
+      offer_id: offerId,
+      ...payload,
+    });
+    return data;
+  },
+
+  signContract: async (
+    contractId: string,
+    signedDate?: string
+  ): Promise<ApiResponse<Contract>> => {
+    const { data } = await api.post(`${BASE}/contracts/${contractId}/sign`, {
+      signed_date: signedDate,
+    });
+    return data;
+  },
+
+  terminateContract: async (
+    contractId: string,
+    reason: string
+  ): Promise<ApiResponse<Contract>> => {
+    const { data } = await api.post(`${BASE}/contracts/${contractId}/terminate`, {
+      termination_reason: reason,
+    });
+    return data;
   },
 };

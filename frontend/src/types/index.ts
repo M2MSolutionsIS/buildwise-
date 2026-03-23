@@ -1092,6 +1092,68 @@ export interface EnergyPortfolio {
   avg_u_value_post?: number;
 }
 
+// ─── Pipeline Types — Contracts (F031, F035, F063) ───────────────────────────
+
+export type ContractStatus =
+  | "draft"
+  | "pending_approval"
+  | "approved"
+  | "sent"
+  | "negotiation"
+  | "signed"
+  | "active"
+  | "completed"
+  | "terminated";
+
+export interface Contract {
+  id: string;
+  contact_id: string;
+  offer_id?: string;
+  opportunity_id?: string;
+  contract_number: string;
+  title: string;
+  description?: string;
+  status: ContractStatus;
+  total_value: number;
+  currency: string;
+  start_date?: string;
+  end_date?: string;
+  signed_date?: string;
+  terms_and_conditions?: string;
+  owner_id?: string;
+  project_id?: string;
+  pdf_path?: string;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface ContractListItem {
+  id: string;
+  contract_number: string;
+  title: string;
+  status: ContractStatus;
+  total_value: number;
+  currency: string;
+  contact_id: string;
+  start_date?: string;
+  end_date?: string;
+  created_at: string;
+}
+
+export interface ContractCreate {
+  contact_id: string;
+  offer_id?: string;
+  opportunity_id?: string;
+  title: string;
+  description?: string;
+  total_value: number;
+  currency?: string;
+  start_date?: string;
+  end_date?: string;
+  terms_and_conditions?: string;
+}
+
 // ─── Document Types (F005, F016) ─────────────────────────────────────────────
 
 export interface CrmDocument {
