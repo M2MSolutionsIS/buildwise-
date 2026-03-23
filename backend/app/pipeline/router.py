@@ -303,11 +303,16 @@ async def qualify_opportunity(
 
 @pipeline_router.get("/board", response_model=ApiResponse)
 async def get_pipeline_board(
+    owner_id: uuid.UUID | None = None,
+    min_value: float | None = None,
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """F050: Pipeline Kanban board."""
-    board = await service.get_pipeline_board(db, current_user.organization_id)
+    """F050: Pipeline Kanban board with optional agent/value filters."""
+    board = await service.get_pipeline_board(
+        db, current_user.organization_id,
+        owner_id=owner_id, min_value=min_value,
+    )
     # Serialize opportunities within stages
     for stage in board["stages"]:
         stage["opportunities"] = [

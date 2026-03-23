@@ -94,9 +94,9 @@ export const pipelineService = {
     return data;
   },
 
-  // F050: Pipeline Board (Kanban)
+  // F050: Pipeline Board (Kanban) with agent/value filters
   getBoard: async (
-    params?: { owner_id?: string }
+    params?: { owner_id?: string; min_value?: number }
   ): Promise<ApiResponse<PipelineBoard>> => {
     const { data } = await api.get(`${BASE}/board`, { params });
     return data;
