@@ -65,6 +65,7 @@ from app.pipeline.router import pipeline_router  # noqa: E402
 from app.pm.router import pm_router  # noqa: E402
 from app.rm.router import rm_router  # noqa: E402
 from app.bi.router import bi_router  # noqa: E402
+from app.search.router import search_router  # noqa: E402
 
 app.include_router(health_router)
 app.include_router(auth_router)
@@ -75,3 +76,4 @@ app.include_router(pipeline_router)
 app.include_router(pm_router)
 app.include_router(rm_router)
 app.include_router(bi_router)
+app.include_router(search_router)
