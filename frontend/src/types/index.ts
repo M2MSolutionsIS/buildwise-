@@ -954,6 +954,113 @@ export interface BudgetCategory {
   variance_pct: number;
 }
 
+// ─── PM Types — Reception, Warranty, Energy Impact (F081, F082, F086, F088) ──
+
+export type PunchItemSeverity = "low" | "medium" | "high" | "critical";
+export type PunchItemStatus = "open" | "in_progress" | "resolved" | "verified";
+
+export interface PunchItem {
+  id: string;
+  project_id: string;
+  title: string;
+  description?: string;
+  severity: PunchItemSeverity;
+  status: PunchItemStatus;
+  responsible_id?: string;
+  due_date?: string;
+  resolved_at?: string;
+  photos?: string[];
+  location?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface PunchItemCreate {
+  title: string;
+  description?: string;
+  severity?: PunchItemSeverity;
+  responsible_id?: string;
+  due_date?: string;
+  location?: string;
+}
+
+export interface PMWarranty {
+  id: string;
+  project_id: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  responsible_id?: string;
+  alert_before_days: number;
+  is_active: boolean;
+  interventions?: WarrantyIntervention[];
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface WarrantyIntervention {
+  date: string;
+  description: string;
+  performed_by?: string;
+  cost?: number;
+}
+
+export interface PMWarrantyCreate {
+  description: string;
+  start_date: string;
+  end_date: string;
+  responsible_id?: string;
+  alert_before_days?: number;
+}
+
+export interface EnergyImpact {
+  id: string;
+  project_id: string;
+  property_id?: string;
+  pre_kwh_annual?: number;
+  pre_gas_mc_annual?: number;
+  pre_co2_kg_annual?: number;
+  pre_u_value_avg?: number;
+  post_kwh_annual?: number;
+  post_gas_mc_annual?: number;
+  post_co2_kg_annual?: number;
+  post_u_value_avg?: number;
+  estimated_kwh_savings?: number;
+  estimated_co2_reduction?: number;
+  actual_kwh_savings?: number;
+  actual_co2_reduction?: number;
+  total_area_sqm?: number;
+  treated_area_sqm?: number;
+  materials_summary?: Record<string, unknown>;
+  total_project_cost?: number;
+  duration_days?: number;
+  is_verified: boolean;
+  verified_by?: string;
+  verified_at?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface EnergyImpactCreate {
+  property_id?: string;
+  pre_kwh_annual?: number;
+  pre_gas_mc_annual?: number;
+  pre_co2_kg_annual?: number;
+  pre_u_value_avg?: number;
+  post_kwh_annual?: number;
+  post_gas_mc_annual?: number;
+  post_co2_kg_annual?: number;
+  post_u_value_avg?: number;
+  estimated_kwh_savings?: number;
+  estimated_co2_reduction?: number;
+  actual_kwh_savings?: number;
+  actual_co2_reduction?: number;
+  total_area_sqm?: number;
+  treated_area_sqm?: number;
+  total_project_cost?: number;
+  duration_days?: number;
+}
+
 // ─── Document Types (F005, F016) ─────────────────────────────────────────────
 
 export interface CrmDocument {

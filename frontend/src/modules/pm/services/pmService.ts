@@ -1,5 +1,5 @@
 /**
- * PM module API service — F063, F069, F070, F072–F080, F083, F084
+ * PM module API service — F063, F069, F070, F072–F088, F090
  */
 import api from "../../../services/api";
 import type {
@@ -19,6 +19,9 @@ import type {
   ProjectCashFlowEntry,
   ProgressMonitoring,
   BudgetControl,
+  PunchItem,
+  PMWarranty,
+  EnergyImpact,
 } from "../../../types";
 
 const BASE = "/pm";
@@ -378,6 +381,81 @@ export const pmService = {
     payload: Record<string, unknown>
   ): Promise<ApiResponse<ProjectCashFlowEntry>> => {
     const { data } = await api.post(`${BASE}/projects/${projectId}/cash-flow`, payload);
+    return data;
+  },
+
+  // ─── Punch Items / Reception (F081, F082, F086) ───────────────────────────
+
+  listPunchItems: async (
+    projectId: string
+  ): Promise<ApiResponse<PunchItem[]>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/punch-items`);
+    return data;
+  },
+
+  createPunchItem: async (
+    projectId: string,
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<PunchItem>> => {
+    const { data } = await api.post(`${BASE}/projects/${projectId}/punch-items`, payload);
+    return data;
+  },
+
+  updatePunchItem: async (
+    itemId: string,
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<PunchItem>> => {
+    const { data } = await api.put(`${BASE}/punch-items/${itemId}`, payload);
+    return data;
+  },
+
+  createReception: async (
+    projectId: string,
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<unknown>> => {
+    const { data } = await api.post(`${BASE}/projects/${projectId}/receptions`, payload);
+    return data;
+  },
+
+  // ─── Warranties (F086) ────────────────────────────────────────────────────
+
+  listWarranties: async (
+    projectId: string
+  ): Promise<ApiResponse<PMWarranty[]>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/warranties`);
+    return data;
+  },
+
+  createWarranty: async (
+    projectId: string,
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<PMWarranty>> => {
+    const { data } = await api.post(`${BASE}/projects/${projectId}/warranties`, payload);
+    return data;
+  },
+
+  updateWarranty: async (
+    warrantyId: string,
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<PMWarranty>> => {
+    const { data } = await api.put(`${BASE}/warranties/${warrantyId}`, payload);
+    return data;
+  },
+
+  // ─── Energy Impact (F088, F090) ───────────────────────────────────────────
+
+  getEnergyImpact: async (
+    projectId: string
+  ): Promise<ApiResponse<EnergyImpact | null>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/energy-impact`);
+    return data;
+  },
+
+  upsertEnergyImpact: async (
+    projectId: string,
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<EnergyImpact>> => {
+    const { data } = await api.put(`${BASE}/projects/${projectId}/energy-impact`, payload);
     return data;
   },
 };
