@@ -16,6 +16,7 @@ import OpportunityDetailPage from "./modules/pipeline/pages/OpportunityDetailPag
 import OpportunityCreatePage from "./modules/pipeline/pages/OpportunityCreatePage";
 import SalesDashboardPage from "./modules/pipeline/pages/SalesDashboardPage";
 import ActivityPlannerPage from "./modules/pipeline/pages/ActivityPlannerPage";
+import GanttChartPage from "./modules/pm/pages/GanttChartPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -87,7 +88,11 @@ function App() {
                   <Route path="offers/:id" element={<OfferDetailPage />} />
                 </Route>
 
-                <Route path="pm" element={<PlaceholderPage title="Project Management" />} />
+                {/* PM Routes — E-016 Gantt Chart */}
+                <Route path="pm">
+                  <Route index element={<PlaceholderPage title="Project Management" />} />
+                  <Route path="projects/:projectId/gantt" element={<GanttChartPage />} />
+                </Route>
                 <Route path="rm" element={<PlaceholderPage title="Resource Management" />} />
                 <Route path="bi" element={<PlaceholderPage title="Business Intelligence" />} />
                 <Route path="settings" element={<PlaceholderPage title="Setări" />} />
