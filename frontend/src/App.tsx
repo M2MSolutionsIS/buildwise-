@@ -35,6 +35,10 @@ import ProjectReportPage from "./modules/pm/pages/ProjectReportPage";
 import CompletedProjectsArchivePage from "./modules/pm/pages/CompletedProjectsArchivePage";
 import EnergyPortfolioPage from "./modules/pm/pages/EnergyPortfolioPage";
 import ProjectsListPage from "./modules/pm/pages/ProjectsListPage";
+import ResourceDashboardPage from "./modules/rm/pages/ResourceDashboardPage";
+import EmployeesPage from "./modules/rm/pages/EmployeesPage";
+import EquipmentPage from "./modules/rm/pages/EquipmentPage";
+import MaterialsStockPage from "./modules/rm/pages/MaterialsStockPage";
 import ModuleGridPage from "./pages/ModuleGridPage";
 import { useAuthStore } from "./stores/authStore";
 
@@ -135,7 +139,14 @@ function App() {
                   <Route path="archive" element={<CompletedProjectsArchivePage />} />
                   <Route path="energy-portfolio" element={<EnergyPortfolioPage />} />
                 </Route>
-                <Route path="rm" element={<PlaceholderPage title="Resource Management" />} />
+                {/* RM Routes — E-032, E-033, E-034, E-035 */}
+                <Route path="rm">
+                  <Route index element={<ResourceDashboardPage />} />
+                  <Route path="dashboard" element={<ResourceDashboardPage />} />
+                  <Route path="employees" element={<EmployeesPage />} />
+                  <Route path="equipment" element={<EquipmentPage />} />
+                  <Route path="materials" element={<MaterialsStockPage />} />
+                </Route>
                 <Route path="bi" element={<PlaceholderPage title="Business Intelligence" />} />
                 <Route path="settings" element={<PlaceholderPage title="Setări" />} />
               </Route>
