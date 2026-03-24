@@ -308,3 +308,83 @@ export interface ResourceUtilization {
   utilization_percent: number;
   project_count: number;
 }
+
+// ─── Company Capacity (E-036, F121, F122) ───────────────────────────────────
+
+export interface CapacityKPIs {
+  total_employees: number;
+  allocated_employees: number;
+  available_employees: number;
+  total_equipment: number;
+  allocated_equipment: number;
+  available_equipment: number;
+  total_allocated_hours: number;
+  total_planned_cost: number;
+  utilization_rate: number;
+  active_projects_count: number;
+  allocations_with_conflicts: number;
+}
+
+export interface CapacityHeatmapCell {
+  team: string;
+  period: string;
+  utilization_percent: number;
+  allocated_hours: number;
+  total_hours: number;
+  projects: string[];
+}
+
+export interface SimulationInput {
+  project_name: string;
+  duration_weeks: number;
+  start_date: string;
+  teams_needed: { team: string; allocation_percent: number }[];
+}
+
+export interface SimulationResult {
+  can_accept: boolean;
+  bottlenecks: { team: string; period: string; overload_percent: number }[];
+  recommendation: string;
+  optimal_start_date?: string;
+}
+
+// ─── Cost Analysis (E-040, F115, F116) ──────────────────────────────────────
+
+export interface CostAnalysis {
+  cost_center: string;
+  total_budgeted: number;
+  total_actual: number;
+  total_variance: number;
+  entries: BudgetEntry[];
+}
+
+export interface BudgetEntryCreate {
+  cost_center: string;
+  category: string;
+  description?: string;
+  period_month: number;
+  period_year: number;
+  budgeted_amount?: number;
+  actual_amount?: number;
+  currency?: string;
+  project_id?: string;
+}
+
+export interface BudgetEntryUpdate extends Partial<BudgetEntryCreate> {}
+
+export interface FinancialKPIs {
+  total_cost: number;
+  total_budgeted: number;
+  overage_pct: number;
+  forecast: number;
+  currency: string;
+}
+
+export interface ProjectFinancialRow {
+  project_id: string;
+  project_name: string;
+  personal: { budgeted: number; actual: number; variance: number; pct: number };
+  equipment: { budgeted: number; actual: number; variance: number; pct: number };
+  materials: { budgeted: number; actual: number; variance: number; pct: number };
+  total: { budgeted: number; actual: number; variance: number; pct: number };
+}
