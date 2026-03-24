@@ -24,7 +24,11 @@ import type {
   ProcurementDocument,
   RMAllocation,
   BudgetEntry,
+  BudgetEntryCreate,
+  BudgetEntryUpdate,
   ResourceUtilization,
+  CapacityKPIs,
+  CostAnalysis,
 } from "../types";
 
 const RM = "/rm";
@@ -185,6 +189,28 @@ export const rmService = {
   // ─── Utilization (F121) ──────────────────────────────────────────────────
   getUtilization: async () => {
     const { data } = await api.get<ApiResponse<ResourceUtilization[]>>(`${RM}/utilization`);
+    return data;
+  },
+
+  // ─── Company Capacity (E-036, F121, F122) ──────────────────────────────
+  getCapacity: async () => {
+    const { data } = await api.get<ApiResponse<CapacityKPIs>>("/pm/company-capacity");
+    return data;
+  },
+
+  // ─── Budget CRUD (F115, F116) ──────────────────────────────────────────
+  createBudget: async (payload: BudgetEntryCreate) => {
+    const { data } = await api.post<ApiResponse<BudgetEntry>>(`${RM}/budgets`, payload);
+    return data;
+  },
+  updateBudget: async (id: string, payload: BudgetEntryUpdate) => {
+    const { data } = await api.put<ApiResponse<BudgetEntry>>(`${RM}/budgets/${id}`, payload);
+    return data;
+  },
+
+  // ─── Cost Analysis (F116) ─────────────────────────────────────────────
+  getCostAnalysis: async (filters?: { cost_center?: string; period_year?: number }) => {
+    const { data } = await api.get<ApiResponse<CostAnalysis[]>>(`${RM}/cost-analysis`, { params: filters });
     return data;
   },
 };

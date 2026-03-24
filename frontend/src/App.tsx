@@ -39,6 +39,8 @@ import ResourceDashboardPage from "./modules/rm/pages/ResourceDashboardPage";
 import EmployeesPage from "./modules/rm/pages/EmployeesPage";
 import EquipmentPage from "./modules/rm/pages/EquipmentPage";
 import MaterialsStockPage from "./modules/rm/pages/MaterialsStockPage";
+import CompanyCapacityPage from "./modules/rm/pages/CompanyCapacityPage";
+import FinancialPlanningPage from "./modules/rm/pages/FinancialPlanningPage";
 import ModuleGridPage from "./pages/ModuleGridPage";
 import { useAuthStore } from "./stores/authStore";
 
@@ -146,6 +148,10 @@ function App() {
                   <Route path="employees" element={<EmployeesPage />} />
                   <Route path="equipment" element={<EquipmentPage />} />
                   <Route path="materials" element={<MaterialsStockPage />} />
+                  {/* E-036: Company Capacity Dashboard — F121, F122 */}
+                  <Route path="capacity" element={<CompanyCapacityPage />} />
+                  {/* E-040: Financial Planning — F115, F116 */}
+                  <Route path="financial" element={<FinancialPlanningPage />} />
                 </Route>
                 <Route path="bi" element={<PlaceholderPage title="Business Intelligence" />} />
                 <Route path="settings" element={<PlaceholderPage title="Setări" />} />
