@@ -23,7 +23,6 @@ import {
   Col,
   message,
   Typography,
-  Popconfirm,
   Tabs,
   Progress,
   Alert,
@@ -45,7 +44,7 @@ import {
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { pmService } from "../services/pmService";
-import type { PunchItem, PunchItemSeverity, PunchItemStatus, PMTask } from "../../../types";
+import type { PunchItem, PunchItemSeverity, PunchItemStatus } from "../../../types";
 import dayjs from "dayjs";
 
 const { Title, Text } = Typography;

@@ -217,8 +217,8 @@ export default function ProjectReportPage() {
     financeEntries.forEach((e: ProjectFinanceEntry) => {
       const bucket = e.entry_type === "revenue" ? revenue : costs;
       if (!bucket[e.category]) bucket[e.category] = { forecast: 0, actual: 0 };
-      bucket[e.category].forecast += e.forecast_amount;
-      bucket[e.category].actual += e.actual_amount;
+      bucket[e.category]!.forecast += e.forecast_amount;
+      bucket[e.category]!.actual += e.actual_amount;
     });
 
     const totalRevForecast = Object.values(revenue).reduce((s, v) => s + v.forecast, 0);

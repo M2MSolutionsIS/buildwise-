@@ -33,7 +33,7 @@ import {
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { pmService } from "../services/pmService";
-import type { ProgressMonitoring, SCurveDataPoint } from "../../../types";
+import type { SCurveDataPoint } from "../../../types";
 import dayjs from "dayjs";
 
 const { Title, Text } = Typography;

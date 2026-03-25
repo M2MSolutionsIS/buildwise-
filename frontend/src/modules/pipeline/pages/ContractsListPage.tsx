@@ -5,11 +5,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Table, Tag, Button, Input, Space, Select } from "antd";
+import { Card, Table, Tag, Button, Space, Select } from "antd";
 import {
-  SearchOutlined,
   FileTextOutlined,
-  ProjectOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { pipelineService } from "../services/pipelineService";

@@ -6,7 +6,7 @@
  * Form-based with PRE/POST comparison cards and savings calculations.
  * U-value reference: 0.3 W/m²K (BAHM treated glass).
  */
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Card,
   Form,
@@ -21,16 +21,13 @@ import {
   Tag,
   Space,
   Spin,
-  Empty,
   Alert,
-  Descriptions,
 } from "antd";
 import {
   ThunderboltOutlined,
   SaveOutlined,
   CheckCircleOutlined,
-  FireOutlined,
-  ExperimentOutlined,
+  ExclamationCircleOutlined,
   AreaChartOutlined,
   ArrowDownOutlined,
   ArrowUpOutlined,
@@ -38,7 +35,7 @@ import {
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { pmService } from "../services/pmService";
-import type { EnergyImpact } from "../../../types";
+// types used implicitly via API responses
 
 const { Title, Text } = Typography;
 
@@ -215,11 +212,6 @@ export default function EnergyImpactPage() {
 
   const kwhSavingsPct = preKwh > 0 ? ((preKwh - postKwh) / preKwh) * 100 : 0;
   const co2SavingsPct = preCo2 > 0 ? ((preCo2 - postCo2) / preCo2) * 100 : 0;
-  const uValueImprovement =
-    energy?.pre_u_value_avg && energy?.post_u_value_avg
-      ? ((energy.pre_u_value_avg - energy.post_u_value_avg) / energy.pre_u_value_avg) * 100
-      : 0;
-
   if (isLoading) {
     return (
       <div style={{ padding: 24, textAlign: "center" }}>
