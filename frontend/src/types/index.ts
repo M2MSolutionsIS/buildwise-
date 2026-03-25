@@ -32,6 +32,77 @@ export interface TokenResponse {
   expires_in: number;
 }
 
+// ─── Organization / Multi-Tenant Types (F160, F136, F137, F040) ──────────────
+
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url?: string;
+  primary_color?: string;
+  secondary_color?: string;
+  custom_branding?: Record<string, unknown>;
+  default_language: string;
+  supported_languages: string[];
+  default_currency: string;
+  reference_currency?: string;
+  modules_enabled: string[];
+  setup_completed: boolean;
+  active_prototype: Prototype;
+  is_p1: boolean;
+  is_p2: boolean;
+  is_p3: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface TenantSetupPayload {
+  company: {
+    name: string;
+    slug?: string;
+    logo_url?: string;
+    address?: string;
+    cui?: string;
+    phone?: string;
+    email?: string;
+  };
+  branding: {
+    primary_color: string;
+    secondary_color: string;
+    default_language: string;
+    default_currency: string;
+  };
+  modules: string[];
+  users: {
+    email: string;
+    first_name: string;
+    last_name: string;
+    role: string;
+  }[];
+}
+
+export interface FeatureFlag {
+  id: string;
+  f_code: string;
+  organization_id: string;
+  is_enabled: boolean;
+  is_p1: boolean;
+  is_p2: boolean;
+  is_p3: boolean;
+  config?: Record<string, unknown>;
+}
+
+export interface SystemRole {
+  id: string;
+  organization_id: string;
+  name: string;
+  code: string;
+  description?: string;
+  is_system: boolean;
+  permissions?: string[];
+  created_at: string;
+}
+
 // CRM Types
 export interface ContactPerson {
   id: string;

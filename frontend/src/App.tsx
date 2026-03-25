@@ -44,6 +44,7 @@ import MaterialsStockPage from "./modules/rm/pages/MaterialsStockPage";
 import CompanyCapacityPage from "./modules/rm/pages/CompanyCapacityPage";
 import FinancialPlanningPage from "./modules/rm/pages/FinancialPlanningPage";
 import ModuleGridPage from "./pages/ModuleGridPage";
+import TenantSetupWizard from "./modules/system/pages/TenantSetupWizard";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -79,6 +80,15 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              {/* F160: Tenant Setup Wizard — SaaS onboarding (P3) */}
+              <Route
+                path="/setup"
+                element={
+                  <RequireAuth>
+                    <TenantSetupWizard />
+                  </RequireAuth>
+                }
+              />
               <Route
                 path="/"
                 element={
