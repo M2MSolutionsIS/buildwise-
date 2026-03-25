@@ -28,6 +28,11 @@ import type {
   GanttResourceRow,
   ResourceConflict,
   SdLGeneratorPreview,
+  ImportJob,
+  ImportUploadResponse,
+  ImportPreviewItem,
+  ImportMappingPayload,
+  RMProjectSummary,
 } from "../../../types";
 
 const BASE = "/pm";
@@ -577,6 +582,69 @@ export const pmService = {
     const { data } = await api.get(`${BASE}/work-situations/${sdlId}/generate-pdf`, {
       responseType: "blob",
     });
+    return data;
+  },
+
+  // ─── Import Engine — E-037 (F123) ──────────────────────────────────────────
+
+  uploadImportFile: async (
+    projectId: string,
+    file: File,
+    sourceType: string
+  ): Promise<ApiResponse<ImportUploadResponse>> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("source_type", sourceType);
+    const { data } = await api.post(
+      `${BASE}/projects/${projectId}/import/upload`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return data;
+  },
+
+  autoMatchWBS: async (
+    sessionId: string
+  ): Promise<ApiResponse<ImportPreviewItem[]>> => {
+    const { data } = await api.post(`${BASE}/import/${sessionId}/auto-match`);
+    return data;
+  },
+
+  updateImportMapping: async (
+    sessionId: string,
+    payload: ImportMappingPayload
+  ): Promise<ApiResponse<unknown>> => {
+    const { data } = await api.patch(`${BASE}/import/${sessionId}/mapping`, payload);
+    return data;
+  },
+
+  confirmImport: async (
+    sessionId: string
+  ): Promise<ApiResponse<ImportJob>> => {
+    const { data } = await api.post(`${BASE}/import/${sessionId}/confirm`);
+    return data;
+  },
+
+  getImportJob: async (
+    jobId: string
+  ): Promise<ApiResponse<ImportJob>> => {
+    const { data } = await api.get(`${BASE}/import-jobs/${jobId}`);
+    return data;
+  },
+
+  listImportJobs: async (
+    projectId: string
+  ): Promise<ApiResponse<ImportJob[]>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/import-jobs`);
+    return data;
+  },
+
+  // ─── RM Project Summary — E-014.7 (F083, F117, F118) ──────────────────────
+
+  getRMProjectSummary: async (
+    projectId: string
+  ): Promise<ApiResponse<RMProjectSummary>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/rm-summary`);
     return data;
   },
 };
