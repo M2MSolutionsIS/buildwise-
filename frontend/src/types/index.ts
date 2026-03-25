@@ -103,6 +103,138 @@ export interface SystemRole {
   created_at: string;
 }
 
+// ─── BI Types — KPI Engine (F148, F152) ──────────────────────────────────────
+
+export interface KPIThreshold {
+  min: number;
+  max: number;
+  color: "red" | "yellow" | "green";
+  label: string;
+}
+
+export interface KPIDefinition {
+  id: string;
+  organization_id: string;
+  name: string;
+  code: string;
+  description?: string;
+  module: string;
+  formula?: Record<string, unknown>;
+  formula_text?: string;
+  unit?: string;
+  thresholds?: KPIThreshold[];
+  display_type: "gauge" | "card" | "chart";
+  drill_down_config?: Record<string, unknown>;
+  assigned_roles?: string[];
+  assigned_users?: string[];
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface KPIValue {
+  id: string;
+  kpi_definition_id: string;
+  value: number;
+  threshold_color: "red" | "yellow" | "green";
+  computed_at: string;
+  period_start?: string;
+  period_end?: string;
+  project_id?: string;
+  user_id?: string;
+}
+
+export interface KPIDashboardItem {
+  kpi_id: string;
+  name: string;
+  code: string;
+  unit?: string;
+  display_type: string;
+  current_value: number | null;
+  threshold_color: string | null;
+  trend: number[];
+  module: string;
+}
+
+// ─── BI Types — Dashboards (F133) ────────────────────────────────────────────
+
+export type WidgetType = "kpi_card" | "chart" | "table" | "gauge" | "funnel" | "map" | "custom";
+
+export interface DashboardWidget {
+  id: string;
+  dashboard_id: string;
+  widget_type: WidgetType;
+  title: string;
+  config?: Record<string, unknown>;
+  data_source?: Record<string, unknown>;
+  position_x: number;
+  position_y: number;
+  width: number;
+  height: number;
+  sort_order: number;
+  kpi_definition_id?: string;
+}
+
+export interface Dashboard {
+  id: string;
+  organization_id: string;
+  name: string;
+  description?: string;
+  dashboard_type: string;
+  is_default: boolean;
+  is_template: boolean;
+  layout_config?: Record<string, unknown>;
+  visible_roles?: string[];
+  widgets?: DashboardWidget[];
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface ExecutiveSummary {
+  crm: { total_contacts: number; active_contacts: number; leads: number; clients: number };
+  pipeline: { total_opportunities: number; open_opportunities: number; total_pipeline_value: number; weighted_value: number; win_rate: number; currency: string };
+  pm: { total_projects: number; active_projects: number; completed_projects: number; avg_progress: number };
+  rm: { total_employees: number; active_employees: number; total_equipment: number; active_allocations: number };
+  kpis: { total_kpis: number; green: number; yellow: number; red: number };
+}
+
+// ─── BI Types — Reports Builder (E-041) ──────────────────────────────────────
+
+export interface ReportColumn {
+  field: string;
+  label: string;
+  type: "text" | "number" | "date" | "currency";
+  aggregate?: "sum" | "avg" | "count" | "min" | "max";
+  width?: number;
+}
+
+export interface ReportFilter {
+  field: string;
+  operator: "equals" | "contains" | "greater_than" | "less_than" | "between" | "in";
+  value: unknown;
+}
+
+export interface ReportDefinition {
+  id: string;
+  organization_id: string;
+  name: string;
+  description?: string;
+  report_type: "schedule" | "financial" | "kpi" | "custom";
+  module: string;
+  query_config?: Record<string, unknown>;
+  columns_config?: ReportColumn[];
+  filters_config?: ReportFilter[];
+  grouping_config?: Record<string, unknown>;
+  chart_config?: Record<string, unknown>;
+  is_scheduled: boolean;
+  schedule_cron?: string;
+  recipients?: string[];
+  is_template: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
 // CRM Types
 export interface ContactPerson {
   id: string;

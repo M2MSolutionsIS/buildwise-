@@ -47,6 +47,10 @@ import ModuleGridPage from "./pages/ModuleGridPage";
 import TenantSetupWizard from "./modules/system/pages/TenantSetupWizard";
 import PipelineConfiguratorPage from "./modules/system/pages/PipelineConfiguratorPage";
 import RMConfiguratorPage from "./modules/system/pages/RMConfiguratorPage";
+import ExecutiveDashboardPage from "./modules/bi/pages/ExecutiveDashboardPage";
+import KPIDashboardPage from "./modules/bi/pages/KPIDashboardPage";
+import KPIBuilderPage from "./modules/bi/pages/KPIBuilderPage";
+import ReportsBuilderPage from "./modules/bi/pages/ReportsBuilderPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -170,7 +174,14 @@ function App() {
                   {/* E-040: Financial Planning — F115, F116 */}
                   <Route path="financial" element={<FinancialPlanningPage />} />
                 </Route>
-                <Route path="bi" element={<PlaceholderPage title="Business Intelligence" />} />
+                {/* BI Routes — Task 31: F133, F148, F152, E-041/F142 */}
+                <Route path="bi">
+                  <Route index element={<Navigate to="executive" replace />} />
+                  <Route path="executive" element={<ExecutiveDashboardPage />} />
+                  <Route path="kpi-dashboard" element={<KPIDashboardPage />} />
+                  <Route path="kpi-builder" element={<KPIBuilderPage />} />
+                  <Route path="reports" element={<ReportsBuilderPage />} />
+                </Route>
                 <Route path="settings" element={<PlaceholderPage title="Setări" />} />
                 {/* Task 30: Configuratoare avansate — F061, F131 */}
                 <Route path="settings/pipeline" element={<PipelineConfiguratorPage />} />
