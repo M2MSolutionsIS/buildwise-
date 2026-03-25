@@ -32,6 +32,8 @@ const ro = {
     all: "Toate",
     active: "Activ",
     inactive: "Inactiv",
+    logout: "Deconectare",
+    detail: "Detaliu",
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, Row, Col, Typography, Space, Badge, Tag, theme } from "antd";
 import { usePrototypeStore } from "../stores/prototypeStore";
 import { useBrandingStore } from "../stores/brandingStore";
+import { useTranslation } from "../i18n";
 import {
   TeamOutlined,
   ProjectOutlined,
@@ -52,183 +53,185 @@ interface ModuleSection {
   cards: ModuleCard[];
 }
 
-const sections: ModuleSection[] = [
-  {
-    title: "CRM",
-    cards: [
-      {
-        key: "contacts",
-        title: "Contacte",
-        description: "Gestionare clienți și persoane de contact",
-        icon: <ContactsOutlined style={{ fontSize: 28 }} />,
-        color: "#1677ff",
-        link: "/crm/contacts",
-      },
-      {
-        key: "crm-dashboard",
-        title: "Dashboard CRM",
-        description: "KPI-uri vânzări și overview pipeline",
-        icon: <TeamOutlined style={{ fontSize: 28 }} />,
-        color: "#1677ff",
-        link: "/",
-      },
-    ],
-  },
-  {
-    title: "Sales Pipeline",
-    cards: [
-      {
-        key: "kanban",
-        title: "Pipeline Kanban",
-        description: "Board vizual cu oportunități pe etape",
-        icon: <AimOutlined style={{ fontSize: 28 }} />,
-        color: "#722ed1",
-        link: "/pipeline/board",
-      },
-      {
-        key: "offers",
-        title: "Oferte",
-        description: "Lista ofertelor și offer builder",
-        icon: <FileTextOutlined style={{ fontSize: 28 }} />,
-        color: "#722ed1",
-        link: "/pipeline/offers",
-      },
-      {
-        key: "activities",
-        title: "Activități",
-        description: "Planner activități comerciale",
-        icon: <ScheduleOutlined style={{ fontSize: 28 }} />,
-        color: "#722ed1",
-        link: "/pipeline/activities",
-      },
-      {
-        key: "sales-dashboard",
-        title: "Sales Dashboard",
-        description: "Analitics pipeline și performanță agenți",
-        icon: <PieChartOutlined style={{ fontSize: 28 }} />,
-        color: "#722ed1",
-        link: "/pipeline/dashboard",
-      },
-    ],
-  },
-  {
-    title: "Project Management",
-    cards: [
-      {
-        key: "projects",
-        title: "Proiecte",
-        description: "Lista proiectelor active și management",
-        icon: <ProjectOutlined style={{ fontSize: 28 }} />,
-        color: "#52c41a",
-        link: "/pm",
-      },
-      {
-        key: "archive",
-        title: "Arhivă Proiecte",
-        description: "Baza de date proiecte finalizate",
-        icon: <FolderOpenOutlined style={{ fontSize: 28 }} />,
-        color: "#52c41a",
-        link: "/pm/archive",
-      },
-      {
-        key: "energy-portfolio",
-        title: "Energy Portfolio",
-        description: "Impact energetic agregat cross-proiecte",
-        icon: <ThunderboltOutlined style={{ fontSize: 28 }} />,
-        color: "#52c41a",
-        link: "/pm/energy-portfolio",
-      },
-    ],
-  },
-  {
-    title: "Resource Management",
-    minPrototype: "P2",
-    cards: [
-      {
-        key: "employees",
-        title: "Angajați",
-        description: "Resurse umane și alocare personal",
-        icon: <SolutionOutlined style={{ fontSize: 28 }} />,
-        color: "#fa8c16",
-        link: "/rm",
-      },
-      {
-        key: "equipment",
-        title: "Echipamente",
-        description: "Flotă echipamente și disponibilitate",
-        icon: <CarOutlined style={{ fontSize: 28 }} />,
-        color: "#fa8c16",
-        link: "/rm/equipment",
-      },
-      {
-        key: "materials",
-        title: "Materiale",
-        description: "Stocuri și gestionare materiale",
-        icon: <InboxOutlined style={{ fontSize: 28 }} />,
-        color: "#fa8c16",
-        link: "/rm/materials",
-      },
-    ],
-  },
-  {
-    title: "Business Intelligence",
-    cards: [
-      {
-        key: "bi-dashboard",
-        title: "Dashboard Executiv",
-        description: "KPI-uri agregat la nivel de companie",
-        icon: <LineChartOutlined style={{ fontSize: 28 }} />,
-        color: "#eb2f96",
-        link: "/bi",
-      },
-      {
-        key: "bi-reports",
-        title: "Rapoarte",
-        description: "Generator rapoarte parametrizabile",
-        icon: <BarChartOutlined style={{ fontSize: 28 }} />,
-        color: "#eb2f96",
-        link: "/bi/reports",
-      },
-    ],
-  },
-  {
-    title: "Sistem",
-    cards: [
-      {
-        key: "settings",
-        title: "Configurare",
-        description: "Setări organizație și platformă",
-        icon: <SettingOutlined style={{ fontSize: 28 }} />,
-        color: "#8c8c8c",
-        link: "/settings",
-      },
-      {
-        key: "users",
-        title: "Utilizatori",
-        description: "Management utilizatori și invitații",
-        icon: <UserOutlined style={{ fontSize: 28 }} />,
-        color: "#8c8c8c",
-        link: "/settings/users",
-      },
-      {
-        key: "roles",
-        title: "Roluri & Permisiuni",
-        description: "Configurare RBAC per rol",
-        icon: <SafetyOutlined style={{ fontSize: 28 }} />,
-        color: "#8c8c8c",
-        link: "/settings/roles",
-      },
-      {
-        key: "audit",
-        title: "Audit Log",
-        description: "Istoric acțiuni și audit trail",
-        icon: <AuditOutlined style={{ fontSize: 28 }} />,
-        color: "#8c8c8c",
-        link: "/settings/audit",
-      },
-    ],
-  },
-];
+function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
+  return [
+    {
+      title: t.nav.crm,
+      cards: [
+        {
+          key: "contacts",
+          title: t.nav.contacts,
+          description: t.crm.contactsList,
+          icon: <ContactsOutlined style={{ fontSize: 28 }} />,
+          color: "#1677ff",
+          link: "/crm/contacts",
+        },
+        {
+          key: "crm-dashboard",
+          title: "Dashboard CRM",
+          description: t.nav.salesDashboard,
+          icon: <TeamOutlined style={{ fontSize: 28 }} />,
+          color: "#1677ff",
+          link: "/",
+        },
+      ],
+    },
+    {
+      title: t.nav.pipeline,
+      cards: [
+        {
+          key: "kanban",
+          title: t.nav.pipelineKanban,
+          description: t.pipeline.stage,
+          icon: <AimOutlined style={{ fontSize: 28 }} />,
+          color: "#722ed1",
+          link: "/pipeline/board",
+        },
+        {
+          key: "offers",
+          title: t.nav.offers,
+          description: t.pipeline.offerBuilder,
+          icon: <FileTextOutlined style={{ fontSize: 28 }} />,
+          color: "#722ed1",
+          link: "/pipeline/offers",
+        },
+        {
+          key: "activities",
+          title: t.nav.activities,
+          description: t.nav.activities,
+          icon: <ScheduleOutlined style={{ fontSize: 28 }} />,
+          color: "#722ed1",
+          link: "/pipeline/activities",
+        },
+        {
+          key: "sales-dashboard",
+          title: t.nav.salesDashboard,
+          description: t.nav.salesDashboard,
+          icon: <PieChartOutlined style={{ fontSize: 28 }} />,
+          color: "#722ed1",
+          link: "/pipeline/dashboard",
+        },
+      ],
+    },
+    {
+      title: t.nav.pm,
+      cards: [
+        {
+          key: "projects",
+          title: t.nav.projects,
+          description: t.pm.projectsList,
+          icon: <ProjectOutlined style={{ fontSize: 28 }} />,
+          color: "#52c41a",
+          link: "/pm",
+        },
+        {
+          key: "archive",
+          title: t.nav.archive,
+          description: t.nav.archive,
+          icon: <FolderOpenOutlined style={{ fontSize: 28 }} />,
+          color: "#52c41a",
+          link: "/pm/archive",
+        },
+        {
+          key: "energy-portfolio",
+          title: t.nav.energyPortfolio,
+          description: t.pm.energyImpact,
+          icon: <ThunderboltOutlined style={{ fontSize: 28 }} />,
+          color: "#52c41a",
+          link: "/pm/energy-portfolio",
+        },
+      ],
+    },
+    {
+      title: t.nav.rm,
+      minPrototype: "P2",
+      cards: [
+        {
+          key: "employees",
+          title: t.nav.employees,
+          description: t.rm.employeesList,
+          icon: <SolutionOutlined style={{ fontSize: 28 }} />,
+          color: "#fa8c16",
+          link: "/rm",
+        },
+        {
+          key: "equipment",
+          title: t.nav.equipment,
+          description: t.rm.equipmentList,
+          icon: <CarOutlined style={{ fontSize: 28 }} />,
+          color: "#fa8c16",
+          link: "/rm/equipment",
+        },
+        {
+          key: "materials",
+          title: t.nav.materials,
+          description: t.rm.materialStock,
+          icon: <InboxOutlined style={{ fontSize: 28 }} />,
+          color: "#fa8c16",
+          link: "/rm/materials",
+        },
+      ],
+    },
+    {
+      title: t.nav.bi,
+      cards: [
+        {
+          key: "bi-dashboard",
+          title: t.nav.executiveDashboard,
+          description: t.bi.executiveSummary,
+          icon: <LineChartOutlined style={{ fontSize: 28 }} />,
+          color: "#eb2f96",
+          link: "/bi",
+        },
+        {
+          key: "bi-reports",
+          title: t.nav.reports,
+          description: t.bi.reportsBuilder,
+          icon: <BarChartOutlined style={{ fontSize: 28 }} />,
+          color: "#eb2f96",
+          link: "/bi/reports",
+        },
+      ],
+    },
+    {
+      title: t.nav.settings,
+      cards: [
+        {
+          key: "settings",
+          title: t.nav.settings,
+          description: t.nav.settings,
+          icon: <SettingOutlined style={{ fontSize: 28 }} />,
+          color: "#8c8c8c",
+          link: "/settings",
+        },
+        {
+          key: "users",
+          title: t.nav.users,
+          description: t.nav.users,
+          icon: <UserOutlined style={{ fontSize: 28 }} />,
+          color: "#8c8c8c",
+          link: "/settings/users",
+        },
+        {
+          key: "roles",
+          title: t.nav.roles,
+          description: t.nav.roles,
+          icon: <SafetyOutlined style={{ fontSize: 28 }} />,
+          color: "#8c8c8c",
+          link: "/settings/roles",
+        },
+        {
+          key: "audit",
+          title: t.nav.auditLog,
+          description: t.nav.auditLog,
+          icon: <AuditOutlined style={{ fontSize: 28 }} />,
+          color: "#8c8c8c",
+          link: "/settings/audit",
+        },
+      ],
+    },
+  ];
+}
 
 /* ─── Component ───────────────────────────────────────────────────────────── */
 
@@ -252,6 +255,9 @@ export default function ModuleGridPage() {
   const { token } = theme.useToken();
   const { activePrototype } = usePrototypeStore();
   const { appName, whiteLabelEnabled } = useBrandingStore();
+  const t = useTranslation();
+
+  const sections = useMemo(() => buildSections(t), [t]);
 
   const filteredSections = useMemo(
     () =>
@@ -262,7 +268,7 @@ export default function ModuleGridPage() {
           cards: s.cards.filter((c) => isPrototypeVisible(c.minPrototype, activePrototype)),
         }))
         .filter((s) => s.cards.length > 0),
-    [activePrototype]
+    [activePrototype, sections]
   );
 
   return (
@@ -276,7 +282,7 @@ export default function ModuleGridPage() {
         </Space>
         <div>
           <Text type="secondary">
-            {PROTO_LABELS[activePrototype]} | Selectează un modul pentru a începe
+            {PROTO_LABELS[activePrototype]}
           </Text>
         </div>
       </div>

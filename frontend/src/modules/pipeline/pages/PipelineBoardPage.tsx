@@ -42,6 +42,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { pipelineService } from "../services/pipelineService";
 import type { OpportunityListItem, PipelineBoardStage } from "../../../types";
+import { useTranslation } from "../../../i18n";
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
@@ -97,6 +98,7 @@ export default function PipelineBoardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useTranslation();
 
   // Drag state
   const [dragItem, setDragItem] = useState<OpportunityListItem | null>(null);
@@ -202,7 +204,7 @@ export default function PipelineBoardPage() {
       <Row gutter={16} style={{ marginBottom: 16 }} align="middle">
         <Col flex="auto">
           <Space>
-            <Title level={3} style={{ margin: 0 }}>Pipeline Kanban</Title>
+            <Title level={3} style={{ margin: 0 }}>{t.nav.pipelineKanban}</Title>
             {stagnantCount > 0 && (
               <Tooltip title={`${stagnantCount} oportunități stagnante`}>
                 <Badge count={stagnantCount} style={{ backgroundColor: "#ff4d4f" }}>

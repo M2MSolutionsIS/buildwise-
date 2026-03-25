@@ -60,7 +60,9 @@ import { useAuthStore } from "../stores/authStore";
 import { useBrandingStore } from "../stores/brandingStore";
 import { useQuery } from "@tanstack/react-query";
 import { authService } from "../services/authService";
+import { systemService } from "../modules/system/services/systemService";
 import { usePrototypeStore } from "../stores/prototypeStore";
+import { useTranslation } from "../i18n";
 import NotificationsDropdown from "../modules/system/components/NotificationsDropdown";
 import GlobalSearchModal from "../components/GlobalSearchModal";
 import PrototypeSwitcher from "../components/PrototypeSwitcher";
@@ -72,159 +74,163 @@ const { useBreakpoint } = Grid;
 /* F158: Complete sidebar menu with contextual sub-navigation per module      */
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
-const menuItems = [
-  {
-    key: "/",
-    icon: <AppstoreOutlined />,
-    label: "Home",
-  },
-  {
-    key: "/crm",
-    icon: <TeamOutlined />,
-    label: "CRM",
-    children: [
-      { key: "/crm/contacts", icon: <ContactsOutlined />, label: "Contacte" },
-      { key: "/", icon: <DashboardOutlined />, label: "Dashboard CRM" },
-    ],
-  },
-  {
-    key: "/pipeline",
-    icon: <FunnelPlotOutlined />,
-    label: "Sales Pipeline",
-    children: [
-      { key: "/pipeline/board", icon: <AimOutlined />, label: "Pipeline Kanban" },
-      { key: "/pipeline/opportunities/new", icon: <FlagOutlined />, label: "Oportunitate Nouă" },
-      { key: "/pipeline/offers", icon: <FileTextOutlined />, label: "Oferte" },
-      { key: "/pipeline/contracts", icon: <FileTextOutlined />, label: "Contracte" },
-      { key: "/pipeline/activities", icon: <ScheduleOutlined />, label: "Activități" },
-      { key: "/pipeline/dashboard", icon: <PieChartOutlined />, label: "Sales Dashboard" },
-    ],
-  },
-  {
-    key: "/pm",
-    icon: <ProjectOutlined />,
-    label: "Project Management",
-    children: [
-      { key: "/pm", icon: <ProjectOutlined />, label: "Proiecte" },
-      { key: "/pm/archive", icon: <FolderOpenOutlined />, label: "Arhivă Proiecte" },
-      { key: "/pm/energy-portfolio", icon: <ThunderboltOutlined />, label: "Energy Portfolio" },
-    ],
-  },
-  {
-    key: "/rm",
-    icon: <ToolOutlined />,
-    label: "Resource Management",
-    children: [
-      { key: "/rm", icon: <DashboardOutlined />, label: "Dashboard RM" },
-      { key: "/rm/employees", icon: <SolutionOutlined />, label: "Angajați" },
-      { key: "/rm/equipment", icon: <CarOutlined />, label: "Echipamente" },
-      { key: "/rm/materials", icon: <InboxOutlined />, label: "Materiale" },
-      { key: "/rm/capacity", icon: <BarChartOutlined />, label: "Capacitate" },
-      { key: "/rm/financial", icon: <DollarOutlined />, label: "Financial Planning" },
-    ],
-  },
-  {
-    key: "/bi",
-    icon: <BarChartOutlined />,
-    label: "Business Intelligence",
-    children: [
-      { key: "/bi", icon: <LineChartOutlined />, label: "Dashboard Executiv" },
-      { key: "/bi/kpi-dashboard", icon: <DashboardOutlined />, label: "KPI Dashboard" },
-      { key: "/bi/kpi-builder", icon: <SettingOutlined />, label: "KPI Builder" },
-      { key: "/bi/reports", icon: <FileTextOutlined />, label: "Rapoarte" },
-      { key: "/bi/assistant", icon: <RobotOutlined />, label: "AI Assistant" },
-      { key: "/bi/forecast", icon: <ExperimentOutlined />, label: "Previziuni ML" },
-    ],
-  },
-  {
-    key: "/settings",
-    icon: <SettingOutlined />,
-    label: "Setări",
-    children: [
-      { key: "/settings", icon: <SettingOutlined />, label: "Configurare" },
-      { key: "/settings/branding", icon: <FormatPainterOutlined />, label: "Branding" },
-      { key: "/settings/users", icon: <UserOutlined />, label: "Utilizatori" },
-      { key: "/settings/roles", icon: <SafetyOutlined />, label: "Roluri" },
-      { key: "/settings/audit", icon: <AuditOutlined />, label: "Audit Log" },
-      { key: "/settings/import", icon: <DatabaseOutlined />, label: "Import Date" },
-    ],
-  },
-];
+function buildMenuItems(t: ReturnType<typeof useTranslation>) {
+  return [
+    {
+      key: "/",
+      icon: <AppstoreOutlined />,
+      label: t.nav.home,
+    },
+    {
+      key: "/crm",
+      icon: <TeamOutlined />,
+      label: t.nav.crm,
+      children: [
+        { key: "/crm/contacts", icon: <ContactsOutlined />, label: t.nav.contacts },
+        { key: "/", icon: <DashboardOutlined />, label: "Dashboard CRM" },
+      ],
+    },
+    {
+      key: "/pipeline",
+      icon: <FunnelPlotOutlined />,
+      label: t.nav.pipeline,
+      children: [
+        { key: "/pipeline/board", icon: <AimOutlined />, label: t.nav.pipelineKanban },
+        { key: "/pipeline/opportunities/new", icon: <FlagOutlined />, label: t.pipeline.newOpportunity },
+        { key: "/pipeline/offers", icon: <FileTextOutlined />, label: t.nav.offers },
+        { key: "/pipeline/contracts", icon: <FileTextOutlined />, label: t.nav.contracts },
+        { key: "/pipeline/activities", icon: <ScheduleOutlined />, label: t.nav.activities },
+        { key: "/pipeline/dashboard", icon: <PieChartOutlined />, label: t.nav.salesDashboard },
+      ],
+    },
+    {
+      key: "/pm",
+      icon: <ProjectOutlined />,
+      label: t.nav.pm,
+      children: [
+        { key: "/pm", icon: <ProjectOutlined />, label: t.nav.projects },
+        { key: "/pm/archive", icon: <FolderOpenOutlined />, label: t.nav.archive },
+        { key: "/pm/energy-portfolio", icon: <ThunderboltOutlined />, label: t.nav.energyPortfolio },
+      ],
+    },
+    {
+      key: "/rm",
+      icon: <ToolOutlined />,
+      label: t.nav.rm,
+      children: [
+        { key: "/rm", icon: <DashboardOutlined />, label: t.rm.dashboard },
+        { key: "/rm/employees", icon: <SolutionOutlined />, label: t.nav.employees },
+        { key: "/rm/equipment", icon: <CarOutlined />, label: t.nav.equipment },
+        { key: "/rm/materials", icon: <InboxOutlined />, label: t.nav.materials },
+        { key: "/rm/capacity", icon: <BarChartOutlined />, label: t.nav.capacity },
+        { key: "/rm/financial", icon: <DollarOutlined />, label: t.nav.financialPlanning },
+      ],
+    },
+    {
+      key: "/bi",
+      icon: <BarChartOutlined />,
+      label: t.nav.bi,
+      children: [
+        { key: "/bi", icon: <LineChartOutlined />, label: t.nav.executiveDashboard },
+        { key: "/bi/kpi-dashboard", icon: <DashboardOutlined />, label: t.nav.kpiDashboard },
+        { key: "/bi/kpi-builder", icon: <SettingOutlined />, label: t.nav.kpiBuilder },
+        { key: "/bi/reports", icon: <FileTextOutlined />, label: t.nav.reports },
+        { key: "/bi/assistant", icon: <RobotOutlined />, label: "AI Assistant" },
+        { key: "/bi/forecast", icon: <ExperimentOutlined />, label: "ML Forecast" },
+      ],
+    },
+    {
+      key: "/settings",
+      icon: <SettingOutlined />,
+      label: t.nav.settings,
+      children: [
+        { key: "/settings", icon: <SettingOutlined />, label: t.nav.settings },
+        { key: "/settings/branding", icon: <FormatPainterOutlined />, label: t.nav.branding },
+        { key: "/settings/users", icon: <UserOutlined />, label: t.nav.users },
+        { key: "/settings/roles", icon: <SafetyOutlined />, label: t.nav.roles },
+        { key: "/settings/audit", icon: <AuditOutlined />, label: t.nav.auditLog },
+        { key: "/settings/import", icon: <DatabaseOutlined />, label: t.common.import },
+      ],
+    },
+  ];
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /* Breadcrumb map — maps URL segments to readable labels                     */
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
-const BREADCRUMB_MAP: Record<string, string> = {
-  "": "Home",
-  crm: "CRM",
-  contacts: "Contacte",
-  new: "Nou",
-  pipeline: "Sales Pipeline",
-  board: "Pipeline Kanban",
-  dashboard: "Sales Dashboard",
-  opportunities: "Oportunități",
-  activities: "Activități",
-  offers: "Oferte",
-  pm: "Project Management",
-  projects: "Proiecte",
-  gantt: "Gantt",
-  timesheet: "Pontaj",
-  consumption: "Consum Materiale",
-  subcontractors: "Subcontractori",
-  deliveries: "Recepții Materiale",
-  "daily-reports": "Raport Zilnic",
-  progress: "Monitorizare Progres",
-  budget: "Control Buget",
-  "work-situations": "Situații Lucrări",
-  risks: "Registru Riscuri",
-  reception: "Recepție",
-  warranties: "Garanții",
-  "energy-impact": "Impact Energetic",
-  report: "Raport Proiect",
-  archive: "Arhivă Proiecte",
-  "energy-portfolio": "Energy Portfolio",
-  rm: "Resource Management",
-  employees: "Angajați",
-  equipment: "Echipamente",
-  materials: "Materiale",
-  capacity: "Capacitate",
-  financial: "Financial Planning",
-  bi: "Business Intelligence",
-  executive: "Dashboard Executiv",
-  "kpi-dashboard": "KPI Dashboard",
-  "kpi-builder": "KPI Builder",
-  reports: "Rapoarte",
-  assistant: "AI Assistant",
-  forecast: "Previziuni ML",
-  settings: "Setări",
-  branding: "Branding",
-  users: "Utilizatori",
-  roles: "Roluri",
-  audit: "Audit Log",
-  import: "Import Date",
-};
+function buildBreadcrumbMap(t: ReturnType<typeof useTranslation>): Record<string, string> {
+  return {
+    "": t.nav.home,
+    crm: t.nav.crm,
+    contacts: t.nav.contacts,
+    new: t.common.create,
+    pipeline: t.nav.pipeline,
+    board: t.nav.pipelineKanban,
+    dashboard: t.nav.salesDashboard,
+    opportunities: t.nav.opportunities,
+    activities: t.nav.activities,
+    offers: t.nav.offers,
+    pm: t.nav.pm,
+    projects: t.nav.projects,
+    gantt: t.pm.ganttChart,
+    timesheet: t.pm.timesheet,
+    consumption: t.pm.materialConsumption,
+    subcontractors: t.pm.subcontractors,
+    deliveries: t.pm.materialConsumption,
+    "daily-reports": t.pm.dailyReport,
+    progress: t.pm.progressMonitoring,
+    budget: t.pm.budgetControl,
+    "work-situations": t.pm.workSituations,
+    risks: t.pm.riskRegister,
+    reception: t.pm.reception,
+    warranties: t.pm.warranties,
+    "energy-impact": t.pm.energyImpact,
+    report: t.nav.reports,
+    archive: t.nav.archive,
+    "energy-portfolio": t.nav.energyPortfolio,
+    rm: t.nav.rm,
+    employees: t.nav.employees,
+    equipment: t.nav.equipment,
+    materials: t.nav.materials,
+    capacity: t.nav.capacity,
+    financial: t.nav.financialPlanning,
+    bi: t.nav.bi,
+    executive: t.nav.executiveDashboard,
+    "kpi-dashboard": t.nav.kpiDashboard,
+    "kpi-builder": t.nav.kpiBuilder,
+    reports: t.nav.reports,
+    assistant: "AI Assistant",
+    forecast: "ML Forecast",
+    settings: t.nav.settings,
+    branding: t.nav.branding,
+    users: t.nav.users,
+    roles: t.nav.roles,
+    audit: t.nav.auditLog,
+    import: t.common.import,
+  };
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /* PM project context sub-navigation (F158 contextual per project)           */
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
-function getProjectSubNav(projectId: string) {
+function getProjectSubNav(projectId: string, t: ReturnType<typeof useTranslation>) {
   const base = `/pm/projects/${projectId}`;
   return [
-    { key: `${base}/gantt`, icon: <ScheduleOutlined />, label: "Gantt" },
-    { key: `${base}/timesheet`, icon: <AuditOutlined />, label: "Pontaj" },
-    { key: `${base}/consumption`, icon: <ExperimentOutlined />, label: "Consum" },
-    { key: `${base}/subcontractors`, icon: <SolutionOutlined />, label: "Subcontractori" },
-    { key: `${base}/daily-reports`, icon: <FileTextOutlined />, label: "Raport Zilnic" },
-    { key: `${base}/progress`, icon: <LineChartOutlined />, label: "Progres" },
-    { key: `${base}/budget`, icon: <DollarOutlined />, label: "Buget" },
-    { key: `${base}/work-situations`, icon: <DatabaseOutlined />, label: "Situații" },
-    { key: `${base}/risks`, icon: <SafetyOutlined />, label: "Riscuri" },
-    { key: `${base}/reception`, icon: <AimOutlined />, label: "Recepție" },
-    { key: `${base}/warranties`, icon: <SafetyOutlined />, label: "Garanții" },
-    { key: `${base}/energy-impact`, icon: <ThunderboltOutlined />, label: "Energie" },
-    { key: `${base}/report`, icon: <PieChartOutlined />, label: "Raport 3-in-1" },
+    { key: `${base}/gantt`, icon: <ScheduleOutlined />, label: t.pm.ganttChart },
+    { key: `${base}/timesheet`, icon: <AuditOutlined />, label: t.pm.timesheet },
+    { key: `${base}/consumption`, icon: <ExperimentOutlined />, label: t.pm.materialConsumption },
+    { key: `${base}/subcontractors`, icon: <SolutionOutlined />, label: t.pm.subcontractors },
+    { key: `${base}/daily-reports`, icon: <FileTextOutlined />, label: t.pm.dailyReport },
+    { key: `${base}/progress`, icon: <LineChartOutlined />, label: t.pm.progressMonitoring },
+    { key: `${base}/budget`, icon: <DollarOutlined />, label: t.pm.budgetControl },
+    { key: `${base}/work-situations`, icon: <DatabaseOutlined />, label: t.pm.workSituations },
+    { key: `${base}/risks`, icon: <SafetyOutlined />, label: t.pm.riskRegister },
+    { key: `${base}/reception`, icon: <AimOutlined />, label: t.pm.reception },
+    { key: `${base}/warranties`, icon: <SafetyOutlined />, label: t.pm.warranties },
+    { key: `${base}/energy-impact`, icon: <ThunderboltOutlined />, label: t.pm.energyImpact },
+    { key: `${base}/report`, icon: <PieChartOutlined />, label: t.nav.reports },
   ];
 }
 
@@ -243,8 +249,9 @@ export default function AppLayout() {
   const location = useLocation();
   const { token } = theme.useToken();
   const { user, setUser, logout } = useAuthStore();
-  const { appName, logoUrl, primaryColor: brandPrimary, whiteLabelEnabled } = useBrandingStore();
+  const { appName, logoUrl, primaryColor: brandPrimary, whiteLabelEnabled, applyBranding } = useBrandingStore();
   const { isRouteVisible } = usePrototypeStore();
+  const t = useTranslation();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
 
@@ -257,6 +264,27 @@ export default function AppLayout() {
       return res.data;
     },
     enabled: !user,
+    retry: false,
+  });
+
+  // Sync branding from backend Organization (F137)
+  useQuery({
+    queryKey: ["organization-branding"],
+    queryFn: async () => {
+      const res = await systemService.getOrganization();
+      const org = res.data;
+      applyBranding({
+        appName: (org.custom_branding?.app_name as string) || org.name || "BuildWise",
+        logoUrl: org.logo_url || "",
+        primaryColor: org.primary_color || "#1677ff",
+        secondaryColor: org.secondary_color || "#52c41a",
+        whiteLabelEnabled: !!org.custom_branding?.white_label_enabled,
+        fontFamily: (org.custom_branding?.font_family as string) || "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+        borderRadius: (org.custom_branding?.border_radius as number) || 6,
+      });
+      return org;
+    },
+    staleTime: 5 * 60 * 1000, // 5 min — don't re-fetch too often
     retry: false,
   });
 
@@ -301,13 +329,15 @@ export default function AppLayout() {
 
   /* ─── Breadcrumbs ──────────────────────────────────────────────────────── */
 
+  const breadcrumbMap = useMemo(() => buildBreadcrumbMap(t), [t]);
+
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const breadcrumbItems = [
     {
       title: (
         <a onClick={() => navigate("/")}>
           <HomeOutlined style={{ marginRight: 4 }} />
-          Home
+          {t.nav.home}
         </a>
       ),
       key: "home",
@@ -316,7 +346,7 @@ export default function AppLayout() {
       const path = "/" + pathSegments.slice(0, idx + 1).join("/");
       const isLast = idx === pathSegments.length - 1;
       const isUuid = segment.length > 20;
-      const label = isUuid ? "Detaliu" : BREADCRUMB_MAP[segment] || segment;
+      const label = isUuid ? t.common.detail : breadcrumbMap[segment] || segment;
       return {
         title: isLast ? (
           <span style={{ fontWeight: 500 }}>{label}</span>
@@ -336,7 +366,7 @@ export default function AppLayout() {
   /* ─── Filter menu by active prototype ──────────────────────────────────── */
 
   const filteredMenuItems = useMemo(() => {
-    return menuItems
+    return buildMenuItems(t)
       .filter((item) => isRouteVisible(item.key))
       .map((item) => {
         if (item.children) {
@@ -348,13 +378,13 @@ export default function AppLayout() {
         return item;
       })
       .filter((item) => !item.children || item.children.length > 0);
-  }, [isRouteVisible]);
+  }, [isRouteVisible, t]);
 
   /* ─── Detect project context for F158 contextual sub-nav ───────────────── */
 
   const projectMatch = location.pathname.match(/^\/pm\/projects\/([^/]+)/);
   const projectId = projectMatch?.[1];
-  const projectSubNav = projectId ? getProjectSubNav(projectId) : null;
+  const projectSubNav = projectId ? getProjectSubNav(projectId, t) : null;
 
   /* ─── Sidebar Content (shared between desktop Sider and mobile Drawer) ── */
 
@@ -421,7 +451,7 @@ export default function AppLayout() {
               letterSpacing: 0.5,
             }}
           >
-            {(!collapsed || isMobile) && "Context Proiect"}
+            {(!collapsed || isMobile) && t.nav.projects}
           </div>
           <Menu
             mode="inline"
@@ -571,7 +601,7 @@ export default function AppLayout() {
             {!isMobile && <PrototypeSwitcher />}
 
             {/* E-026: Global Search Trigger */}
-            <Tooltip title="Căutare globală (Ctrl+K)">
+            <Tooltip title={`${t.common.search} (Ctrl+K)`}>
               <Button
                 type="text"
                 icon={<SearchOutlined />}
@@ -605,14 +635,14 @@ export default function AppLayout() {
                   {
                     key: "settings",
                     icon: <SettingOutlined />,
-                    label: "Setări",
+                    label: t.nav.settings,
                     onClick: () => navigate("/settings"),
                   },
                   { type: "divider" as const },
                   {
                     key: "logout",
                     icon: <LogoutOutlined />,
-                    label: "Deconectare",
+                    label: t.common.logout,
                     danger: true,
                     onClick: handleLogout,
                   },
