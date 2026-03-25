@@ -235,6 +235,55 @@ export interface ReportDefinition {
   updated_at?: string;
 }
 
+// ─── AI / ML Types (F132, F135) ──────────────────────────────────────────────
+
+export interface AIMessage {
+  id: string;
+  conversation_id: string;
+  role: "user" | "assistant";
+  content: string;
+  cards?: AIResponseCard[];
+  created_at: string;
+}
+
+export interface AIConversation {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  title?: string;
+  context?: Record<string, unknown>;
+  messages?: AIMessage[];
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface AIResponseCard {
+  type: "kpi" | "chart" | "table" | "text" | "suggestion";
+  title?: string;
+  data: Record<string, unknown>;
+}
+
+export interface MLModelConfig {
+  id: string;
+  organization_id: string;
+  name: string;
+  model_type: string;
+  data_sources?: Record<string, unknown>;
+  status: "configured" | "training" | "ready" | "error";
+  last_trained_at?: string;
+  error_metric?: number;
+  parameters?: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface MLForecastResult {
+  period: string;
+  predicted_value: number;
+  confidence_lower: number;
+  confidence_upper: number;
+  actual_value?: number;
+}
+
 // CRM Types
 export interface ContactPerson {
   id: string;

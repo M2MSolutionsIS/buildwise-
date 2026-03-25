@@ -52,6 +52,8 @@ import ExecutiveDashboardPage from "./modules/bi/pages/ExecutiveDashboardPage";
 import KPIDashboardPage from "./modules/bi/pages/KPIDashboardPage";
 import KPIBuilderPage from "./modules/bi/pages/KPIBuilderPage";
 import ReportsBuilderPage from "./modules/bi/pages/ReportsBuilderPage";
+import AIAssistantPage from "./modules/bi/pages/AIAssistantPage";
+import MLForecastPage from "./modules/bi/pages/MLForecastPage";
 import BrandingSettingsPage from "./modules/system/pages/BrandingSettingsPage";
 import { useAuthStore } from "./stores/authStore";
 
@@ -176,6 +178,9 @@ function App() {
                   <Route path="kpi-dashboard" element={<KPIDashboardPage />} />
                   <Route path="kpi-builder" element={<KPIBuilderPage />} />
                   <Route path="reports" element={<ReportsBuilderPage />} />
+                  {/* Task 33: F132 AI Assistant + F135 ML Forecast */}
+                  <Route path="assistant" element={<AIAssistantPage />} />
+                  <Route path="forecast" element={<MLForecastPage />} />
                 </Route>
                 <Route path="settings" element={<PlaceholderPage title="Setări" />} />
                 {/* Task 32: F137 Branding + F138 Multi-limbă */}

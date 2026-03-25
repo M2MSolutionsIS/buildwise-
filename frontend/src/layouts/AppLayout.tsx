@@ -54,6 +54,7 @@ import {
   FlagOutlined,
   HomeOutlined,
   FormatPainterOutlined,
+  RobotOutlined,
 } from "@ant-design/icons";
 import { useAuthStore } from "../stores/authStore";
 import { useBrandingStore } from "../stores/brandingStore";
@@ -126,7 +127,11 @@ const menuItems = [
     label: "Business Intelligence",
     children: [
       { key: "/bi", icon: <LineChartOutlined />, label: "Dashboard Executiv" },
+      { key: "/bi/kpi-dashboard", icon: <DashboardOutlined />, label: "KPI Dashboard" },
+      { key: "/bi/kpi-builder", icon: <SettingOutlined />, label: "KPI Builder" },
       { key: "/bi/reports", icon: <FileTextOutlined />, label: "Rapoarte" },
+      { key: "/bi/assistant", icon: <RobotOutlined />, label: "AI Assistant" },
+      { key: "/bi/forecast", icon: <ExperimentOutlined />, label: "Previziuni ML" },
     ],
   },
   {
@@ -184,7 +189,12 @@ const BREADCRUMB_MAP: Record<string, string> = {
   capacity: "Capacitate",
   financial: "Financial Planning",
   bi: "Business Intelligence",
+  executive: "Dashboard Executiv",
+  "kpi-dashboard": "KPI Dashboard",
+  "kpi-builder": "KPI Builder",
   reports: "Rapoarte",
+  assistant: "AI Assistant",
+  forecast: "Previziuni ML",
   settings: "Setări",
   branding: "Branding",
   users: "Utilizatori",
