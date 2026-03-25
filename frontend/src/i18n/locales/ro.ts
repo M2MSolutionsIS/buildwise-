@@ -1,0 +1,184 @@
+/**
+ * F138: Romanian translations — default language
+ */
+const ro = {
+  // ─── Common ──────────────────────────────────────────────────────────────────
+  common: {
+    save: "Salvează",
+    cancel: "Anulează",
+    delete: "Șterge",
+    edit: "Editează",
+    create: "Creează",
+    add: "Adaugă",
+    close: "Închide",
+    search: "Caută",
+    filter: "Filtrează",
+    export: "Exportă",
+    import: "Importă",
+    back: "Înapoi",
+    next: "Continuă",
+    finish: "Finalizează",
+    loading: "Se încarcă...",
+    noData: "Nicio înregistrare",
+    confirm: "Confirmă",
+    yes: "Da",
+    no: "Nu",
+    actions: "Acțiuni",
+    status: "Status",
+    name: "Nume",
+    description: "Descriere",
+    date: "Data",
+    total: "Total",
+    all: "Toate",
+    active: "Activ",
+    inactive: "Inactiv",
+  },
+
+  // ─── Navigation ──────────────────────────────────────────────────────────────
+  nav: {
+    home: "Acasă",
+    crm: "CRM",
+    contacts: "Contacte",
+    pipeline: "Sales Pipeline",
+    pipelineKanban: "Pipeline Kanban",
+    opportunities: "Oportunități",
+    offers: "Oferte",
+    contracts: "Contracte",
+    activities: "Activități",
+    salesDashboard: "Dashboard Vânzări",
+    pm: "Project Management",
+    projects: "Proiecte",
+    archive: "Arhivă Proiecte",
+    energyPortfolio: "Energy Portfolio",
+    rm: "Resource Management",
+    employees: "Angajați",
+    equipment: "Echipamente",
+    materials: "Materiale",
+    capacity: "Capacitate",
+    financialPlanning: "Planificare Financiară",
+    bi: "Business Intelligence",
+    executiveDashboard: "Dashboard Executiv",
+    reports: "Rapoarte",
+    kpiDashboard: "KPI Dashboard",
+    kpiBuilder: "KPI Builder",
+    settings: "Setări",
+    branding: "Branding",
+    users: "Utilizatori",
+    roles: "Roluri",
+    auditLog: "Jurnal Audit",
+  },
+
+  // ─── CRM Module ──────────────────────────────────────────────────────────────
+  crm: {
+    contactsList: "Lista Contacte",
+    newContact: "Contact Nou",
+    contactName: "Nume Contact",
+    company: "Companie",
+    email: "Email",
+    phone: "Telefon",
+    type: "Tip Contact",
+    lead: "Lead",
+    client: "Client",
+    partner: "Partener",
+    supplier: "Furnizor",
+  },
+
+  // ─── Pipeline Module ─────────────────────────────────────────────────────────
+  pipeline: {
+    newOpportunity: "Oportunitate Nouă",
+    estimatedValue: "Valoare Estimată",
+    probability: "Probabilitate",
+    stage: "Etapă",
+    expectedClose: "Data Estimată Închidere",
+    wonLost: "Câștigat/Pierdut",
+    offerBuilder: "Constructor Ofertă",
+    contractDetail: "Detalii Contract",
+  },
+
+  // ─── PM Module ───────────────────────────────────────────────────────────────
+  pm: {
+    projectsList: "Lista Proiecte",
+    ganttChart: "Diagramă Gantt",
+    timesheet: "Pontaj",
+    materialConsumption: "Consum Materiale",
+    subcontractors: "Subcontractori",
+    dailyReport: "Raport Zilnic",
+    progressMonitoring: "Monitorizare Progres",
+    budgetControl: "Control Buget",
+    workSituations: "Situații Lucrări",
+    riskRegister: "Registru Riscuri",
+    reception: "Recepție",
+    warranties: "Garanții",
+    energyImpact: "Impact Energetic",
+  },
+
+  // ─── RM Module ───────────────────────────────────────────────────────────────
+  rm: {
+    dashboard: "Dashboard Resurse",
+    employeesList: "Lista Angajați",
+    equipmentList: "Lista Echipamente",
+    materialStock: "Stoc Materiale",
+    companyCapacity: "Capacitate Companie",
+  },
+
+  // ─── BI Module ───────────────────────────────────────────────────────────────
+  bi: {
+    executiveSummary: "Sumar Executiv",
+    kpiDashboard: "Dashboard KPI",
+    kpiBuilder: "Constructor KPI",
+    reportsBuilder: "Constructor Rapoarte",
+    allModules: "Toate modulele",
+    ok: "OK",
+    warning: "Atenție",
+    critical: "Critic",
+  },
+
+  // ─── Settings / Branding (F137, F138) ─────────────────────────────────────
+  settings: {
+    branding: "Branding și Personalizare",
+    brandingDesc: "Configurează aspectul vizual, logo-ul și culorile platformei.",
+    logo: "Logo",
+    logoDesc: "Logo-ul apare în sidebar, documente generate și emailuri.",
+    uploadLogo: "Încarcă Logo",
+    removeLogo: "Elimină Logo",
+    primaryColor: "Culoare Principală",
+    secondaryColor: "Culoare Secundară",
+    colors: "Culori",
+    colorsDesc: "Culorile sunt aplicate global în interfață și pe documentele generate.",
+    fonts: "Fonturi",
+    fontFamily: "Font Principal",
+    fontDesc: "Fontul se aplică pe întreaga platformă.",
+    language: "Limbă",
+    languageSettings: "Setări Limbă",
+    languageDesc: "Limba implicită și suport bilingv pentru documente.",
+    defaultLanguage: "Limba Implicită",
+    bilingualDocs: "Documente Bilingve",
+    bilingualDocsDesc: "Generează oferte și contracte în ambele limbi (RO+EN).",
+    secondaryLanguage: "Limba Secundară (documente)",
+    currency: "Valuta",
+    whiteLabel: "White-Label",
+    whiteLabelDesc: "Aplicația arată ca produsul clientului, fără branding BuildWise.",
+    appName: "Numele Aplicației",
+    appNameDesc: "Înlocuiește 'BuildWise' cu numele propriu în sidebar și documente.",
+    preview: "Previzualizare",
+    saveSuccess: "Setările de branding au fost salvate.",
+    saveError: "Eroare la salvarea setărilor.",
+  },
+
+  // ─── Documents (bilingual support F138) ────────────────────────────────────
+  docs: {
+    offer: "Ofertă",
+    contract: "Contract",
+    invoice: "Factură",
+    generatedOn: "Generat la",
+    page: "Pagina",
+    bilingual: "Bilingv (RO+EN)",
+    signatureClient: "Semnătura Client",
+    signatureProvider: "Semnătura Prestator",
+  },
+};
+
+export default ro;
+
+/** Structural type: nested Record<string, Record<string, string>> for all locales */
+export type TranslationKeys = { [K in keyof typeof ro]: { [L in keyof (typeof ro)[K]]: string } };

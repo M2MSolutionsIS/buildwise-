@@ -53,8 +53,11 @@ import {
   PieChartOutlined,
   FlagOutlined,
   HomeOutlined,
+  FormatPainterOutlined,
+  RobotOutlined,
 } from "@ant-design/icons";
 import { useAuthStore } from "../stores/authStore";
+import { useBrandingStore } from "../stores/brandingStore";
 import { useQuery } from "@tanstack/react-query";
 import { authService } from "../services/authService";
 import NotificationsDropdown from "../modules/system/components/NotificationsDropdown";
@@ -124,7 +127,11 @@ const menuItems = [
     label: "Business Intelligence",
     children: [
       { key: "/bi", icon: <LineChartOutlined />, label: "Dashboard Executiv" },
+      { key: "/bi/kpi-dashboard", icon: <DashboardOutlined />, label: "KPI Dashboard" },
+      { key: "/bi/kpi-builder", icon: <SettingOutlined />, label: "KPI Builder" },
       { key: "/bi/reports", icon: <FileTextOutlined />, label: "Rapoarte" },
+      { key: "/bi/assistant", icon: <RobotOutlined />, label: "AI Assistant" },
+      { key: "/bi/forecast", icon: <ExperimentOutlined />, label: "Previziuni ML" },
     ],
   },
   {
@@ -133,6 +140,7 @@ const menuItems = [
     label: "Setări",
     children: [
       { key: "/settings", icon: <SettingOutlined />, label: "Configurare" },
+      { key: "/settings/branding", icon: <FormatPainterOutlined />, label: "Branding" },
       { key: "/settings/users", icon: <UserOutlined />, label: "Utilizatori" },
       { key: "/settings/roles", icon: <SafetyOutlined />, label: "Roluri" },
       { key: "/settings/audit", icon: <AuditOutlined />, label: "Audit Log" },
@@ -181,8 +189,14 @@ const BREADCRUMB_MAP: Record<string, string> = {
   capacity: "Capacitate",
   financial: "Financial Planning",
   bi: "Business Intelligence",
+  executive: "Dashboard Executiv",
+  "kpi-dashboard": "KPI Dashboard",
+  "kpi-builder": "KPI Builder",
   reports: "Rapoarte",
+  assistant: "AI Assistant",
+  forecast: "Previziuni ML",
   settings: "Setări",
+  branding: "Branding",
   users: "Utilizatori",
   roles: "Roluri",
   audit: "Audit Log",
@@ -227,6 +241,7 @@ export default function AppLayout() {
   const location = useLocation();
   const { token } = theme.useToken();
   const { user, setUser, logout } = useAuthStore();
+  const { appName, logoUrl, primaryColor: brandPrimary, whiteLabelEnabled } = useBrandingStore();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
 
@@ -338,29 +353,37 @@ export default function AppLayout() {
         }}
         onClick={() => navigate("/")}
       >
-        <div
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            background: `linear-gradient(135deg, ${token.colorPrimary}, #722ed1)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#fff",
-            fontWeight: 700,
-            fontSize: 14,
-            flexShrink: 0,
-          }}
-        >
-          B
-        </div>
+        {logoUrl ? (
+          <img
+            src={logoUrl}
+            alt={appName}
+            style={{ width: 28, height: 28, objectFit: "contain", borderRadius: 4, flexShrink: 0 }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              background: `linear-gradient(135deg, ${brandPrimary || token.colorPrimary}, #722ed1)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: 14,
+              flexShrink: 0,
+            }}
+          >
+            {whiteLabelEnabled ? appName.charAt(0).toUpperCase() : "B"}
+          </div>
+        )}
         {(!collapsed || isMobile) && (
           <Typography.Title
             level={5}
             style={{ margin: "0 0 0 10px", whiteSpace: "nowrap" }}
           >
-            BuildWise
+            {whiteLabelEnabled ? appName : "BuildWise"}
           </Typography.Title>
         )}
       </div>
