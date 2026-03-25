@@ -1092,6 +1092,100 @@ export interface EnergyPortfolio {
   avg_u_value_post?: number;
 }
 
+// ─── PM Types — Deviz Items (F071, F074, F125) ──────────────────────────────
+
+export interface DevizItem {
+  id: string;
+  project_id: string;
+  wbs_node_id?: string;
+  parent_id?: string;
+  code?: string;
+  description: string;
+  unit_of_measure: string;
+  estimated_quantity: number;
+  estimated_unit_price_material: number;
+  estimated_unit_price_labor: number;
+  estimated_total: number;
+  actual_quantity: number;
+  actual_unit_price_material: number;
+  actual_unit_price_labor: number;
+  actual_total: number;
+  currency: string;
+  sort_order: number;
+  over_budget_alert: boolean;
+  import_source?: string;
+  import_reference?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+// ─── PM Types — SdL Generator (E-039, F079) ─────────────────────────────────
+
+export interface SdLGeneratorItem {
+  deviz_item_id: string;
+  code?: string;
+  description: string;
+  unit_of_measure: string;
+  contracted_qty: number;
+  contracted_unit_price: number;
+  contracted_total: number;
+  previous_cumulated_qty: number;
+  current_period_qty: number;
+  new_cumulated_qty: number;
+  remaining_qty: number;
+  current_period_value: number;
+  cumulated_value: number;
+  percent_complete: number;
+}
+
+export interface SdLGeneratorPreview {
+  project_id: string;
+  sdl_number: string;
+  period_month: number;
+  period_year: number;
+  items: SdLGeneratorItem[];
+  total_contracted: number;
+  total_current_period: number;
+  total_cumulated: number;
+  total_remaining: number;
+  is_first_sdl: boolean;
+  is_final_sdl: boolean;
+}
+
+// ─── PM Types — Gantt Resource Overlay (E-038, F083, F117, F118) ─────────────
+
+export interface GanttResourceRow {
+  allocation_id: string;
+  task_id: string;
+  resource_type: "employee" | "equipment";
+  resource_name: string;
+  resource_id: string;
+  start_date: string;
+  end_date: string;
+  allocated_hours: number;
+  allocation_percent: number;
+  has_conflict: boolean;
+  conflict_details?: {
+    conflicting_task_id: string;
+    conflicting_task_title: string;
+    overlap_start: string;
+    overlap_end: string;
+  };
+}
+
+export interface ResourceConflict {
+  resource_id: string;
+  resource_name: string;
+  resource_type: "employee" | "equipment";
+  task_a_id: string;
+  task_a_title: string;
+  task_b_id: string;
+  task_b_title: string;
+  overlap_start: string;
+  overlap_end: string;
+  resolution_options: ("reallocate" | "postpone" | "subcontract")[];
+}
+
 // ─── Pipeline Types — Contracts (F031, F035, F063) ───────────────────────────
 
 export type ContractStatus =

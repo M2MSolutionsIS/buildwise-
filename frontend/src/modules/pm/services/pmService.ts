@@ -24,6 +24,10 @@ import type {
   EnergyImpact,
   ProjectReport,
   EnergyPortfolio,
+  DevizItem,
+  GanttResourceRow,
+  ResourceConflict,
+  SdLGeneratorPreview,
 } from "../../../types";
 
 const BASE = "/pm";
@@ -504,6 +508,73 @@ export const pmService = {
   ): Promise<Blob> => {
     const { data } = await api.get(`${BASE}/completed-projects/export`, {
       params: { format },
+      responseType: "blob",
+    });
+    return data;
+  },
+
+  // ─── Deviz Items (F071, F074, F125) ─────────────────────────────────────────
+
+  listDevizItems: async (
+    projectId: string
+  ): Promise<ApiResponse<DevizItem[]>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/deviz-items`);
+    return data;
+  },
+
+  // ─── Gantt Resources — E-038 Dual-Layer (F083, F117, F118) ──────────────────
+
+  listGanttResources: async (
+    projectId: string
+  ): Promise<ApiResponse<GanttResourceRow[]>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/gantt/resources`);
+    return data;
+  },
+
+  listResourceConflicts: async (
+    projectId: string
+  ): Promise<ApiResponse<ResourceConflict[]>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/gantt/conflicts`);
+    return data;
+  },
+
+  resolveConflict: async (
+    projectId: string,
+    conflictPayload: { resource_id: string; resolution: string; details?: Record<string, unknown> }
+  ): Promise<ApiResponse<unknown>> => {
+    const { data } = await api.post(
+      `${BASE}/projects/${projectId}/gantt/resolve-conflict`,
+      conflictPayload
+    );
+    return data;
+  },
+
+  // ─── SdL Generator — E-039 (F079) ──────────────────────────────────────────
+
+  generateSdLPreview: async (
+    projectId: string,
+    payload: { period_month: number; period_year: number; items: { deviz_item_id: string; current_period_qty: number }[] }
+  ): Promise<ApiResponse<SdLGeneratorPreview>> => {
+    const { data } = await api.post(
+      `${BASE}/projects/${projectId}/sdl/generate-preview`,
+      payload
+    );
+    return data;
+  },
+
+  createSdLFromPreview: async (
+    projectId: string,
+    payload: Record<string, unknown>
+  ): Promise<ApiResponse<WorkSituation>> => {
+    const { data } = await api.post(
+      `${BASE}/projects/${projectId}/sdl/create`,
+      payload
+    );
+    return data;
+  },
+
+  generateSdLPdf: async (sdlId: string): Promise<Blob> => {
+    const { data } = await api.get(`${BASE}/work-situations/${sdlId}/generate-pdf`, {
       responseType: "blob",
     });
     return data;
