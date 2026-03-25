@@ -24,7 +24,6 @@ import {
 } from "antd";
 import {
   DollarOutlined,
-  ThunderboltOutlined,
   WarningOutlined,
   CheckCircleOutlined,
   FundOutlined,
@@ -34,7 +33,7 @@ import {
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { pmService } from "../services/pmService";
-import type { BudgetControl, BudgetCategory } from "../../../types";
+import type { BudgetCategory } from "../../../types";
 
 const { Title, Text } = Typography;
 

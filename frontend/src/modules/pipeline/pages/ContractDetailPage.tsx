@@ -21,14 +21,12 @@ import {
   Alert,
   Divider,
   message,
-  Popconfirm,
   Modal,
   Input,
 } from "antd";
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
-  EditOutlined,
   FileTextOutlined,
   UserOutlined,
   ProjectOutlined,
@@ -38,7 +36,7 @@ import {
 import { useState } from "react";
 import { pipelineService } from "../services/pipelineService";
 import { contactService } from "../../../services/contactService";
-import type { Contract, ContractStatus } from "../../../types";
+import type { Contract } from "../../../types";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -73,15 +71,6 @@ function fmtDate(d?: string | null): string {
   return new Date(d).toLocaleDateString("ro-RO");
 }
 
-function fmtCurrency(v?: number | null, cur?: string): string {
-  if (v == null) return "—";
-  return new Intl.NumberFormat("ro-RO", {
-    style: "currency",
-    currency: cur || "RON",
-    maximumFractionDigits: 0,
-  }).format(v);
-}
-
 export default function ContractDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -107,7 +96,7 @@ export default function ContractDetailPage() {
   // Fetch linked contact
   const { data: contactData } = useQuery({
     queryKey: ["contact", contract?.contact_id],
-    queryFn: () => contactService.getById(contract!.contact_id),
+    queryFn: () => contactService.get(contract!.contact_id),
     enabled: !!contract?.contact_id,
   });
 
@@ -135,7 +124,7 @@ export default function ContractDetailPage() {
     );
   }
 
-  const statusCfg = STATUS_CONFIG[contract.status] ?? STATUS_CONFIG.draft;
+  const statusCfg = STATUS_CONFIG[contract.status] ?? STATUS_CONFIG.draft!;
   const canSign = ["approved", "sent", "negotiation"].includes(contract.status);
   const canTerminate = ["signed", "active"].includes(contract.status);
   const hasProject = !!contract.project_id;

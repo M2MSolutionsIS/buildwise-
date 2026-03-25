@@ -26,7 +26,7 @@ import {
   ArrowDownOutlined,
   ProjectOutlined,
 } from "@ant-design/icons";
-import type { PMProjectListItem, EnergyImpact } from "../../../types";
+// types used implicitly via API responses
 import { pmService } from "../services/pmService";
 
 /* ─── Constants ───────────────────────────────────────────────────────────── */

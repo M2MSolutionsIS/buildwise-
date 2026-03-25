@@ -23,7 +23,6 @@ import {
 import {
   SearchOutlined,
   ProjectOutlined,
-  PlusOutlined,
   TeamOutlined,
   FileTextOutlined,
   ThunderboltOutlined,

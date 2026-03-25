@@ -70,7 +70,7 @@ export default function GlobalSearchModal({ open, onClose }: Props) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Reset on open
   useEffect(() => {
@@ -168,7 +168,7 @@ export default function GlobalSearchModal({ open, onClose }: Props) {
   // Group results by type
   const grouped = results.reduce<Record<string, SearchResult[]>>((acc, r) => {
     if (!acc[r.type]) acc[r.type] = [];
-    acc[r.type].push(r);
+    acc[r.type]!.push(r);
     return acc;
   }, {});
 

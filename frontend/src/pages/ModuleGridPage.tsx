@@ -7,9 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, Row, Col, Typography, Space, Badge, theme } from "antd";
 import {
   TeamOutlined,
-  FunnelPlotOutlined,
   ProjectOutlined,
-  ToolOutlined,
   BarChartOutlined,
   SettingOutlined,
   ContactsOutlined,
