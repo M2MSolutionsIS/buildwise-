@@ -1092,6 +1092,72 @@ export interface EnergyPortfolio {
   avg_u_value_post?: number;
 }
 
+// ─── PM Types — Import Engine (E-037, F123) ──────────────────────────────────
+
+export type ImportSourceType = "intersoft" | "edevize" | "csv" | "excel";
+export type ImportJobStatus = "pending" | "mapping" | "importing" | "completed" | "error";
+
+export interface ImportJob {
+  id: string;
+  project_id: string;
+  source_type: ImportSourceType;
+  file_name: string;
+  status: ImportJobStatus;
+  mapping_config?: Record<string, unknown>;
+  preview_data?: ImportPreviewItem[];
+  error_log?: ImportError[];
+  records_imported: number;
+  records_total: number;
+  completed_at?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface ImportPreviewItem {
+  row_index: number;
+  code?: string;
+  description: string;
+  unit_of_measure: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+  is_valid: boolean;
+  errors?: ImportError[];
+  wbs_node_id?: string;
+  wbs_node_name?: string;
+  match_score?: number;
+  duplicate_action?: "overwrite" | "sum" | "exclude";
+  is_duplicate?: boolean;
+}
+
+export interface ImportError {
+  row?: number;
+  col?: string;
+  message: string;
+  severity: "error" | "warning";
+}
+
+export interface ImportUploadResponse {
+  session_id: string;
+  items: ImportPreviewItem[];
+  errors: ImportError[];
+  total_rows: number;
+  valid_rows: number;
+}
+
+export interface ImportMappingPayload {
+  items: { import_row_index: number; wbs_node_id: string | null }[];
+  duplicate_action: "overwrite" | "sum" | "exclude";
+}
+
+export interface RMProjectSummary {
+  teams_allocated: number;
+  equipment_count: number;
+  utilization_percent: number;
+  conflicts_count: number;
+  allocations: ResourceAllocation[];
+}
+
 // ─── PM Types — Deviz Items (F071, F074, F125) ──────────────────────────────
 
 export interface DevizItem {

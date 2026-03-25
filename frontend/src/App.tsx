@@ -35,6 +35,8 @@ import ProjectReportPage from "./modules/pm/pages/ProjectReportPage";
 import CompletedProjectsArchivePage from "./modules/pm/pages/CompletedProjectsArchivePage";
 import EnergyPortfolioPage from "./modules/pm/pages/EnergyPortfolioPage";
 import ProjectsListPage from "./modules/pm/pages/ProjectsListPage";
+import ImportEnginePage from "./modules/pm/pages/ImportEnginePage";
+import RMProjectPage from "./modules/pm/pages/RMProjectPage";
 import ResourceDashboardPage from "./modules/rm/pages/ResourceDashboardPage";
 import EmployeesPage from "./modules/rm/pages/EmployeesPage";
 import EquipmentPage from "./modules/rm/pages/EquipmentPage";
@@ -136,6 +138,9 @@ function App() {
                   <Route path="projects/:projectId/reception" element={<ReceptionPunchListPage />} />
                   <Route path="projects/:projectId/warranties" element={<WarrantyTrackingPage />} />
                   <Route path="projects/:projectId/energy-impact" element={<EnergyImpactPage />} />
+                  {/* Task 28: Import Engine (E-037, F123) + RM Project (E-014.7, F083) */}
+                  <Route path="projects/:projectId/import" element={<ImportEnginePage />} />
+                  <Route path="projects/:projectId/resources" element={<RMProjectPage />} />
                   {/* Task 18: Rapoarte PM + Arhivă — F090, F091, F095, F142, F161 */}
                   <Route path="projects/:projectId/report" element={<ProjectReportPage />} />
                   <Route path="archive" element={<CompletedProjectsArchivePage />} />
