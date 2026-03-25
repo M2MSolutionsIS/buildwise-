@@ -3,8 +3,11 @@
  * Pagină Home cu secțiuni: Internal Activity, CRM, Sales Pipeline,
  * PM, Resource Management, BI, Setări.
  */
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, Row, Col, Typography, Space, Badge, theme } from "antd";
+import { Card, Row, Col, Typography, Space, Badge, Tag, theme } from "antd";
+import { usePrototypeStore } from "../stores/prototypeStore";
+import { useBrandingStore } from "../stores/brandingStore";
 import {
   TeamOutlined,
   ProjectOutlined,
@@ -38,10 +41,14 @@ interface ModuleCard {
   color: string;
   link: string;
   badge?: number;
+  /** Minimum prototype required: "P1" = all, "P2" = P2+P3, "P3" = P3 only */
+  minPrototype?: "P1" | "P2" | "P3";
 }
 
 interface ModuleSection {
   title: string;
+  /** Minimum prototype required for the entire section */
+  minPrototype?: "P1" | "P2" | "P3";
   cards: ModuleCard[];
 }
 
@@ -135,6 +142,7 @@ const sections: ModuleSection[] = [
   },
   {
     title: "Resource Management",
+    minPrototype: "P2",
     cards: [
       {
         key: "employees",
@@ -224,22 +232,56 @@ const sections: ModuleSection[] = [
 
 /* ─── Component ───────────────────────────────────────────────────────────── */
 
+function isPrototypeVisible(minProto: "P1" | "P2" | "P3" | undefined, active: "P1" | "P2" | "P3"): boolean {
+  if (!minProto || minProto === "P1") return true;
+  if (minProto === "P2") return active === "P2" || active === "P3";
+  if (minProto === "P3") return active === "P3";
+  return true;
+}
+
+const PROTO_LABELS = {
+  P1: "BuildWise TRL5 — Energy + AI",
+  P2: "BAHM Operational — Construcții",
+  P3: "M2M ERP Lite — SaaS",
+};
+
+const PROTO_COLORS = { P1: "#52c41a", P2: "#1677ff", P3: "#722ed1" };
+
 export default function ModuleGridPage() {
   const navigate = useNavigate();
   const { token } = theme.useToken();
+  const { activePrototype } = usePrototypeStore();
+  const { appName, whiteLabelEnabled } = useBrandingStore();
+
+  const filteredSections = useMemo(
+    () =>
+      sections
+        .filter((s) => isPrototypeVisible(s.minPrototype, activePrototype))
+        .map((s) => ({
+          ...s,
+          cards: s.cards.filter((c) => isPrototypeVisible(c.minPrototype, activePrototype)),
+        }))
+        .filter((s) => s.cards.length > 0),
+    [activePrototype]
+  );
 
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0 }}>
-          BuildWise
-        </Title>
-        <Text type="secondary">
-          F157 | Selectează un modul pentru a începe
-        </Text>
+        <Space align="baseline">
+          <Title level={3} style={{ margin: 0 }}>
+            {whiteLabelEnabled ? appName : "BuildWise"}
+          </Title>
+          <Tag color={PROTO_COLORS[activePrototype]}>{activePrototype}</Tag>
+        </Space>
+        <div>
+          <Text type="secondary">
+            {PROTO_LABELS[activePrototype]} | Selectează un modul pentru a începe
+          </Text>
+        </div>
       </div>
 
-      {sections.map((section) => (
+      {filteredSections.map((section) => (
         <div key={section.title} style={{ marginBottom: 32 }}>
           <Title
             level={5}

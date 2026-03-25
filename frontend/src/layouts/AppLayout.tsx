@@ -4,7 +4,7 @@
  * Breadcrumbs dinamic, Search global (Ctrl+K), Notificări,
  * Layout responsive cu drawer pe mobile.
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Layout,
@@ -60,8 +60,10 @@ import { useAuthStore } from "../stores/authStore";
 import { useBrandingStore } from "../stores/brandingStore";
 import { useQuery } from "@tanstack/react-query";
 import { authService } from "../services/authService";
+import { usePrototypeStore } from "../stores/prototypeStore";
 import NotificationsDropdown from "../modules/system/components/NotificationsDropdown";
 import GlobalSearchModal from "../components/GlobalSearchModal";
+import PrototypeSwitcher from "../components/PrototypeSwitcher";
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -242,6 +244,7 @@ export default function AppLayout() {
   const { token } = theme.useToken();
   const { user, setUser, logout } = useAuthStore();
   const { appName, logoUrl, primaryColor: brandPrimary, whiteLabelEnabled } = useBrandingStore();
+  const { isRouteVisible } = usePrototypeStore();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
 
@@ -329,6 +332,23 @@ export default function AppLayout() {
 
   const selectedKeys = [location.pathname];
   const openKeys = pathSegments.length > 0 ? [`/${pathSegments[0]}`] : [];
+
+  /* ─── Filter menu by active prototype ──────────────────────────────────── */
+
+  const filteredMenuItems = useMemo(() => {
+    return menuItems
+      .filter((item) => isRouteVisible(item.key))
+      .map((item) => {
+        if (item.children) {
+          return {
+            ...item,
+            children: item.children.filter((child) => isRouteVisible(child.key)),
+          };
+        }
+        return item;
+      })
+      .filter((item) => !item.children || item.children.length > 0);
+  }, [isRouteVisible]);
 
   /* ─── Detect project context for F158 contextual sub-nav ───────────────── */
 
@@ -425,7 +445,7 @@ export default function AppLayout() {
         mode="inline"
         selectedKeys={selectedKeys}
         defaultOpenKeys={openKeys}
-        items={menuItems}
+        items={filteredMenuItems}
         onClick={handleMenuClick}
         style={{ borderRight: 0, flex: 1 }}
       />
@@ -547,6 +567,9 @@ export default function AppLayout() {
           </Space>
 
           <Space size="middle">
+            {/* Prototype Switcher — P1/P2/P3 */}
+            {!isMobile && <PrototypeSwitcher />}
+
             {/* E-026: Global Search Trigger */}
             <Tooltip title="Căutare globală (Ctrl+K)">
               <Button
