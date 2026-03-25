@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { ConfigProvider, App as AntApp } from "antd";
+import { App as AntApp } from "antd";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import roLocale from "antd/locale/ro_RO";
+import { I18nProvider } from "./i18n";
+import ThemeProvider from "./components/ThemeProvider";
 import AppLayout from "./layouts/AppLayout";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./modules/crm/pages/DashboardPage";
@@ -51,6 +52,7 @@ import ExecutiveDashboardPage from "./modules/bi/pages/ExecutiveDashboardPage";
 import KPIDashboardPage from "./modules/bi/pages/KPIDashboardPage";
 import KPIBuilderPage from "./modules/bi/pages/KPIBuilderPage";
 import ReportsBuilderPage from "./modules/bi/pages/ReportsBuilderPage";
+import BrandingSettingsPage from "./modules/system/pages/BrandingSettingsPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -73,17 +75,10 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ConfigProvider
-        locale={roLocale}
-        theme={{
-          token: {
-            colorPrimary: "#1677ff",
-            borderRadius: 6,
-          },
-        }}
-      >
-        <AntApp>
-          <BrowserRouter>
+      <I18nProvider>
+        <ThemeProvider>
+          <AntApp>
+            <BrowserRouter>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               {/* F160: Tenant Setup Wizard — SaaS onboarding (P3) */}
@@ -183,14 +178,17 @@ function App() {
                   <Route path="reports" element={<ReportsBuilderPage />} />
                 </Route>
                 <Route path="settings" element={<PlaceholderPage title="Setări" />} />
+                {/* Task 32: F137 Branding + F138 Multi-limbă */}
+                <Route path="settings/branding" element={<BrandingSettingsPage />} />
                 {/* Task 30: Configuratoare avansate — F061, F131 */}
                 <Route path="settings/pipeline" element={<PipelineConfiguratorPage />} />
                 <Route path="settings/rm" element={<RMConfiguratorPage />} />
               </Route>
             </Routes>
-          </BrowserRouter>
-        </AntApp>
-      </ConfigProvider>
+            </BrowserRouter>
+          </AntApp>
+        </ThemeProvider>
+      </I18nProvider>
     </QueryClientProvider>
   );
 }

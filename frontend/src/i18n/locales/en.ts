@@ -1,0 +1,183 @@
+/**
+ * F138: English translations — bilingual support for offers/contracts
+ */
+import type { TranslationKeys } from "./ro";
+
+const en: TranslationKeys = {
+  // ─── Common ──────────────────────────────────────────────────────────────────
+  common: {
+    save: "Save",
+    cancel: "Cancel",
+    delete: "Delete",
+    edit: "Edit",
+    create: "Create",
+    add: "Add",
+    close: "Close",
+    search: "Search",
+    filter: "Filter",
+    export: "Export",
+    import: "Import",
+    back: "Back",
+    next: "Next",
+    finish: "Finish",
+    loading: "Loading...",
+    noData: "No records",
+    confirm: "Confirm",
+    yes: "Yes",
+    no: "No",
+    actions: "Actions",
+    status: "Status",
+    name: "Name",
+    description: "Description",
+    date: "Date",
+    total: "Total",
+    all: "All",
+    active: "Active",
+    inactive: "Inactive",
+  },
+
+  // ─── Navigation ──────────────────────────────────────────────────────────────
+  nav: {
+    home: "Home",
+    crm: "CRM",
+    contacts: "Contacts",
+    pipeline: "Sales Pipeline",
+    pipelineKanban: "Pipeline Kanban",
+    opportunities: "Opportunities",
+    offers: "Offers",
+    contracts: "Contracts",
+    activities: "Activities",
+    salesDashboard: "Sales Dashboard",
+    pm: "Project Management",
+    projects: "Projects",
+    archive: "Project Archive",
+    energyPortfolio: "Energy Portfolio",
+    rm: "Resource Management",
+    employees: "Employees",
+    equipment: "Equipment",
+    materials: "Materials",
+    capacity: "Capacity",
+    financialPlanning: "Financial Planning",
+    bi: "Business Intelligence",
+    executiveDashboard: "Executive Dashboard",
+    reports: "Reports",
+    kpiDashboard: "KPI Dashboard",
+    kpiBuilder: "KPI Builder",
+    settings: "Settings",
+    branding: "Branding",
+    users: "Users",
+    roles: "Roles",
+    auditLog: "Audit Log",
+  },
+
+  // ─── CRM Module ──────────────────────────────────────────────────────────────
+  crm: {
+    contactsList: "Contacts List",
+    newContact: "New Contact",
+    contactName: "Contact Name",
+    company: "Company",
+    email: "Email",
+    phone: "Phone",
+    type: "Contact Type",
+    lead: "Lead",
+    client: "Client",
+    partner: "Partner",
+    supplier: "Supplier",
+  },
+
+  // ─── Pipeline Module ─────────────────────────────────────────────────────────
+  pipeline: {
+    newOpportunity: "New Opportunity",
+    estimatedValue: "Estimated Value",
+    probability: "Probability",
+    stage: "Stage",
+    expectedClose: "Expected Close Date",
+    wonLost: "Won/Lost",
+    offerBuilder: "Offer Builder",
+    contractDetail: "Contract Details",
+  },
+
+  // ─── PM Module ───────────────────────────────────────────────────────────────
+  pm: {
+    projectsList: "Projects List",
+    ganttChart: "Gantt Chart",
+    timesheet: "Timesheet",
+    materialConsumption: "Material Consumption",
+    subcontractors: "Subcontractors",
+    dailyReport: "Daily Report",
+    progressMonitoring: "Progress Monitoring",
+    budgetControl: "Budget Control",
+    workSituations: "Work Situations",
+    riskRegister: "Risk Register",
+    reception: "Reception",
+    warranties: "Warranties",
+    energyImpact: "Energy Impact",
+  },
+
+  // ─── RM Module ───────────────────────────────────────────────────────────────
+  rm: {
+    dashboard: "Resource Dashboard",
+    employeesList: "Employees List",
+    equipmentList: "Equipment List",
+    materialStock: "Material Stock",
+    companyCapacity: "Company Capacity",
+  },
+
+  // ─── BI Module ───────────────────────────────────────────────────────────────
+  bi: {
+    executiveSummary: "Executive Summary",
+    kpiDashboard: "KPI Dashboard",
+    kpiBuilder: "KPI Builder",
+    reportsBuilder: "Reports Builder",
+    allModules: "All modules",
+    ok: "OK",
+    warning: "Warning",
+    critical: "Critical",
+  },
+
+  // ─── Settings / Branding (F137, F138) ─────────────────────────────────────
+  settings: {
+    branding: "Branding & Customization",
+    brandingDesc: "Configure the visual appearance, logo and colors of the platform.",
+    logo: "Logo",
+    logoDesc: "The logo appears in the sidebar, generated documents and emails.",
+    uploadLogo: "Upload Logo",
+    removeLogo: "Remove Logo",
+    primaryColor: "Primary Color",
+    secondaryColor: "Secondary Color",
+    colors: "Colors",
+    colorsDesc: "Colors are applied globally in the interface and on generated documents.",
+    fonts: "Fonts",
+    fontFamily: "Primary Font",
+    fontDesc: "The font is applied across the entire platform.",
+    language: "Language",
+    languageSettings: "Language Settings",
+    languageDesc: "Default language and bilingual support for documents.",
+    defaultLanguage: "Default Language",
+    bilingualDocs: "Bilingual Documents",
+    bilingualDocsDesc: "Generate offers and contracts in both languages (RO+EN).",
+    secondaryLanguage: "Secondary Language (documents)",
+    currency: "Currency",
+    whiteLabel: "White-Label",
+    whiteLabelDesc: "The app looks like the client's own product, no BuildWise branding.",
+    appName: "Application Name",
+    appNameDesc: "Replace 'BuildWise' with your own name in sidebar and documents.",
+    preview: "Preview",
+    saveSuccess: "Branding settings saved successfully.",
+    saveError: "Error saving branding settings.",
+  },
+
+  // ─── Documents (bilingual support F138) ────────────────────────────────────
+  docs: {
+    offer: "Offer",
+    contract: "Contract",
+    invoice: "Invoice",
+    generatedOn: "Generated on",
+    page: "Page",
+    bilingual: "Bilingual (RO+EN)",
+    signatureClient: "Client Signature",
+    signatureProvider: "Provider Signature",
+  },
+};
+
+export default en;
