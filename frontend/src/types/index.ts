@@ -236,6 +236,74 @@ export interface DuplicateCheckResponse {
   matches: DuplicateMatch[];
 }
 
+// ─── Pipeline Stage Config (F061) ───────────────────────────────────────────
+
+export interface PipelineStageConfig {
+  id: string;
+  organization_id: string;
+  name: string;
+  code: string;
+  sort_order: number;
+  color?: string;
+  win_probability?: number;
+  stagnation_days?: number;
+  required_fields?: string[];
+  auto_advance_rules?: {
+    field: string;
+    operator: "equals" | "greater_than" | "not_empty" | "contains";
+    value: string;
+    target_stage_code: string;
+  }[];
+  is_active: boolean;
+  is_closed_won: boolean;
+  is_closed_lost: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+// ─── RM Configurator Types (F131) ───────────────────────────────────────────
+
+export interface RMResourceCategory {
+  id: string;
+  organization_id: string;
+  name: string;
+  code: string;
+  resource_type: "employee" | "equipment" | "material";
+  description?: string;
+  default_unit?: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface RMUnitOfMeasure {
+  id: string;
+  organization_id: string;
+  name: string;
+  code: string;
+  category: "time" | "quantity" | "weight" | "volume" | "area" | "length";
+  is_active: boolean;
+  sort_order: number;
+}
+
+export interface RMAlertThreshold {
+  id: string;
+  organization_id: string;
+  metric: string;
+  threshold_type: "min" | "max" | "range";
+  warning_value: number;
+  critical_value: number;
+  is_active: boolean;
+  applies_to: "employee" | "equipment" | "material" | "all";
+  notification_enabled: boolean;
+}
+
+export interface RMConfig {
+  categories: RMResourceCategory[];
+  units: RMUnitOfMeasure[];
+  thresholds: RMAlertThreshold[];
+}
+
 // Pipeline Types — Offers (F019, F023, F026, F027, F028, F029, F049)
 
 export type OfferStatus =

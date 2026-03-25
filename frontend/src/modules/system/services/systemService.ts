@@ -10,6 +10,10 @@ import type {
   SystemRole,
   FeatureFlag,
   User,
+  PipelineStageConfig,
+  RMResourceCategory,
+  RMUnitOfMeasure,
+  RMAlertThreshold,
 } from "../../../types";
 
 const BASE = "/system";
@@ -111,6 +115,108 @@ export const systemService = {
   ): Promise<ApiResponse<FeatureFlag>> => {
     const { data } = await api.put(`${BASE}/feature-flags/${flagId}`, payload);
     return data;
+  },
+
+  // ─── Audit Logs (F041) ────────────────────────────────────────────────────
+
+  // ─── Pipeline Stages Config (F061) ──────────────────────────────────────────
+
+  listPipelineStages: async (): Promise<ApiResponse<PipelineStageConfig[]>> => {
+    const { data } = await api.get(`${BASE}/pipeline-stages`);
+    return data;
+  },
+
+  createPipelineStage: async (
+    payload: Partial<PipelineStageConfig>
+  ): Promise<ApiResponse<PipelineStageConfig>> => {
+    const { data } = await api.post(`${BASE}/pipeline-stages`, payload);
+    return data;
+  },
+
+  updatePipelineStage: async (
+    stageId: string,
+    payload: Partial<PipelineStageConfig>
+  ): Promise<ApiResponse<PipelineStageConfig>> => {
+    const { data } = await api.put(`${BASE}/pipeline-stages/${stageId}`, payload);
+    return data;
+  },
+
+  deletePipelineStage: async (stageId: string): Promise<void> => {
+    await api.delete(`${BASE}/pipeline-stages/${stageId}`);
+  },
+
+  // ─── RM Configurator (F131) ───────────────────────────────────────────────
+
+  listRMCategories: async (): Promise<ApiResponse<RMResourceCategory[]>> => {
+    const { data } = await api.get(`${BASE}/rm-config/categories`);
+    return data;
+  },
+
+  createRMCategory: async (
+    payload: Partial<RMResourceCategory>
+  ): Promise<ApiResponse<RMResourceCategory>> => {
+    const { data } = await api.post(`${BASE}/rm-config/categories`, payload);
+    return data;
+  },
+
+  updateRMCategory: async (
+    catId: string,
+    payload: Partial<RMResourceCategory>
+  ): Promise<ApiResponse<RMResourceCategory>> => {
+    const { data } = await api.put(`${BASE}/rm-config/categories/${catId}`, payload);
+    return data;
+  },
+
+  deleteRMCategory: async (catId: string): Promise<void> => {
+    await api.delete(`${BASE}/rm-config/categories/${catId}`);
+  },
+
+  listRMUnits: async (): Promise<ApiResponse<RMUnitOfMeasure[]>> => {
+    const { data } = await api.get(`${BASE}/rm-config/units`);
+    return data;
+  },
+
+  createRMUnit: async (
+    payload: Partial<RMUnitOfMeasure>
+  ): Promise<ApiResponse<RMUnitOfMeasure>> => {
+    const { data } = await api.post(`${BASE}/rm-config/units`, payload);
+    return data;
+  },
+
+  updateRMUnit: async (
+    unitId: string,
+    payload: Partial<RMUnitOfMeasure>
+  ): Promise<ApiResponse<RMUnitOfMeasure>> => {
+    const { data } = await api.put(`${BASE}/rm-config/units/${unitId}`, payload);
+    return data;
+  },
+
+  deleteRMUnit: async (unitId: string): Promise<void> => {
+    await api.delete(`${BASE}/rm-config/units/${unitId}`);
+  },
+
+  listRMThresholds: async (): Promise<ApiResponse<RMAlertThreshold[]>> => {
+    const { data } = await api.get(`${BASE}/rm-config/thresholds`);
+    return data;
+  },
+
+  createRMThreshold: async (
+    payload: Partial<RMAlertThreshold>
+  ): Promise<ApiResponse<RMAlertThreshold>> => {
+    const { data } = await api.post(`${BASE}/rm-config/thresholds`, payload);
+    return data;
+  },
+
+  updateRMThreshold: async (
+    thresholdId: string,
+    payload: Partial<RMAlertThreshold>
+  ): Promise<ApiResponse<RMAlertThreshold>> => {
+    const { data } = await api.put(`${BASE}/rm-config/thresholds/${thresholdId}`, payload);
+    return data;
+  },
+
+  deleteRMThreshold: async (thresholdId: string): Promise<void> => {
+    await api.delete(`${BASE}/rm-config/thresholds/${thresholdId}`);
   },
 
   // ─── Audit Logs (F041) ────────────────────────────────────────────────────

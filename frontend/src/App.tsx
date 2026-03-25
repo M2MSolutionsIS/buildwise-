@@ -45,6 +45,8 @@ import CompanyCapacityPage from "./modules/rm/pages/CompanyCapacityPage";
 import FinancialPlanningPage from "./modules/rm/pages/FinancialPlanningPage";
 import ModuleGridPage from "./pages/ModuleGridPage";
 import TenantSetupWizard from "./modules/system/pages/TenantSetupWizard";
+import PipelineConfiguratorPage from "./modules/system/pages/PipelineConfiguratorPage";
+import RMConfiguratorPage from "./modules/system/pages/RMConfiguratorPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -170,6 +172,9 @@ function App() {
                 </Route>
                 <Route path="bi" element={<PlaceholderPage title="Business Intelligence" />} />
                 <Route path="settings" element={<PlaceholderPage title="Setări" />} />
+                {/* Task 30: Configuratoare avansate — F061, F131 */}
+                <Route path="settings/pipeline" element={<PipelineConfiguratorPage />} />
+                <Route path="settings/rm" element={<RMConfiguratorPage />} />
               </Route>
             </Routes>
           </BrowserRouter>
