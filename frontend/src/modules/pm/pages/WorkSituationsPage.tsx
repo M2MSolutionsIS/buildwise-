@@ -1,10 +1,19 @@
 /**
- * Situații de Lucrări (SdL) — F079
- * Cantități lunare: contractat vs executat vs cumulat.
- * Generare din deviz, link "Emite factură" → Billing (F035).
- * Approval workflow + invoice tracking.
+ * E-039 — Situații de Lucrări (SdL) + SdL Generator
+ * F-codes: F079 (Situații de Lucrări — evidență + generare),
+ *          F078 (Monitorizare avansare proiect)
+ *
+ * Features:
+ * - Lista SdL existente cu approval workflow
+ * - E-039: SdL Generator wizard — generare automată din deviz:
+ *   Step 1: Selectare perioadă + articole din deviz
+ *   Step 2: Input cantități realizate în perioadă
+ *   Step 3: Preview cu calcul automat (cumulat, valoric, % din contract)
+ *   Step 4: Generare + PDF
+ * - Banner "Prima SdL" / "SdL finală — recepție"
+ * - Link Emite factură → Billing (F035)
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Card,
   Table,
@@ -24,6 +33,10 @@ import {
   Popconfirm,
   Tooltip,
   Progress,
+  Steps,
+  Alert,
+  Divider,
+  Spin,
 } from "antd";
 import {
   PlusOutlined,
@@ -32,13 +45,17 @@ import {
   FileTextOutlined,
   DollarOutlined,
   FileDoneOutlined,
-  WarningOutlined,
   CalendarOutlined,
+  ThunderboltOutlined,
+  FilePdfOutlined,
+  ArrowRightOutlined,
+  ArrowLeftOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { pmService } from "../services/pmService";
-import type { WorkSituation } from "../../../types";
+import type { WorkSituation, DevizItem, SdLGeneratorItem } from "../../../types";
 
 const { Title, Text } = Typography;
 
@@ -49,10 +66,32 @@ const MONTHS = [
 
 export default function WorkSituationsPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form] = Form.useForm();
+
+  // E-039: SdL Generator wizard state
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState(0);
+  const [wizardPeriod, setWizardPeriod] = useState<{ month: number; year: number }>({
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+  });
+  const [wizardItems, setWizardItems] = useState<
+    { deviz_item_id: string; current_period_qty: number; selected: boolean }[]
+  >([]);
+  const [wizardPreview, setWizardPreview] = useState<SdLGeneratorItem[] | null>(null);
+  const [wizardTotals, setWizardTotals] = useState<{
+    total_contracted: number;
+    total_current_period: number;
+    total_cumulated: number;
+    total_remaining: number;
+    is_first_sdl: boolean;
+    is_final_sdl: boolean;
+    sdl_number: string;
+  } | null>(null);
 
   // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -62,7 +101,15 @@ export default function WorkSituationsPage() {
     enabled: !!projectId,
   });
 
+  // E-039: Fetch deviz items for generator
+  const { data: devizRes, isLoading: devizLoading } = useQuery({
+    queryKey: ["deviz-items", projectId],
+    queryFn: () => pmService.listDevizItems(projectId!),
+    enabled: !!projectId && wizardOpen,
+  });
+
   const sdls = sdlRes?.data ?? [];
+  const devizItems: DevizItem[] = devizRes?.data ?? [];
 
   // ─── Mutations ──────────────────────────────────────────────────────────────
 
@@ -96,7 +143,120 @@ export default function WorkSituationsPage() {
     },
   });
 
+  // E-039: Generate SdL preview mutation
+  const previewMut = useMutation({
+    mutationFn: () =>
+      pmService.generateSdLPreview(projectId!, {
+        period_month: wizardPeriod.month,
+        period_year: wizardPeriod.year,
+        items: wizardItems
+          .filter((i) => i.selected && i.current_period_qty > 0)
+          .map((i) => ({
+            deviz_item_id: i.deviz_item_id,
+            current_period_qty: i.current_period_qty,
+          })),
+      }),
+    onSuccess: (res) => {
+      const data = res.data;
+      if (data) {
+        setWizardPreview(data.items);
+        setWizardTotals({
+          total_contracted: data.total_contracted,
+          total_current_period: data.total_current_period,
+          total_cumulated: data.total_cumulated,
+          total_remaining: data.total_remaining,
+          is_first_sdl: data.is_first_sdl,
+          is_final_sdl: data.is_final_sdl,
+          sdl_number: data.sdl_number,
+        });
+      }
+      setWizardStep(2);
+    },
+    onError: () => message.error("Eroare la generare preview"),
+  });
+
+  // E-039: Create SdL from preview
+  const createFromPreviewMut = useMutation({
+    mutationFn: () =>
+      pmService.createSdLFromPreview(projectId!, {
+        period_month: wizardPeriod.month,
+        period_year: wizardPeriod.year,
+        sdl_number: wizardTotals?.sdl_number,
+        items: wizardItems
+          .filter((i) => i.selected && i.current_period_qty > 0)
+          .map((i) => ({
+            deviz_item_id: i.deviz_item_id,
+            current_period_qty: i.current_period_qty,
+          })),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["work-situations", projectId] });
+      message.success("Situație de lucrări generată cu succes!");
+      closeWizard();
+    },
+    onError: () => message.error("Eroare la creare SdL"),
+  });
+
+  // E-039: PDF generation
+  const pdfMut = useMutation({
+    mutationFn: (sdlId: string) => pmService.generateSdLPdf(sdlId),
+    onSuccess: (blob) => {
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      message.success("PDF generat");
+    },
+    onError: () => message.error("Eroare la generare PDF"),
+  });
+
   // ─── Helpers ────────────────────────────────────────────────────────────────
+
+  const closeWizard = () => {
+    setWizardOpen(false);
+    setWizardStep(0);
+    setWizardItems([]);
+    setWizardPreview(null);
+    setWizardTotals(null);
+  };
+
+  const openWizard = useCallback(() => {
+    setWizardOpen(true);
+    setWizardStep(0);
+    setWizardPeriod({
+      month: new Date().getMonth() + 1,
+      year: new Date().getFullYear(),
+    });
+    setWizardItems([]);
+    setWizardPreview(null);
+    setWizardTotals(null);
+  }, []);
+
+  // E-039: Initialize wizard items from deviz when deviz loads
+  const initWizardItems = useCallback(() => {
+    if (devizItems.length > 0 && wizardItems.length === 0) {
+      setWizardItems(
+        devizItems.map((d) => ({
+          deviz_item_id: d.id,
+          current_period_qty: 0,
+          selected: true,
+        }))
+      );
+    }
+  }, [devizItems, wizardItems.length]);
+
+  // Auto-init when deviz loads
+  useMemo(() => {
+    if (wizardOpen && devizItems.length > 0 && wizardItems.length === 0) {
+      initWizardItems();
+    }
+  }, [wizardOpen, devizItems, wizardItems.length, initWizardItems]);
+
+  const updateWizardItemQty = (devizItemId: string, qty: number) => {
+    setWizardItems((prev) =>
+      prev.map((i) => (i.deviz_item_id === devizItemId ? { ...i, current_period_qty: qty } : i))
+    );
+  };
+
+  const selectedItemCount = wizardItems.filter((i) => i.selected && i.current_period_qty > 0).length;
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -274,6 +434,14 @@ export default function WorkSituationsPage() {
               </Popconfirm>
             </>
           )}
+          <Tooltip title="Generează PDF">
+            <Button
+              size="small"
+              icon={<FilePdfOutlined />}
+              loading={pdfMut.isPending}
+              onClick={() => pdfMut.mutate(rec.id)}
+            />
+          </Tooltip>
           {rec.is_approved && !rec.is_invoiced && (
             <Tooltip title="Link: Emite factură (F035)">
               <Button size="small" icon={<DollarOutlined />} type="dashed">
@@ -299,9 +467,18 @@ export default function WorkSituationsPage() {
         <Title level={3} style={{ margin: 0 }}>
           <FileDoneOutlined /> Situații de Lucrări — SdL (F079)
         </Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          SdL nouă
-        </Button>
+        <Space>
+          <Button
+            type="primary"
+            icon={<ThunderboltOutlined />}
+            onClick={openWizard}
+          >
+            Generează SdL din Deviz (E-039)
+          </Button>
+          <Button icon={<PlusOutlined />} onClick={openCreate}>
+            SdL manuală
+          </Button>
+        </Space>
       </div>
 
       {/* Stats */}
@@ -508,6 +685,425 @@ export default function WorkSituationsPage() {
             </Col>
           </Row>
         </Form>
+      </Modal>
+
+      {/* E-039: SdL Generator Wizard */}
+      <Modal
+        title={
+          <Space>
+            <ThunderboltOutlined style={{ color: "#1677ff" }} />
+            <span>Generator Situații de Lucrări — din Deviz (E-039)</span>
+          </Space>
+        }
+        open={wizardOpen}
+        onCancel={closeWizard}
+        footer={null}
+        width={960}
+        destroyOnClose
+      >
+        <Steps
+          current={wizardStep}
+          size="small"
+          style={{ marginBottom: 24 }}
+          items={[
+            { title: "Perioadă & Articole" },
+            { title: "Cantități realizate" },
+            { title: "Preview & Generare" },
+          ]}
+        />
+
+        {/* Step 0: Select period + articles from deviz */}
+        {wizardStep === 0 && (
+          <div>
+            <Row gutter={16} style={{ marginBottom: 16 }}>
+              <Col span={8}>
+                <Text strong>Luna:</Text>
+                <Select
+                  value={wizardPeriod.month}
+                  onChange={(v) => setWizardPeriod((p) => ({ ...p, month: v }))}
+                  options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
+                  style={{ width: "100%", marginTop: 4 }}
+                />
+              </Col>
+              <Col span={8}>
+                <Text strong>An:</Text>
+                <InputNumber
+                  value={wizardPeriod.year}
+                  onChange={(v) => setWizardPeriod((p) => ({ ...p, year: v ?? p.year }))}
+                  min={2020}
+                  max={2035}
+                  style={{ width: "100%", marginTop: 4 }}
+                />
+              </Col>
+            </Row>
+
+            <Divider>Articole din Deviz</Divider>
+
+            {devizLoading ? (
+              <Spin style={{ display: "block", margin: "40px auto" }} />
+            ) : devizItems.length === 0 ? (
+              <Alert
+                type="warning"
+                message="Nu există articole în deviz"
+                description="Adăugați articole în devizul proiectului pentru a genera SdL automat."
+              />
+            ) : (
+              <Table
+                dataSource={devizItems}
+                rowKey="id"
+                pagination={false}
+                size="small"
+                scroll={{ y: 300 }}
+                rowSelection={{
+                  selectedRowKeys: wizardItems.filter((i) => i.selected).map((i) => i.deviz_item_id),
+                  onChange: (selectedKeys) => {
+                    setWizardItems((prev) =>
+                      prev.map((i) => ({
+                        ...i,
+                        selected: (selectedKeys as string[]).includes(i.deviz_item_id),
+                      }))
+                    );
+                  },
+                }}
+                columns={[
+                  {
+                    title: "Cod",
+                    dataIndex: "code",
+                    key: "code",
+                    width: 80,
+                    render: (v: string) => <Text code>{v || "—"}</Text>,
+                  },
+                  {
+                    title: "Descriere",
+                    dataIndex: "description",
+                    key: "desc",
+                    ellipsis: true,
+                  },
+                  {
+                    title: "U.M.",
+                    dataIndex: "unit_of_measure",
+                    key: "um",
+                    width: 60,
+                  },
+                  {
+                    title: "Cant. estimată",
+                    dataIndex: "estimated_quantity",
+                    key: "est_qty",
+                    width: 110,
+                    align: "right" as const,
+                  },
+                  {
+                    title: "Preț unitar",
+                    key: "price",
+                    width: 100,
+                    align: "right" as const,
+                    render: (_: unknown, r: DevizItem) =>
+                      `${(r.estimated_unit_price_material + r.estimated_unit_price_labor).toFixed(2)}`,
+                  },
+                  {
+                    title: "Total estimat",
+                    dataIndex: "estimated_total",
+                    key: "est_total",
+                    width: 120,
+                    align: "right" as const,
+                    render: (v: number) => `${v.toLocaleString("ro-RO")} RON`,
+                  },
+                ]}
+              />
+            )}
+
+            <div style={{ textAlign: "right", marginTop: 16 }}>
+              <Button onClick={closeWizard} style={{ marginRight: 8 }}>
+                Anulează
+              </Button>
+              <Button
+                type="primary"
+                icon={<ArrowRightOutlined />}
+                disabled={wizardItems.filter((i) => i.selected).length === 0}
+                onClick={() => setWizardStep(1)}
+              >
+                Pasul următor
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 1: Input quantities for selected articles */}
+        {wizardStep === 1 && (
+          <div>
+            <Alert
+              type="info"
+              message={`Perioadă: ${MONTHS[wizardPeriod.month - 1]} ${wizardPeriod.year}`}
+              description="Introduceți cantitățile realizate în această perioadă pentru fiecare articol selectat."
+              style={{ marginBottom: 16 }}
+            />
+
+            <Table
+              dataSource={devizItems.filter((d) =>
+                wizardItems.find((i) => i.deviz_item_id === d.id && i.selected)
+              )}
+              rowKey="id"
+              pagination={false}
+              size="small"
+              scroll={{ y: 400 }}
+              columns={[
+                {
+                  title: "Cod",
+                  dataIndex: "code",
+                  key: "code",
+                  width: 80,
+                  render: (v: string) => <Text code>{v || "—"}</Text>,
+                },
+                {
+                  title: "Descriere",
+                  dataIndex: "description",
+                  key: "desc",
+                  ellipsis: true,
+                },
+                {
+                  title: "U.M.",
+                  dataIndex: "unit_of_measure",
+                  key: "um",
+                  width: 60,
+                },
+                {
+                  title: "Cant. contract",
+                  dataIndex: "estimated_quantity",
+                  key: "contract_qty",
+                  width: 110,
+                  align: "right" as const,
+                },
+                {
+                  title: "Cant. realizată perioadă",
+                  key: "current_qty",
+                  width: 180,
+                  render: (_: unknown, r: DevizItem) => {
+                    const item = wizardItems.find((i) => i.deviz_item_id === r.id);
+                    return (
+                      <InputNumber
+                        size="small"
+                        min={0}
+                        max={r.estimated_quantity}
+                        step={0.1}
+                        value={item?.current_period_qty ?? 0}
+                        onChange={(v) => updateWizardItemQty(r.id, v ?? 0)}
+                        style={{ width: "100%" }}
+                      />
+                    );
+                  },
+                },
+              ]}
+            />
+
+            <div style={{ textAlign: "right", marginTop: 16 }}>
+              <Button
+                icon={<ArrowLeftOutlined />}
+                onClick={() => setWizardStep(0)}
+                style={{ marginRight: 8 }}
+              >
+                Înapoi
+              </Button>
+              <Button
+                type="primary"
+                icon={<ArrowRightOutlined />}
+                disabled={selectedItemCount === 0}
+                loading={previewMut.isPending}
+                onClick={() => previewMut.mutate()}
+              >
+                Generează Preview ({selectedItemCount} articole)
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Preview + Generate */}
+        {wizardStep === 2 && (
+          <div>
+            {/* E-039: Banners */}
+            {wizardTotals?.is_first_sdl && (
+              <Alert
+                type="info"
+                showIcon
+                icon={<CalendarOutlined />}
+                message="Prima situație de lucrări a proiectului"
+                style={{ marginBottom: 12 }}
+              />
+            )}
+            {wizardTotals?.is_final_sdl && (
+              <Alert
+                type="success"
+                showIcon
+                icon={<CheckCircleOutlined />}
+                message="SdL finală — recepție"
+                description="Cumulatul a ajuns la 100% pe toate articolele."
+                style={{ marginBottom: 12 }}
+                action={
+                  <Button
+                    size="small"
+                    type="primary"
+                    onClick={() => navigate(`/pm/projects/${projectId}/reception`)}
+                  >
+                    Declanșează recepție
+                  </Button>
+                }
+              />
+            )}
+
+            {/* Totals */}
+            <Row gutter={16} style={{ marginBottom: 16 }}>
+              <Col span={6}>
+                <Card size="small">
+                  <Statistic
+                    title="Nr. SdL"
+                    value={wizardTotals?.sdl_number || "—"}
+                    valueStyle={{ fontSize: 16 }}
+                  />
+                </Card>
+              </Col>
+              <Col span={6}>
+                <Card size="small">
+                  <Statistic
+                    title="Total perioadă curentă"
+                    value={wizardTotals?.total_current_period ?? 0}
+                    suffix="RON"
+                    precision={0}
+                  />
+                </Card>
+              </Col>
+              <Col span={6}>
+                <Card size="small">
+                  <Statistic
+                    title="Total cumulat"
+                    value={wizardTotals?.total_cumulated ?? 0}
+                    suffix="RON"
+                    precision={0}
+                    valueStyle={{ color: "#1677ff" }}
+                  />
+                </Card>
+              </Col>
+              <Col span={6}>
+                <Card size="small">
+                  <Statistic
+                    title="Rest de executat"
+                    value={wizardTotals?.total_remaining ?? 0}
+                    suffix="RON"
+                    precision={0}
+                    valueStyle={(wizardTotals?.total_remaining ?? 0) < 0 ? { color: "#ff4d4f" } : undefined}
+                  />
+                </Card>
+              </Col>
+            </Row>
+
+            {/* Preview table */}
+            <Table
+              dataSource={wizardPreview ?? []}
+              rowKey="deviz_item_id"
+              pagination={false}
+              size="small"
+              scroll={{ y: 300 }}
+              columns={[
+                {
+                  title: "Cod",
+                  dataIndex: "code",
+                  key: "code",
+                  width: 70,
+                  render: (v: string) => <Text code>{v || "—"}</Text>,
+                },
+                {
+                  title: "Descriere",
+                  dataIndex: "description",
+                  key: "desc",
+                  ellipsis: true,
+                },
+                {
+                  title: "U.M.",
+                  dataIndex: "unit_of_measure",
+                  key: "um",
+                  width: 50,
+                },
+                {
+                  title: "Contract",
+                  dataIndex: "contracted_qty",
+                  key: "cqty",
+                  width: 80,
+                  align: "right" as const,
+                },
+                {
+                  title: "Cumulat ant.",
+                  dataIndex: "previous_cumulated_qty",
+                  key: "prev",
+                  width: 90,
+                  align: "right" as const,
+                },
+                {
+                  title: "Perioadă",
+                  dataIndex: "current_period_qty",
+                  key: "period",
+                  width: 80,
+                  align: "right" as const,
+                  render: (v: number) => <Text strong>{v}</Text>,
+                },
+                {
+                  title: "Cumulat nou",
+                  dataIndex: "new_cumulated_qty",
+                  key: "newcum",
+                  width: 90,
+                  align: "right" as const,
+                  render: (v: number) => <Text strong style={{ color: "#1677ff" }}>{v}</Text>,
+                },
+                {
+                  title: "Rest",
+                  dataIndex: "remaining_qty",
+                  key: "rest",
+                  width: 70,
+                  align: "right" as const,
+                  render: (v: number) => (
+                    <Text type={v <= 0 ? "success" : undefined}>{v}</Text>
+                  ),
+                },
+                {
+                  title: "%",
+                  dataIndex: "percent_complete",
+                  key: "pct",
+                  width: 70,
+                  align: "center" as const,
+                  render: (v: number) => <Progress percent={Math.round(v)} size="small" />,
+                },
+                {
+                  title: "Val. perioadă",
+                  dataIndex: "current_period_value",
+                  key: "val",
+                  width: 110,
+                  align: "right" as const,
+                  render: (v: number) => `${v?.toLocaleString("ro-RO") ?? "—"} RON`,
+                },
+              ]}
+            />
+
+            <Divider />
+
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <Button
+                icon={<ArrowLeftOutlined />}
+                onClick={() => setWizardStep(1)}
+              >
+                Înapoi
+              </Button>
+              <Space>
+                <Button onClick={closeWizard}>Anulează</Button>
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<FileDoneOutlined />}
+                  loading={createFromPreviewMut.isPending}
+                  onClick={() => createFromPreviewMut.mutate()}
+                >
+                  Creează SdL
+                </Button>
+              </Space>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
