@@ -31,6 +31,7 @@ import { contactService, type ContactFilters } from "../../../services/contactSe
 import type { ContactListItem } from "../../../types";
 import type { ColumnsType } from "antd/es/table";
 import ImportExportContacts from "../components/ImportExportContacts";
+import { useTranslation } from "../../../i18n";
 
 const STAGE_COLORS: Record<string, string> = {
   prospect: "blue",
@@ -51,6 +52,7 @@ export default function ContactsListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { message } = App.useApp();
   const queryClient = useQueryClient();
+  const t = useTranslation();
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
@@ -198,7 +200,7 @@ export default function ContactsListPage() {
     <>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Typography.Title level={3} style={{ margin: 0 }}>
-          Contacte
+          {t.nav.contacts}
         </Typography.Title>
         <Space>
           <Tooltip title="Reîncarcă">

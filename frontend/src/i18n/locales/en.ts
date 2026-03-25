@@ -34,6 +34,8 @@ const en: TranslationKeys = {
     all: "All",
     active: "Active",
     inactive: "Inactive",
+    logout: "Logout",
+    detail: "Detail",
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────────

@@ -28,6 +28,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { offerService } from "../services/offerService";
 import type { OfferListItem, OfferStatus } from "../../../types";
+import { useTranslation } from "../../../i18n";
 import type { ColumnsType } from "antd/es/table";
 
 const { Title } = Typography;
@@ -58,6 +59,7 @@ export default function OffersListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const t = useTranslation();
 
   const page = parseInt(searchParams.get("page") || "1", 10);
   const search = searchParams.get("search") || "";
@@ -170,7 +172,7 @@ export default function OffersListPage() {
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
           <Title level={4} style={{ margin: 0 }}>
-            Oferte
+            {t.nav.offers}
           </Title>
         </Col>
         <Col>

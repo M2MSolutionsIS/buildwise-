@@ -30,6 +30,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import type { PMProjectListItem, ProjectStatus } from "../../../types";
 import { pmService } from "../services/pmService";
+import { useTranslation } from "../../../i18n";
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
 
@@ -91,6 +92,7 @@ function healthDot(h?: string): React.ReactNode {
 
 export default function ProjectsListPage() {
   const navigate = useNavigate();
+  const t = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
@@ -229,7 +231,7 @@ export default function ProjectsListPage() {
     <div>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
-          <h2 style={{ margin: 0 }}>Proiecte</h2>
+          <h2 style={{ margin: 0 }}>{t.nav.projects}</h2>
           <span style={{ color: "#888" }}>
             E-013 | F101 | Flux: Contract semnat → Proiect auto-creat (F063)
           </span>

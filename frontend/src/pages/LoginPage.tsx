@@ -4,12 +4,15 @@ import { Card, Form, Input, Button, Typography, App, Space } from "antd";
 import { LockOutlined, MailOutlined } from "@ant-design/icons";
 import { authService } from "../services/authService";
 import { useAuthStore } from "../stores/authStore";
+import { useBrandingStore } from "../stores/brandingStore";
+import { systemService } from "../modules/system/services/systemService";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { message } = App.useApp();
   const setUser = useAuthStore((s) => s.setUser);
+  const applyBranding = useBrandingStore((s) => s.applyBranding);
 
   const onFinish = async (values: { email: string; password: string }) => {
     setLoading(true);
@@ -20,6 +23,23 @@ export default function LoginPage() {
 
       const meResponse = await authService.getMe();
       setUser(meResponse.data);
+
+      // Sync branding from backend Organization (F137)
+      try {
+        const orgResponse = await systemService.getOrganization();
+        const org = orgResponse.data;
+        applyBranding({
+          appName: org.custom_branding?.app_name as string || org.name || "BuildWise",
+          logoUrl: org.logo_url || "",
+          primaryColor: org.primary_color || "#1677ff",
+          secondaryColor: org.secondary_color || "#52c41a",
+          whiteLabelEnabled: !!org.custom_branding?.white_label_enabled,
+          fontFamily: org.custom_branding?.font_family as string || "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+          borderRadius: (org.custom_branding?.border_radius as number) || 6,
+        });
+      } catch {
+        // Non-blocking — branding falls back to localStorage/defaults
+      }
 
       message.success("Autentificare reușită!");
       navigate("/", { replace: true });
