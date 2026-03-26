@@ -59,6 +59,11 @@ import BrandingSettingsPage from "./modules/system/pages/BrandingSettingsPage";
 import ProductsServicesPage from "./modules/crm/pages/ProductsServicesPage";
 import WBSEditorPage from "./modules/pm/pages/WBSEditorPage";
 import DevizEditorPage from "./modules/pm/pages/DevizEditorPage";
+import WikiDocumentationPage from "./modules/pm/pages/WikiDocumentationPage";
+import PostExecutionEnergyPage from "./modules/pm/pages/PostExecutionEnergyPage";
+import ProjectDetailHubPage from "./modules/pm/pages/ProjectDetailHubPage";
+import TechnicalDataEnergyPage from "./modules/crm/pages/TechnicalDataEnergyPage";
+import NotificationsCenterPage from "./modules/system/pages/NotificationsCenterPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -118,6 +123,8 @@ function App() {
                   <Route path="contacts/:id" element={<ContactDetailPage />} />
                   {/* E-004: Products & Services Catalog — F017 */}
                   <Route path="products" element={<ProductsServicesPage />} />
+                  {/* E-028: Technical Data Energy — F010, F012, F016, F018 (P1) */}
+                  <Route path="properties/:propertyId/energy" element={<TechnicalDataEnergyPage />} />
                 </Route>
 
                 {/* Pipeline Routes */}
@@ -144,6 +151,8 @@ function App() {
                 {/* PM Routes — E-016 Gantt, E-018 Timesheet, E-019 Consum, F075, F077 */}
                 <Route path="pm">
                   <Route index element={<ProjectsListPage />} />
+                  {/* E-014: Project Detail Hub */}
+                  <Route path="projects/:projectId" element={<ProjectDetailHubPage />} />
                   {/* E-015: WBS Editor — F069 */}
                   <Route path="projects/:projectId/wbs" element={<WBSEditorPage />} />
                   {/* E-017: Deviz Editor — F071, F074, F125 */}
@@ -163,6 +172,10 @@ function App() {
                   <Route path="projects/:projectId/reception" element={<ReceptionPunchListPage />} />
                   <Route path="projects/:projectId/warranties" element={<WarrantyTrackingPage />} />
                   <Route path="projects/:projectId/energy-impact" element={<EnergyImpactPage />} />
+                  {/* E-029: Post-Execution Energy — F086, F088, F090, F105 (P1) */}
+                  <Route path="projects/:projectId/post-energy" element={<PostExecutionEnergyPage />} />
+                  {/* E-023: Wiki Documentation — F144, F145, F146 */}
+                  <Route path="projects/:projectId/wiki" element={<WikiDocumentationPage />} />
                   {/* Task 28: Import Engine (E-037, F123) + RM Project (E-014.7, F083) */}
                   <Route path="projects/:projectId/import" element={<ImportEnginePage />} />
                   <Route path="projects/:projectId/resources" element={<RMProjectPage />} />
@@ -194,6 +207,8 @@ function App() {
                   <Route path="assistant" element={<AIAssistantPage />} />
                   <Route path="forecast" element={<MLForecastPage />} />
                 </Route>
+                {/* E-025: Notifications Center */}
+                <Route path="notifications" element={<NotificationsCenterPage />} />
                 <Route path="settings" element={<PlaceholderPage title="Setări" />} />
                 {/* Task 32: F137 Branding + F138 Multi-limbă */}
                 <Route path="settings/branding" element={<BrandingSettingsPage />} />

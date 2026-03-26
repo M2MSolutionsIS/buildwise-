@@ -212,6 +212,10 @@ function buildBreadcrumbMap(t: ReturnType<typeof useTranslation>): Record<string
     roles: t.nav.roles,
     audit: t.nav.auditLog,
     import: t.common.import,
+    notifications: "Notificări",
+    wiki: "Wiki",
+    "post-energy": "Post-Execuție Energie",
+    energy: "Date Energetice",
   };
 }
 
@@ -236,6 +240,8 @@ function getProjectSubNav(projectId: string, t: ReturnType<typeof useTranslation
     { key: `${base}/reception`, icon: <AimOutlined />, label: t.pm.reception },
     { key: `${base}/warranties`, icon: <SafetyOutlined />, label: t.pm.warranties },
     { key: `${base}/energy-impact`, icon: <ThunderboltOutlined />, label: t.pm.energyImpact },
+    { key: `${base}/post-energy`, icon: <ExperimentOutlined />, label: "Post-Execuție" },
+    { key: `${base}/wiki`, icon: <FileTextOutlined />, label: "Wiki" },
     { key: `${base}/report`, icon: <PieChartOutlined />, label: t.nav.reports },
   ];
 }

@@ -21,7 +21,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _get_admin_token(client, test_user):
     """Helper: login and return access token."""
-    resp = await client.post("/api/auth/login", json={
+    resp = await client.post("/api/v1/auth/login", json={
         "email": "test@buildwise.ro",
         "password": "TestPass123!",
     })
