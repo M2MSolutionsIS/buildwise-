@@ -35,7 +35,7 @@ async def test_health_check(client):
 
 async def test_login_success(client, test_user):
     """POST /api/auth/login with valid credentials returns tokens."""
-    resp = await client.post("/api/auth/login", json={
+    resp = await client.post("/api/v1/auth/login", json={
         "email": "test@buildwise.ro",
         "password": "TestPass123!",
     })
@@ -49,7 +49,7 @@ async def test_login_success(client, test_user):
 
 async def test_login_wrong_password(client, test_user):
     """POST /api/auth/login with wrong password returns 401."""
-    resp = await client.post("/api/auth/login", json={
+    resp = await client.post("/api/v1/auth/login", json={
         "email": "test@buildwise.ro",
         "password": "WrongPassword",
     })
@@ -59,7 +59,7 @@ async def test_login_wrong_password(client, test_user):
 
 async def test_login_nonexistent_user(client):
     """POST /api/auth/login with unknown email returns 401."""
-    resp = await client.post("/api/auth/login", json={
+    resp = await client.post("/api/v1/auth/login", json={
         "email": "nobody@buildwise.ro",
         "password": "SomePass123",
     })
@@ -72,14 +72,14 @@ async def test_login_nonexistent_user(client):
 async def test_refresh_success(client, test_user):
     """POST /api/auth/refresh with valid refresh token returns new tokens."""
     # Login first
-    login_resp = await client.post("/api/auth/login", json={
+    login_resp = await client.post("/api/v1/auth/login", json={
         "email": "test@buildwise.ro",
         "password": "TestPass123!",
     })
     refresh_token = login_resp.json()["refresh_token"]
 
     # Refresh
-    resp = await client.post("/api/auth/refresh", json={
+    resp = await client.post("/api/v1/auth/refresh", json={
         "refresh_token": refresh_token,
     })
     assert resp.status_code == 200
@@ -90,7 +90,7 @@ async def test_refresh_success(client, test_user):
 
 async def test_refresh_invalid_token(client):
     """POST /api/auth/refresh with invalid token returns 401."""
-    resp = await client.post("/api/auth/refresh", json={
+    resp = await client.post("/api/v1/auth/refresh", json={
         "refresh_token": "invalid.token.here",
     })
     assert resp.status_code == 401
@@ -102,7 +102,7 @@ async def test_refresh_invalid_token(client):
 async def test_logout(client, test_user):
     """POST /api/auth/logout invalidates refresh token."""
     # Login
-    login_resp = await client.post("/api/auth/login", json={
+    login_resp = await client.post("/api/v1/auth/login", json={
         "email": "test@buildwise.ro",
         "password": "TestPass123!",
     })
@@ -111,13 +111,13 @@ async def test_logout(client, test_user):
 
     # Logout
     resp = await client.post(
-        "/api/auth/logout",
+        "/api/v1/auth/logout",
         headers={"Authorization": f"Bearer {access_token}"},
     )
     assert resp.status_code == 204
 
     # Refresh should now fail
-    resp = await client.post("/api/auth/refresh", json={
+    resp = await client.post("/api/v1/auth/refresh", json={
         "refresh_token": refresh_token,
     })
     assert resp.status_code == 401
@@ -128,7 +128,7 @@ async def test_logout(client, test_user):
 
 async def test_register_success(client):
     """POST /api/auth/register creates user + organization."""
-    resp = await client.post("/api/auth/register", json={
+    resp = await client.post("/api/v1/auth/register", json={
         "email": "new@buildwise.ro",
         "password": "NewPass123!",
         "first_name": "New",
@@ -151,10 +151,10 @@ async def test_register_duplicate_email(client):
         "last_name": "User",
         "organization_name": "Dup Corp",
     }
-    resp1 = await client.post("/api/auth/register", json=payload)
+    resp1 = await client.post("/api/v1/auth/register", json=payload)
     assert resp1.status_code == 201
 
-    resp2 = await client.post("/api/auth/register", json=payload)
+    resp2 = await client.post("/api/v1/auth/register", json=payload)
     assert resp2.status_code == 400
     assert "already registered" in resp2.json()["detail"]
 
@@ -164,7 +164,7 @@ async def test_register_duplicate_email(client):
 
 async def test_get_me_authenticated(client, test_user):
     """GET /api/v1/me returns current user when authenticated."""
-    login_resp = await client.post("/api/auth/login", json={
+    login_resp = await client.post("/api/v1/auth/login", json={
         "email": "test@buildwise.ro",
         "password": "TestPass123!",
     })
