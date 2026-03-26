@@ -57,17 +57,20 @@ export default function LoginPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        background: "#0B0F19",
       }}
     >
-      <Card style={{ width: 400, boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }}>
+      <Card style={{ width: 400, background: "#1A1A2E", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
         <Space direction="vertical" size="large" style={{ width: "100%" }}>
           <div style={{ textAlign: "center" }}>
-            <Typography.Title level={2} style={{ margin: 0 }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, #2563EB, #7C3AED)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 18 }}>B</div>
+            </div>
+            <Typography.Title level={2} style={{ margin: 0, color: "#F1F5F9" }}>
               BuildWise
             </Typography.Title>
-            <Typography.Text type="secondary">
-              Platforma ERP pentru eficiență energetică
+            <Typography.Text style={{ color: "#94A3B8" }}>
+              Platforma ERP pentru eficienta energetica
             </Typography.Text>
           </div>
 

@@ -45,6 +45,7 @@ import MaterialsStockPage from "./modules/rm/pages/MaterialsStockPage";
 import CompanyCapacityPage from "./modules/rm/pages/CompanyCapacityPage";
 import FinancialPlanningPage from "./modules/rm/pages/FinancialPlanningPage";
 import ModuleGridPage from "./pages/ModuleGridPage";
+import DashboardHomePage from "./pages/DashboardHomePage";
 import TenantSetupWizard from "./modules/system/pages/TenantSetupWizard";
 import PipelineConfiguratorPage from "./modules/system/pages/PipelineConfiguratorPage";
 import RMConfiguratorPage from "./modules/system/pages/RMConfiguratorPage";
@@ -100,8 +101,10 @@ function App() {
                   </RequireAuth>
                 }
               >
-                {/* F157: Module Grid Navigation — Home */}
-                <Route index element={<ModuleGridPage />} />
+                {/* E-001: Dashboard Principal — Home */}
+                <Route index element={<DashboardHomePage />} />
+                {/* F157: Module Grid Navigation */}
+                <Route path="modules" element={<ModuleGridPage />} />
 
                 {/* CRM Routes */}
                 <Route path="crm">
@@ -201,8 +204,8 @@ function App() {
 function PlaceholderPage({ title }: { title: string }) {
   return (
     <div style={{ padding: 48, textAlign: "center" }}>
-      <h2>{title}</h2>
-      <p style={{ color: "#888" }}>Modul în curs de implementare.</p>
+      <h2 style={{ color: "#F1F5F9" }}>{title}</h2>
+      <p style={{ color: "#64748B" }}>Modul in curs de implementare.</p>
     </div>
   );
 }
