@@ -31,6 +31,8 @@ import type { ColumnsType } from "antd/es/table";
 import type { PMProjectListItem, ProjectStatus } from "../../../types";
 import { pmService } from "../services/pmService";
 import { useTranslation } from "../../../i18n";
+import EmptyState from "../../../components/EmptyState";
+import { SkeletonKPI } from "../../../components/SkeletonLoaders";
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
 
@@ -239,31 +241,37 @@ export default function ProjectsListPage() {
       </Row>
 
       {/* Stats */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col xs={8}>
-          <Card size="small">
-            <Statistic title="Total" value={total} />
-          </Card>
-        </Col>
-        <Col xs={8}>
-          <Card size="small">
-            <Statistic
-              title="Active"
-              value={activeCount}
-              valueStyle={{ color: "#1677ff" }}
-            />
-          </Card>
-        </Col>
-        <Col xs={8}>
-          <Card size="small">
-            <Statistic
-              title="Pagina curentă"
-              value={projects.length}
-              suffix={`/ ${total}`}
-            />
-          </Card>
-        </Col>
-      </Row>
+      {isLoading ? (
+        <div style={{ marginBottom: 16 }}>
+          <SkeletonKPI count={3} />
+        </div>
+      ) : (
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col xs={8}>
+            <Card size="small">
+              <Statistic title="Total" value={total} />
+            </Card>
+          </Col>
+          <Col xs={8}>
+            <Card size="small">
+              <Statistic
+                title="Active"
+                value={activeCount}
+                valueStyle={{ color: "#1677ff" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={8}>
+            <Card size="small">
+              <Statistic
+                title="Pagina curentă"
+                value={projects.length}
+                suffix={`/ ${total}`}
+              />
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       {/* Filters */}
       <Card size="small" style={{ marginBottom: 16 }}>
@@ -325,6 +333,15 @@ export default function ProjectsListPage() {
             showSizeChanger: false,
           }}
           scroll={{ x: 1100 }}
+          locale={{
+            emptyText: (
+              <EmptyState
+                icon={<ProjectOutlined style={{ color: "#047857" }} />}
+                title="Niciun proiect"
+                description="Proiectele se creează automat la semnarea unui contract."
+              />
+            ),
+          }}
         />
       </Card>
     </div>

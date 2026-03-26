@@ -32,19 +32,54 @@ async def lifespan(app: FastAPI):
     logger.info("BuildWise ERP shutting down")
 
 
+OPENAPI_TAGS = [
+    {"name": "Health", "description": "Health check and system status"},
+    {"name": "Auth", "description": "Authentication — login, register, refresh tokens (F155)"},
+    {"name": "Users", "description": "User management and profiles (F156)"},
+    {"name": "System", "description": "Organization, roles, audit, config, notifications (F040, F157)"},
+    {"name": "CRM", "description": "Contacts, properties, products, documents (F001–F017)"},
+    {"name": "Sales Pipeline", "description": "Opportunities, offers, contracts, activities, analytics (F018–F043)"},
+    {"name": "Project Management", "description": "Projects, WBS, Gantt, deviz, timesheets, reports (F063–F095)"},
+    {"name": "Resource Management", "description": "Employees, equipment, materials, procurement — P2+P3 (F096–F111)"},
+    {"name": "Business Intelligence", "description": "KPI, dashboards, reports, AI assistant (F112–F116)"},
+    {"name": "Search", "description": "Global search across all modules (F157)"},
+]
+
 app = FastAPI(
-    title="BuildWise ERP",
-    description="Platformă ERP verticală pentru eficiență energetică a clădirilor",
-    version="0.1.0",
-    docs_url="/api/docs" if settings.APP_DEBUG else None,
-    redoc_url="/api/redoc" if settings.APP_DEBUG else None,
+    title="BuildWise ERP API",
+    description=(
+        "Platformă ERP verticală pentru eficiență energetică a clădirilor.\n\n"
+        "## Module API\n"
+        "- **System** — Auth, Users, Roles, Audit, Notifications, Config\n"
+        "- **CRM** — Contacts, Properties, Products, Documents\n"
+        "- **Pipeline** — Opportunities, Offers, Contracts, Activities, Analytics\n"
+        "- **PM** — Projects, WBS, Gantt, Deviz, Timesheets, Reports\n"
+        "- **RM** — Employees, Equipment, Materials, Procurement (P2+P3)\n"
+        "- **BI** — KPI, Dashboards, Reports, AI Assistant\n\n"
+        "## Prototipuri\n"
+        "- **P1** — BuildWise TRL5: Energie + AI (82 funcționalități)\n"
+        "- **P2** — BAHM Operational: Construcții + RM (103 funcționalități)\n"
+        "- **P3** — M2M ERP Lite: SaaS multi-tenant (108 funcționalități)\n\n"
+        "**276 endpoints** | **77 tabele** | **108 funcționalități**"
+    ),
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+    openapi_tags=OPENAPI_TAGS,
     lifespan=lifespan,
 )
 
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost",
+        "https://*.railway.app",
+        "https://*.up.railway.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

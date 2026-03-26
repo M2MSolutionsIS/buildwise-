@@ -44,6 +44,7 @@ import { offerService } from "../services/offerService";
 import { pipelineService } from "../services/pipelineService";
 import { contactService } from "../../../services/contactService";
 import VersionDiffModal from "../components/VersionDiffModal";
+import PDFPreviewModal from "../../../components/PDFPreviewModal";
 import type { Offer, OfferLineItem, OfferStatus } from "../../../types";
 
 const { Title, Text, Paragraph } = Typography;
@@ -68,6 +69,7 @@ export default function OfferDetailPage() {
   const [versionDiffOpen, setVersionDiffOpen] = useState(false);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
   // Fetch offer
   const { data: offerData, isLoading } = useQuery({
@@ -137,7 +139,10 @@ export default function OfferDetailPage() {
   // F023 — Generate document
   const generateMutation = useMutation({
     mutationFn: () => offerService.generateDocument(id!),
-    onSuccess: () => message.success("Document generat"),
+    onSuccess: () => {
+      message.success("Document generat");
+      setPdfPreviewOpen(true);
+    },
     onError: () => message.error("Eroare la generarea documentului"),
   });
 
@@ -647,6 +652,15 @@ export default function OfferDetailPage() {
         onClose={() => setVersionDiffOpen(false)}
         currentOffer={offer}
         versions={versions}
+      />
+
+      {/* C-004: PDF Preview (F023) */}
+      <PDFPreviewModal
+        open={pdfPreviewOpen}
+        onClose={() => setPdfPreviewOpen(false)}
+        url={`/api/v1/pipeline/offers/${id}/document`}
+        title={`Ofertă ${offer.offer_number}`}
+        filename={`oferta-${offer.offer_number}.pdf`}
       />
     </div>
   );
