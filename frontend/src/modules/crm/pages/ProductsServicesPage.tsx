@@ -15,7 +15,6 @@ import {
   Form,
   InputNumber,
   App,
-  Popconfirm,
   Row,
   Col,
 } from "antd";
@@ -29,6 +28,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productService, type ProductCreate } from "../../pipeline/services/productService";
 import { useTranslation } from "../../../i18n";
+import { confirmDelete } from "../../../components/ConfirmDelete";
+import EmptyState from "../../../components/EmptyState";
 import type { Product } from "../../../types";
 import type { ColumnsType } from "antd/es/table";
 
@@ -197,14 +198,19 @@ export default function ProductsServicesPage() {
             icon={<EditOutlined />}
             onClick={() => openEdit(record)}
           />
-          <Popconfirm
-            title="Ștergeți acest produs?"
-            onConfirm={() => deleteMut.mutate(record.id)}
-            okText={t.common.yes}
-            cancelText={t.common.no}
-          >
-            <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          <Button
+            type="text"
+            size="small"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() =>
+              confirmDelete({
+                title: `Șterge ${record.name}?`,
+                content: "Produsul va fi șters permanent.",
+                onOk: () => deleteMut.mutate(record.id),
+              })
+            }
+          />
         </Space>
       ),
     },
@@ -270,6 +276,17 @@ export default function ProductsServicesPage() {
         pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `${total} produse` }}
         size="small"
         scroll={{ x: 900 }}
+        locale={{
+          emptyText: (
+            <EmptyState
+              icon={<ShoppingOutlined style={{ color: "#1E40AF" }} />}
+              title="Niciun produs sau serviciu"
+              description="Adaugă primul produs pentru a-l folosi în oferte."
+              actionLabel={t.common.add}
+              onAction={openCreate}
+            />
+          ),
+        }}
       />
 
       {/* Create/Edit Modal */}

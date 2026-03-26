@@ -32,6 +32,7 @@ import { pipelineService } from "../modules/pipeline/services/pipelineService";
 import { pmService } from "../modules/pm/services/pmService";
 import { usePrototypeStore } from "../stores/prototypeStore";
 import { useTranslation } from "../i18n";
+import { SkeletonKPI } from "../components/SkeletonLoaders";
 
 /* ─── Dark theme color constants from wireframe ──────────────────────────── */
 const C = {
@@ -125,7 +126,7 @@ export default function DashboardHomePage() {
   const t = useTranslation();
 
   // Fetch sales KPI data
-  const { data: kpiData } = useQuery({
+  const { data: kpiData, isLoading: kpiLoading } = useQuery({
     queryKey: ["sales-kpi"],
     queryFn: () => pipelineService.getSalesKPI(),
     retry: false,
@@ -208,6 +209,11 @@ export default function DashboardHomePage() {
   return (
     <div>
       {/* ─── ROW 1: KPI Cards ──────────────────────────────────────────────── */}
+      {kpiLoading ? (
+        <div style={{ marginBottom: 16 }}>
+          <SkeletonKPI count={4} />
+        </div>
+      ) : (
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col xs={12} lg={6}>
           <KPICard
@@ -244,6 +250,7 @@ export default function DashboardHomePage() {
           />
         </Col>
       </Row>
+      )}
 
       {/* ─── ROW 2: Pipeline Overview + Proiecte Active ────────────────────── */}
       <Row gutter={16} style={{ marginBottom: 16 }}>

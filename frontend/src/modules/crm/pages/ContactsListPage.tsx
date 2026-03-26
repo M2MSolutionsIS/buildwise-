@@ -12,7 +12,6 @@ import {
   Col,
   Card,
   App,
-  Popconfirm,
   Badge,
   Tooltip,
 } from "antd";
@@ -32,6 +31,8 @@ import type { ContactListItem } from "../../../types";
 import type { ColumnsType } from "antd/es/table";
 import ImportExportContacts from "../components/ImportExportContacts";
 import { useTranslation } from "../../../i18n";
+import { confirmDelete } from "../../../components/ConfirmDelete";
+import EmptyState from "../../../components/EmptyState";
 
 const STAGE_COLORS: Record<string, string> = {
   prospect: "blue",
@@ -179,16 +180,22 @@ export default function ContactsListPage() {
       key: "actions",
       width: 60,
       render: (_: unknown, record: ContactListItem) => (
-        <Popconfirm
-          title="Sigur vrei să ștergi?"
-          onConfirm={() => deleteMutation.mutate(record.id)}
-          okText="Da"
-          cancelText="Nu"
-        >
-          <Tooltip title="Șterge">
-            <Button type="text" danger size="small" icon={<DeleteOutlined />} />
-          </Tooltip>
-        </Popconfirm>
+        <Tooltip title="Șterge">
+          <Button
+            type="text"
+            danger
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              confirmDelete({
+                title: `Șterge ${record.company_name}?`,
+                content: "Contactul și toate datele asociate vor fi șterse permanent.",
+                onOk: () => deleteMutation.mutate(record.id),
+              });
+            }}
+          />
+        </Tooltip>
       ),
     },
   ];
@@ -309,18 +316,22 @@ export default function ContactsListPage() {
             <Button size="small" icon={<ExportOutlined />}>
               Export selecție
             </Button>
-            <Popconfirm
-              title={`Șterge ${selectedRowKeys.length} contacte?`}
-              onConfirm={() => {
-                selectedRowKeys.forEach((key) => deleteMutation.mutate(String(key)));
-              }}
-              okText="Da"
-              cancelText="Nu"
+            <Button
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() =>
+                confirmDelete({
+                  title: `Șterge ${selectedRowKeys.length} contacte?`,
+                  content: "Toate contactele selectate vor fi șterse permanent.",
+                  onOk: () => {
+                    selectedRowKeys.forEach((key) => deleteMutation.mutate(String(key)));
+                  },
+                })
+              }
             >
-              <Button size="small" danger icon={<DeleteOutlined />}>
-                Șterge
-              </Button>
-            </Popconfirm>
+              Șterge
+            </Button>
             <Button size="small" type="link" onClick={() => setSelectedRowKeys([])}>
               Deselectează
             </Button>
@@ -358,28 +369,20 @@ export default function ContactsListPage() {
         scroll={{ x: 1000 }}
         locale={{
           emptyText: filters.search ? (
-            <Space direction="vertical" style={{ padding: 32 }}>
-              <Typography.Text type="secondary">
-                Niciun contact nu corespunde filtrelor
-              </Typography.Text>
-              <Button
-                type="link"
-                onClick={() => setSearchParams(new URLSearchParams())}
-              >
-                Resetează filtrele
-              </Button>
-            </Space>
+            <EmptyState
+              title="Niciun contact nu corespunde filtrelor"
+              description="Încearcă alte criterii de căutare."
+              actionLabel="Resetează filtrele"
+              onAction={() => setSearchParams(new URLSearchParams())}
+              compact
+            />
           ) : (
-            <Space direction="vertical" style={{ padding: 32 }}>
-              <Typography.Text type="secondary">Niciun contact încă</Typography.Text>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate("/crm/contacts/new")}
-              >
-                Adaugă primul contact
-              </Button>
-            </Space>
+            <EmptyState
+              title="Niciun contact încă"
+              description="Adaugă primul contact pentru a începe."
+              actionLabel="Adaugă contact"
+              onAction={() => navigate("/crm/contacts/new")}
+            />
           ),
         }}
       />
