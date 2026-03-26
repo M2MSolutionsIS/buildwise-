@@ -87,6 +87,7 @@ function buildMenuItems(t: ReturnType<typeof useTranslation>) {
       label: t.nav.crm,
       children: [
         { key: "/crm/contacts", icon: <ContactsOutlined />, label: t.nav.contacts },
+        { key: "/crm/products", icon: <InboxOutlined />, label: t.crm.products },
         { key: "/", icon: <DashboardOutlined />, label: "Dashboard CRM" },
       ],
     },
@@ -173,6 +174,9 @@ function buildBreadcrumbMap(t: ReturnType<typeof useTranslation>): Record<string
     offers: t.nav.offers,
     pm: t.nav.pm,
     projects: t.nav.projects,
+    products: t.crm.products,
+    wbs: t.pm.wbsEditor,
+    deviz: t.pm.devizEditor,
     gantt: t.pm.ganttChart,
     timesheet: t.pm.timesheet,
     consumption: t.pm.materialConsumption,
@@ -218,6 +222,8 @@ function buildBreadcrumbMap(t: ReturnType<typeof useTranslation>): Record<string
 function getProjectSubNav(projectId: string, t: ReturnType<typeof useTranslation>) {
   const base = `/pm/projects/${projectId}`;
   return [
+    { key: `${base}/wbs`, icon: <ProjectOutlined />, label: t.pm.wbsEditor },
+    { key: `${base}/deviz`, icon: <DollarOutlined />, label: t.pm.devizEditor },
     { key: `${base}/gantt`, icon: <ScheduleOutlined />, label: t.pm.ganttChart },
     { key: `${base}/timesheet`, icon: <AuditOutlined />, label: t.pm.timesheet },
     { key: `${base}/consumption`, icon: <ExperimentOutlined />, label: t.pm.materialConsumption },
