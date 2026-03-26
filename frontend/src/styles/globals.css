@@ -1,0 +1,321 @@
+/**
+ * BuildWise Dark Theme — CSS Variables
+ * Extracted from BuildWise_Wireframe_Masterplan_V4.xlsx
+ */
+:root {
+  --bg-page:        #0B0F19;
+  --bg-card:        #1A1A2E;
+  --bg-sidebar:     #0F172A;
+  --bg-header:      #0F172A;
+  --bg-panel:       #1A1A33;
+  --color-primary:  #2563EB;
+  --color-crm:      #1E40AF;
+  --color-pipeline: #7C3AED;
+  --color-pm:       #047857;
+  --color-rm:       #9F1239;
+  --color-bi:       #B45309;
+  --color-sistem:   #6B7280;
+  --text-primary:   #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-tertiary:  #64748B;
+  --border:         rgba(255,255,255,0.08);
+  --border-hover:   rgba(255,255,255,0.12);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Global dark background                                                    */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+html, body, #root {
+  background: var(--bg-page);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Ant Design dark overrides — sidebar                                       */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.bw-sidebar {
+  background: var(--bg-sidebar) !important;
+  border-right: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+.bw-sidebar .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+}
+
+.bw-sidebar .ant-menu {
+  background: transparent !important;
+  border-right: none !important;
+  color: var(--text-secondary) !important;
+}
+
+.bw-sidebar .ant-menu-item,
+.bw-sidebar .ant-menu-submenu-title {
+  height: 36px !important;
+  line-height: 36px !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  margin: 2px 8px !important;
+  font-size: 13px !important;
+  color: var(--text-secondary) !important;
+}
+
+.bw-sidebar .ant-menu-item .ant-menu-item-icon,
+.bw-sidebar .ant-menu-submenu-title .ant-menu-item-icon,
+.bw-sidebar .ant-menu-item .anticon,
+.bw-sidebar .ant-menu-submenu-title .anticon {
+  font-size: 16px !important;
+}
+
+.bw-sidebar .ant-menu-item:hover,
+.bw-sidebar .ant-menu-submenu-title:hover {
+  background: rgba(255,255,255,0.05) !important;
+  color: var(--text-primary) !important;
+}
+
+.bw-sidebar .ant-menu-item-selected {
+  background: rgba(37,99,235,0.15) !important;
+  color: var(--text-primary) !important;
+}
+
+.bw-sidebar .ant-menu-item-selected .anticon,
+.bw-sidebar .ant-menu-item-selected .ant-menu-item-icon {
+  color: var(--color-primary) !important;
+}
+
+.bw-sidebar .ant-menu-sub {
+  background: transparent !important;
+}
+
+.bw-sidebar .ant-menu-submenu-arrow {
+  color: var(--text-tertiary) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Ant Design dark overrides — tables                                        */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.ant-table {
+  background: transparent !important;
+}
+
+.ant-table-thead > tr > th,
+.ant-table-thead > tr > td {
+  background: var(--bg-sidebar) !important;
+  color: var(--text-tertiary) !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: rgba(255,255,255,0.03) !important;
+}
+
+.ant-table-tbody > tr.ant-table-row-selected > td {
+  background: rgba(37,99,235,0.08) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Ant Design dark overrides — cards                                         */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.ant-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+}
+
+.ant-card-head {
+  border-bottom-color: var(--border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Ant Design dark overrides — inputs                                        */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-picker {
+  background: var(--bg-sidebar) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  color: var(--text-primary) !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+}
+
+.ant-input::placeholder,
+.ant-input-affix-wrapper .ant-input::placeholder,
+.ant-select-selection-placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused {
+  border-color: var(--color-primary) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Ant Design dark overrides — buttons                                       */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.ant-btn-default {
+  background: transparent !important;
+  border-color: var(--border-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+.ant-btn-default:hover {
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Ant Design dark overrides — dropdown, modal, popover                      */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.ant-dropdown-menu,
+.ant-popover-inner,
+.ant-modal-content,
+.ant-drawer-content {
+  background: var(--bg-panel) !important;
+}
+
+.ant-dropdown-menu-item:hover {
+  background: rgba(255,255,255,0.05) !important;
+}
+
+.ant-modal-header {
+  background: var(--bg-panel) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Ant Design dark overrides — breadcrumb                                    */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.ant-breadcrumb,
+.ant-breadcrumb a,
+.ant-breadcrumb .ant-breadcrumb-separator {
+  color: var(--text-tertiary) !important;
+  font-size: 13px !important;
+}
+
+.ant-breadcrumb a:hover {
+  color: var(--text-secondary) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Ant Design dark overrides — tabs, segmented                               */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.ant-tabs-nav::before {
+  border-bottom-color: var(--border) !important;
+}
+
+.ant-segmented {
+  background: var(--bg-sidebar) !important;
+}
+
+.ant-segmented-item-selected {
+  background: var(--bg-card) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Ant Design dark overrides — statistics, typography                         */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.ant-statistic-title {
+  color: var(--text-secondary) !important;
+  font-size: 12px !important;
+}
+
+.ant-statistic-content {
+  color: var(--text-primary) !important;
+}
+
+.ant-typography {
+  color: var(--text-primary) !important;
+}
+
+.ant-typography.ant-typography-secondary {
+  color: var(--text-secondary) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Ant Design dark overrides — form labels                                   */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.ant-form-item-label > label {
+  color: var(--text-secondary) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Ant Design dark overrides — empty state                                   */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.ant-empty-description {
+  color: var(--text-tertiary) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Ant Design dark overrides — tooltip, tag                                  */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.ant-tag {
+  border-color: var(--border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Ant Design dark overrides — pagination                                    */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.ant-pagination-item {
+  background: transparent !important;
+  border-color: var(--border) !important;
+}
+
+.ant-pagination-item a {
+  color: var(--text-secondary) !important;
+}
+
+.ant-pagination-item-active {
+  border-color: var(--color-primary) !important;
+}
+
+.ant-pagination-item-active a {
+  color: var(--color-primary) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* Scrollbar dark theme                                                      */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.2);
+}

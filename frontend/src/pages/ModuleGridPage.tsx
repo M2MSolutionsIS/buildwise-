@@ -63,7 +63,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.contacts,
           description: t.crm.contactsList,
           icon: <ContactsOutlined style={{ fontSize: 28 }} />,
-          color: "#1677ff",
+          color: "#1E40AF",
           link: "/crm/contacts",
         },
         {
@@ -71,7 +71,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: "Dashboard CRM",
           description: t.nav.salesDashboard,
           icon: <TeamOutlined style={{ fontSize: 28 }} />,
-          color: "#1677ff",
+          color: "#1E40AF",
           link: "/",
         },
       ],
@@ -84,7 +84,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.pipelineKanban,
           description: t.pipeline.stage,
           icon: <AimOutlined style={{ fontSize: 28 }} />,
-          color: "#722ed1",
+          color: "#7C3AED",
           link: "/pipeline/board",
         },
         {
@@ -92,7 +92,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.offers,
           description: t.pipeline.offerBuilder,
           icon: <FileTextOutlined style={{ fontSize: 28 }} />,
-          color: "#722ed1",
+          color: "#7C3AED",
           link: "/pipeline/offers",
         },
         {
@@ -100,7 +100,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.activities,
           description: t.nav.activities,
           icon: <ScheduleOutlined style={{ fontSize: 28 }} />,
-          color: "#722ed1",
+          color: "#7C3AED",
           link: "/pipeline/activities",
         },
         {
@@ -108,7 +108,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.salesDashboard,
           description: t.nav.salesDashboard,
           icon: <PieChartOutlined style={{ fontSize: 28 }} />,
-          color: "#722ed1",
+          color: "#7C3AED",
           link: "/pipeline/dashboard",
         },
       ],
@@ -121,7 +121,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.projects,
           description: t.pm.projectsList,
           icon: <ProjectOutlined style={{ fontSize: 28 }} />,
-          color: "#52c41a",
+          color: "#047857",
           link: "/pm",
         },
         {
@@ -129,7 +129,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.archive,
           description: t.nav.archive,
           icon: <FolderOpenOutlined style={{ fontSize: 28 }} />,
-          color: "#52c41a",
+          color: "#047857",
           link: "/pm/archive",
         },
         {
@@ -137,7 +137,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.energyPortfolio,
           description: t.pm.energyImpact,
           icon: <ThunderboltOutlined style={{ fontSize: 28 }} />,
-          color: "#52c41a",
+          color: "#047857",
           link: "/pm/energy-portfolio",
         },
       ],
@@ -151,7 +151,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.employees,
           description: t.rm.employeesList,
           icon: <SolutionOutlined style={{ fontSize: 28 }} />,
-          color: "#fa8c16",
+          color: "#9F1239",
           link: "/rm",
         },
         {
@@ -159,7 +159,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.equipment,
           description: t.rm.equipmentList,
           icon: <CarOutlined style={{ fontSize: 28 }} />,
-          color: "#fa8c16",
+          color: "#9F1239",
           link: "/rm/equipment",
         },
         {
@@ -167,7 +167,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.materials,
           description: t.rm.materialStock,
           icon: <InboxOutlined style={{ fontSize: 28 }} />,
-          color: "#fa8c16",
+          color: "#9F1239",
           link: "/rm/materials",
         },
       ],
@@ -180,7 +180,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.executiveDashboard,
           description: t.bi.executiveSummary,
           icon: <LineChartOutlined style={{ fontSize: 28 }} />,
-          color: "#eb2f96",
+          color: "#B45309",
           link: "/bi",
         },
         {
@@ -188,7 +188,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.reports,
           description: t.bi.reportsBuilder,
           icon: <BarChartOutlined style={{ fontSize: 28 }} />,
-          color: "#eb2f96",
+          color: "#B45309",
           link: "/bi/reports",
         },
       ],
@@ -201,7 +201,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.settings,
           description: t.nav.settings,
           icon: <SettingOutlined style={{ fontSize: 28 }} />,
-          color: "#8c8c8c",
+          color: "#6B7280",
           link: "/settings",
         },
         {
@@ -209,7 +209,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.users,
           description: t.nav.users,
           icon: <UserOutlined style={{ fontSize: 28 }} />,
-          color: "#8c8c8c",
+          color: "#6B7280",
           link: "/settings/users",
         },
         {
@@ -217,7 +217,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.roles,
           description: t.nav.roles,
           icon: <SafetyOutlined style={{ fontSize: 28 }} />,
-          color: "#8c8c8c",
+          color: "#6B7280",
           link: "/settings/roles",
         },
         {
@@ -225,7 +225,7 @@ function buildSections(t: ReturnType<typeof useTranslation>): ModuleSection[] {
           title: t.nav.auditLog,
           description: t.nav.auditLog,
           icon: <AuditOutlined style={{ fontSize: 28 }} />,
-          color: "#8c8c8c",
+          color: "#6B7280",
           link: "/settings/audit",
         },
       ],
@@ -248,7 +248,7 @@ const PROTO_LABELS = {
   P3: "M2M ERP Lite — SaaS",
 };
 
-const PROTO_COLORS = { P1: "#52c41a", P2: "#1677ff", P3: "#722ed1" };
+const PROTO_COLORS = { P1: "#047857", P2: "#2563EB", P3: "#7C3AED" };
 
 export default function ModuleGridPage() {
   const navigate = useNavigate();
@@ -295,7 +295,7 @@ export default function ModuleGridPage() {
               marginBottom: 12,
               paddingBottom: 8,
               borderBottom: `1px solid ${token.colorBorderSecondary}`,
-              color: "#555",
+              color: "#94A3B8",
             }}
           >
             {section.title}

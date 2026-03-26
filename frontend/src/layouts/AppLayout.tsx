@@ -249,7 +249,7 @@ export default function AppLayout() {
   const location = useLocation();
   const { token } = theme.useToken();
   const { user, setUser, logout } = useAuthStore();
-  const { appName, logoUrl, primaryColor: brandPrimary, whiteLabelEnabled, applyBranding } = useBrandingStore();
+  const { appName, logoUrl, whiteLabelEnabled, applyBranding } = useBrandingStore();
   const { isRouteVisible } = usePrototypeStore();
   const t = useTranslation();
   const screens = useBreakpoint();
@@ -393,12 +393,12 @@ export default function AppLayout() {
       {/* Brand */}
       <div
         style={{
-          height: 56,
+          height: 40,
           display: "flex",
           alignItems: "center",
           justifyContent: collapsed && !isMobile ? "center" : "flex-start",
-          padding: collapsed && !isMobile ? "0" : "0 20px",
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
+          padding: collapsed && !isMobile ? "0" : "0 12px",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
           cursor: "pointer",
         }}
         onClick={() => navigate("/")}
@@ -407,21 +407,21 @@ export default function AppLayout() {
           <img
             src={logoUrl}
             alt={appName}
-            style={{ width: 28, height: 28, objectFit: "contain", borderRadius: 4, flexShrink: 0 }}
+            style={{ width: 24, height: 24, objectFit: "contain", borderRadius: 4, flexShrink: 0 }}
           />
         ) : (
           <div
             style={{
-              width: 28,
-              height: 28,
+              width: 24,
+              height: 24,
               borderRadius: 6,
-              background: `linear-gradient(135deg, ${brandPrimary || token.colorPrimary}, #722ed1)`,
+              background: `linear-gradient(135deg, #2563EB, #7C3AED)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "#fff",
               fontWeight: 700,
-              fontSize: 14,
+              fontSize: 12,
               flexShrink: 0,
             }}
           >
@@ -429,12 +429,17 @@ export default function AppLayout() {
           </div>
         )}
         {(!collapsed || isMobile) && (
-          <Typography.Title
-            level={5}
-            style={{ margin: "0 0 0 10px", whiteSpace: "nowrap" }}
+          <span
+            style={{
+              margin: "0 0 0 8px",
+              whiteSpace: "nowrap",
+              fontSize: 14,
+              fontWeight: 600,
+              color: "#F1F5F9",
+            }}
           >
             {whiteLabelEnabled ? appName : "BuildWise"}
-          </Typography.Title>
+          </span>
         )}
       </div>
 
@@ -443,28 +448,29 @@ export default function AppLayout() {
         <>
           <div
             style={{
-              padding: "8px 16px 4px",
+              padding: "8px 12px 4px",
               fontSize: 11,
               fontWeight: 600,
-              color: "#888",
+              color: "#64748B",
               textTransform: "uppercase",
-              letterSpacing: 0.5,
+              letterSpacing: "0.08em",
             }}
           >
             {(!collapsed || isMobile) && t.nav.projects}
           </div>
           <Menu
             mode="inline"
+            theme="dark"
             selectedKeys={selectedKeys}
             items={projectSubNav}
             onClick={handleMenuClick}
-            style={{ borderRight: 0, marginBottom: 8 }}
+            style={{ borderRight: 0, marginBottom: 8, background: "transparent" }}
           />
           <div
             style={{
               height: 1,
-              background: token.colorBorderSecondary,
-              margin: "0 16px 8px",
+              background: "rgba(255,255,255,0.06)",
+              margin: "0 12px 8px",
             }}
           />
         </>
@@ -473,18 +479,19 @@ export default function AppLayout() {
       {/* Main navigation */}
       <Menu
         mode="inline"
+        theme="dark"
         selectedKeys={selectedKeys}
         defaultOpenKeys={openKeys}
         items={filteredMenuItems}
         onClick={handleMenuClick}
-        style={{ borderRight: 0, flex: 1 }}
+        style={{ borderRight: 0, flex: 1, background: "transparent" }}
       />
 
       {/* User section at bottom */}
       <div
         style={{
           padding: "12px 16px",
-          borderTop: `1px solid ${token.colorBorderSecondary}`,
+          borderTop: "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           alignItems: "center",
           gap: 8,
@@ -493,20 +500,16 @@ export default function AppLayout() {
         <Avatar
           size="small"
           icon={<UserOutlined />}
-          style={{ backgroundColor: token.colorPrimary, flexShrink: 0 }}
+          style={{ backgroundColor: "#2563EB", flexShrink: 0 }}
         />
         {(!collapsed || isMobile) && user && (
           <div style={{ overflow: "hidden" }}>
-            <Typography.Text ellipsis style={{ fontSize: 13, display: "block" }}>
+            <span style={{ fontSize: 13, display: "block", color: "#F1F5F9", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {user.first_name} {user.last_name}
-            </Typography.Text>
-            <Typography.Text
-              type="secondary"
-              ellipsis
-              style={{ fontSize: 11, display: "block" }}
-            >
+            </span>
+            <span style={{ fontSize: 11, display: "block", color: "#64748B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {user.email}
-            </Typography.Text>
+            </span>
           </div>
         )}
       </div>
@@ -516,7 +519,7 @@ export default function AppLayout() {
   /* ─── Render ───────────────────────────────────────────────────────────── */
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
+    <Layout style={{ minHeight: "100vh", background: "#0B0F19" }}>
       {/* Desktop Sidebar */}
       {!isMobile && (
         <Sider
@@ -524,11 +527,13 @@ export default function AppLayout() {
           collapsed={collapsed}
           onCollapse={setCollapsed}
           trigger={null}
-          theme="light"
-          width={220}
-          collapsedWidth={64}
+          theme="dark"
+          width={200}
+          collapsedWidth={48}
+          className="bw-sidebar"
           style={{
-            borderRight: `1px solid ${token.colorBorderSecondary}`,
+            background: "#0F172A",
+            borderRight: "1px solid rgba(255,255,255,0.06)",
             position: "fixed",
             left: 0,
             top: 0,
@@ -549,8 +554,8 @@ export default function AppLayout() {
           placement="left"
           open={mobileDrawerOpen}
           onClose={() => setMobileDrawerOpen(false)}
-          width={260}
-          styles={{ body: { padding: 0, display: "flex", flexDirection: "column" } }}
+          width={240}
+          styles={{ body: { padding: 0, display: "flex", flexDirection: "column", background: "#0F172A" } }}
           closable={false}
         >
           {sidebarContent}
@@ -559,21 +564,22 @@ export default function AppLayout() {
 
       <Layout
         style={{
-          marginLeft: isMobile ? 0 : collapsed ? 64 : 220,
+          marginLeft: isMobile ? 0 : collapsed ? 48 : 200,
           transition: "margin-left 0.2s",
+          background: "#0B0F19",
         }}
       >
         {/* Header */}
         <Header
           style={{
             padding: "0 16px",
-            background: token.colorBgContainer,
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
+            background: "#0F172A",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            height: 48,
-            lineHeight: "48px",
+            height: 40,
+            lineHeight: "40px",
             position: "sticky",
             top: 0,
             zIndex: 99,
@@ -664,15 +670,15 @@ export default function AppLayout() {
           <div
             style={{
               padding: "6px 16px",
-              background: token.colorBgContainer,
-              borderBottom: `1px solid ${token.colorBorderSecondary}`,
+              background: "#0F172A",
+              borderBottom: "1px solid rgba(255,255,255,0.06)",
             }}
           >
             <Breadcrumb items={breadcrumbItems} />
           </div>
         )}
 
-        <Content style={{ margin: isMobile ? 12 : 24, minHeight: 280 }}>
+        <Content style={{ margin: isMobile ? 12 : 24, minHeight: 280, background: "#0B0F19" }}>
           <Outlet />
         </Content>
       </Layout>
