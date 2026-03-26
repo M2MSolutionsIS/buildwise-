@@ -527,6 +527,63 @@ export const pmService = {
     return data;
   },
 
+  createDevizItem: async (
+    projectId: string,
+    payload: Omit<DevizItem, "id" | "project_id" | "created_at" | "updated_at" | "estimated_total" | "actual_total" | "over_budget_alert">
+  ): Promise<ApiResponse<DevizItem>> => {
+    const { data } = await api.post(`${BASE}/projects/${projectId}/deviz-items`, payload);
+    return data;
+  },
+
+  updateDevizItem: async (
+    projectId: string,
+    itemId: string,
+    payload: Partial<DevizItem>
+  ): Promise<ApiResponse<DevizItem>> => {
+    const { data } = await api.put(`${BASE}/projects/${projectId}/deviz-items/${itemId}`, payload);
+    return data;
+  },
+
+  deleteDevizItem: async (
+    projectId: string,
+    itemId: string
+  ): Promise<void> => {
+    await api.delete(`${BASE}/projects/${projectId}/deviz-items/${itemId}`);
+  },
+
+  // ─── WBS (F069, E-015) ────────────────────────────────────────────────────────
+
+  listWbsNodes: async (
+    projectId: string
+  ): Promise<ApiResponse<PMTask[]>> => {
+    const { data } = await api.get(`${BASE}/projects/${projectId}/wbs`);
+    return data;
+  },
+
+  createWbsNode: async (
+    projectId: string,
+    payload: { title: string; parent_task_id?: string; description?: string; sort_order?: number }
+  ): Promise<ApiResponse<PMTask>> => {
+    const { data } = await api.post(`${BASE}/projects/${projectId}/wbs`, payload);
+    return data;
+  },
+
+  updateWbsNode: async (
+    projectId: string,
+    nodeId: string,
+    payload: Partial<PMTask>
+  ): Promise<ApiResponse<PMTask>> => {
+    const { data } = await api.put(`${BASE}/projects/${projectId}/wbs/${nodeId}`, payload);
+    return data;
+  },
+
+  deleteWbsNode: async (
+    projectId: string,
+    nodeId: string
+  ): Promise<void> => {
+    await api.delete(`${BASE}/projects/${projectId}/wbs/${nodeId}`);
+  },
+
   // ─── Gantt Resources — E-038 Dual-Layer (F083, F117, F118) ──────────────────
 
   listGanttResources: async (

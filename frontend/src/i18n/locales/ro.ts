@@ -83,6 +83,15 @@ const ro = {
     client: "Client",
     partner: "Partener",
     supplier: "Furnizor",
+    products: "Produse & Servicii",
+    productCode: "Cod Produs",
+    productType: "Tip",
+    unitPrice: "Preț Unitar",
+    unitOfMeasure: "Unitate Măsură",
+    vatRate: "TVA %",
+    category: "Categorie",
+    product: "Produs",
+    service: "Serviciu",
   },
 
   // ─── Pipeline Module ─────────────────────────────────────────────────────────
@@ -112,6 +121,16 @@ const ro = {
     reception: "Recepție",
     warranties: "Garanții",
     energyImpact: "Impact Energetic",
+    wbsEditor: "Editor WBS",
+    devizEditor: "Editor Deviz",
+    phase: "Fază",
+    activity: "Activitate",
+    estimatedQty: "Cant. Estimată",
+    actualQty: "Cant. Reală",
+    estimatedPrice: "Preț Estimat",
+    actualPrice: "Preț Real",
+    delta: "Diferență",
+    overBudget: "Depășire Buget",
   },
 
   // ─── RM Module ───────────────────────────────────────────────────────────────

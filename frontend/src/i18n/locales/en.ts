@@ -85,6 +85,15 @@ const en: TranslationKeys = {
     client: "Client",
     partner: "Partner",
     supplier: "Supplier",
+    products: "Products & Services",
+    productCode: "Product Code",
+    productType: "Type",
+    unitPrice: "Unit Price",
+    unitOfMeasure: "Unit of Measure",
+    vatRate: "VAT %",
+    category: "Category",
+    product: "Product",
+    service: "Service",
   },
 
   // ─── Pipeline Module ─────────────────────────────────────────────────────────
@@ -114,6 +123,16 @@ const en: TranslationKeys = {
     reception: "Reception",
     warranties: "Warranties",
     energyImpact: "Energy Impact",
+    wbsEditor: "WBS Editor",
+    devizEditor: "Budget Editor",
+    phase: "Phase",
+    activity: "Activity",
+    estimatedQty: "Estimated Qty",
+    actualQty: "Actual Qty",
+    estimatedPrice: "Estimated Price",
+    actualPrice: "Actual Price",
+    delta: "Delta",
+    overBudget: "Over Budget",
   },
 
   // ─── RM Module ───────────────────────────────────────────────────────────────

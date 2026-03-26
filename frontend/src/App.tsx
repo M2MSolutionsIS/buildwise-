@@ -56,6 +56,9 @@ import ReportsBuilderPage from "./modules/bi/pages/ReportsBuilderPage";
 import AIAssistantPage from "./modules/bi/pages/AIAssistantPage";
 import MLForecastPage from "./modules/bi/pages/MLForecastPage";
 import BrandingSettingsPage from "./modules/system/pages/BrandingSettingsPage";
+import ProductsServicesPage from "./modules/crm/pages/ProductsServicesPage";
+import WBSEditorPage from "./modules/pm/pages/WBSEditorPage";
+import DevizEditorPage from "./modules/pm/pages/DevizEditorPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -113,6 +116,8 @@ function App() {
                   <Route path="contacts" element={<ContactsListPage />} />
                   <Route path="contacts/new" element={<ContactCreatePage />} />
                   <Route path="contacts/:id" element={<ContactDetailPage />} />
+                  {/* E-004: Products & Services Catalog — F017 */}
+                  <Route path="products" element={<ProductsServicesPage />} />
                 </Route>
 
                 {/* Pipeline Routes */}
@@ -139,6 +144,10 @@ function App() {
                 {/* PM Routes — E-016 Gantt, E-018 Timesheet, E-019 Consum, F075, F077 */}
                 <Route path="pm">
                   <Route index element={<ProjectsListPage />} />
+                  {/* E-015: WBS Editor — F069 */}
+                  <Route path="projects/:projectId/wbs" element={<WBSEditorPage />} />
+                  {/* E-017: Deviz Editor — F071, F074, F125 */}
+                  <Route path="projects/:projectId/deviz" element={<DevizEditorPage />} />
                   <Route path="projects/:projectId/gantt" element={<GanttChartPage />} />
                   <Route path="projects/:projectId/timesheet" element={<TimesheetPage />} />
                   <Route path="projects/:projectId/consumption" element={<MaterialConsumptionPage />} />
