@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, Form, Input, Button, Typography, App, Space } from "antd";
+import { Card, Form, Input, Button, Typography, Space } from "antd";
 import { LockOutlined, MailOutlined } from "@ant-design/icons";
 import { authService } from "../services/authService";
 import { useAuthStore } from "../stores/authStore";
+import { toast } from "../components/ToastNotifications";
 import { useBrandingStore } from "../stores/brandingStore";
 import { systemService } from "../modules/system/services/systemService";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { message } = App.useApp();
   const setUser = useAuthStore((s) => s.setUser);
   const applyBranding = useBrandingStore((s) => s.applyBranding);
 
@@ -41,10 +41,10 @@ export default function LoginPage() {
         // Non-blocking — branding falls back to localStorage/defaults
       }
 
-      message.success("Autentificare reușită!");
+      toast.success("Autentificare reușită!");
       navigate("/", { replace: true });
     } catch {
-      message.error("Email sau parolă incorectă.");
+      toast.error("Email sau parolă incorectă.");
     } finally {
       setLoading(false);
     }
