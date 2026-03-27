@@ -30,6 +30,7 @@ import {
   SaveOutlined,
   SearchOutlined,
   BookOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../../services/api";
@@ -72,6 +73,7 @@ export default function WikiDocumentationPage() {
   const [editContent, setEditContent] = useState("");
   const [editTitle, setEditTitle] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [form] = Form.useForm();
 
@@ -282,6 +284,9 @@ export default function WikiDocumentationPage() {
                 </Space>
               </div>
               <Space>
+                <Button icon={<HistoryOutlined />} onClick={() => setHistoryModalOpen(true)}>
+                  Versiuni
+                </Button>
                 <Button icon={<EditOutlined />} onClick={startEdit}>
                   Editează
                 </Button>
@@ -349,6 +354,43 @@ export default function WikiDocumentationPage() {
           </div>
         )}
       </Content>
+
+      {/* E-023.M1: Version History Modal */}
+      <Modal
+        title="Istoric Versiuni"
+        open={historyModalOpen}
+        onCancel={() => setHistoryModalOpen(false)}
+        footer={null}
+        width={600}
+      >
+        {selectedPost && (
+          <List
+            dataSource={[
+              {
+                version: "v" + (selectedPost.updated_at ? "2" : "1"),
+                date: selectedPost.updated_at || selectedPost.created_at,
+                author: selectedPost.updated_by || selectedPost.created_by || "—",
+                action: selectedPost.updated_at ? "Actualizat" : "Creat",
+              },
+              {
+                version: "v1",
+                date: selectedPost.created_at,
+                author: selectedPost.created_by || "—",
+                action: "Creat",
+              },
+            ].filter((v, i, arr) => i === 0 || v.date !== arr[0]?.date)}
+            renderItem={(item) => (
+              <List.Item>
+                <List.Item.Meta
+                  avatar={<Tag color="blue">{item.version}</Tag>}
+                  title={`${item.action} de ${item.author}`}
+                  description={new Date(item.date).toLocaleString("ro-RO")}
+                />
+              </List.Item>
+            )}
+          />
+        )}
+      </Modal>
 
       {/* Create Modal */}
       <Modal

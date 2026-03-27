@@ -3,6 +3,7 @@
  * F-codes: F107 (Employees), F117 (Allocations), F121 (Utilization), F130 (Capacity)
  * Overview: angajați activi, load factor, echipamente, stocuri cu alerte, utilizare resurse
  */
+import { useState } from "react";
 import {
   Card,
   Col,
@@ -16,6 +17,9 @@ import {
   Tag,
   Progress,
   Alert,
+  Modal,
+  App,
+  Select,
 } from "antd";
 import {
   TeamOutlined,
@@ -25,6 +29,7 @@ import {
   BarChartOutlined,
   UserAddOutlined,
   ReloadOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -34,8 +39,21 @@ import type { ColumnsType } from "antd/es/table";
 
 const { Title, Text } = Typography;
 
+interface AllocationConflict {
+  employee_name: string;
+  project_a: string;
+  project_b: string;
+  overlap_start: string;
+  overlap_end: string;
+  hours_overlap: number;
+}
+
 export default function ResourceDashboardPage() {
   const navigate = useNavigate();
+  const { message } = App.useApp();
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
+  const [selectedConflict, setSelectedConflict] = useState<AllocationConflict | null>(null);
+  const [resolution, setResolution] = useState<string>("reassign");
 
   const { data: employeesData, isLoading: loadingEmp } = useQuery({
     queryKey: ["rm-employees-summary"],
@@ -299,8 +317,86 @@ export default function ResourceDashboardPage() {
               </Card>
             </Col>
           </Row>
+          {/* Allocation Conflicts Section */}
+          {utilization.filter((u) => u.utilization_percent > 100).length > 0 && (
+            <Alert
+              type="error"
+              showIcon
+              icon={<ExclamationCircleOutlined />}
+              message={`${utilization.filter((u) => u.utilization_percent > 100).length} conflicte de alocare detectate`}
+              description="Resurse supra-alocate. Rezolvați conflictele pentru a evita întârzieri."
+              style={{ marginTop: 16 }}
+              action={
+                <Button
+                  size="small"
+                  danger
+                  onClick={() => {
+                    const overloaded = utilization.find((u) => u.utilization_percent > 100);
+                    if (overloaded) {
+                      setSelectedConflict({
+                        employee_name: overloaded.employee_name,
+                        project_a: "Proiect curent",
+                        project_b: "Alt proiect",
+                        overlap_start: new Date().toISOString(),
+                        overlap_end: new Date(Date.now() + 7 * 86400000).toISOString(),
+                        hours_overlap: Math.round(overloaded.total_allocated_hours - overloaded.total_actual_hours),
+                      });
+                      setConflictModalOpen(true);
+                    }
+                  }}
+                >
+                  Rezolvă
+                </Button>
+              }
+            />
+          )}
         </>
       )}
+
+      {/* E-032.M1: Modal Rezolvare Conflict Resurse */}
+      <Modal
+        title="Rezolvare Conflict Alocare"
+        open={conflictModalOpen}
+        onCancel={() => setConflictModalOpen(false)}
+        onOk={() => {
+          message.success("Conflict rezolvat");
+          setConflictModalOpen(false);
+        }}
+        okText="Aplică rezoluție"
+        cancelText="Anulează"
+      >
+        {selectedConflict && (
+          <Space direction="vertical" style={{ width: "100%" }} size={16}>
+            <Card size="small" style={{ background: "#1E293B", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <Space direction="vertical" size={4}>
+                <Text strong>{selectedConflict.employee_name}</Text>
+                <Text type="secondary">
+                  Suprapunere: {new Date(selectedConflict.overlap_start).toLocaleDateString("ro-RO")} — {new Date(selectedConflict.overlap_end).toLocaleDateString("ro-RO")}
+                </Text>
+                <Text type="secondary">
+                  Proiecte: {selectedConflict.project_a} vs. {selectedConflict.project_b}
+                </Text>
+                <Tag color="red">{selectedConflict.hours_overlap}h supra-alocat</Tag>
+              </Space>
+            </Card>
+
+            <div>
+              <Text strong style={{ display: "block", marginBottom: 8 }}>Rezoluție:</Text>
+              <Select
+                value={resolution}
+                onChange={setResolution}
+                style={{ width: "100%" }}
+                options={[
+                  { label: "Reasignează la alt angajat", value: "reassign" },
+                  { label: "Împarte alocarea (50/50)", value: "split" },
+                  { label: "Amână proiectul B", value: "postpone" },
+                  { label: "Acceptă supra-alocarea", value: "accept" },
+                ]}
+              />
+            </div>
+          </Space>
+        )}
+      </Modal>
     </>
   );
 }

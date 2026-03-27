@@ -64,6 +64,7 @@ import PostExecutionEnergyPage from "./modules/pm/pages/PostExecutionEnergyPage"
 import ProjectDetailHubPage from "./modules/pm/pages/ProjectDetailHubPage";
 import TechnicalDataEnergyPage from "./modules/crm/pages/TechnicalDataEnergyPage";
 import NotificationsCenterPage from "./modules/system/pages/NotificationsCenterPage";
+import SettingsHubPage from "./modules/system/pages/SettingsHubPage";
 import { useAuthStore } from "./stores/authStore";
 
 const queryClient = new QueryClient({
@@ -209,7 +210,7 @@ function App() {
                 </Route>
                 {/* E-025: Notifications Center */}
                 <Route path="notifications" element={<NotificationsCenterPage />} />
-                <Route path="settings" element={<PlaceholderPage title="Setări" />} />
+                <Route path="settings" element={<SettingsHubPage />} />
                 {/* Task 32: F137 Branding + F138 Multi-limbă */}
                 <Route path="settings/branding" element={<BrandingSettingsPage />} />
                 {/* Task 30: Configuratoare avansate — F061, F131 */}
@@ -222,15 +223,6 @@ function App() {
         </ThemeProvider>
       </I18nProvider>
     </QueryClientProvider>
-  );
-}
-
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div style={{ padding: 48, textAlign: "center" }}>
-      <h2 style={{ color: "#F1F5F9" }}>{title}</h2>
-      <p style={{ color: "#64748B" }}>Modul in curs de implementare.</p>
-    </div>
   );
 }
 

@@ -3,6 +3,7 @@
  * Overview page with KPI cards + tabs/links to all PM sub-modules.
  * Route: /pm/projects/:projectId
  */
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Typography,
@@ -14,6 +15,10 @@ import {
   Progress,
   Descriptions,
   Divider,
+  Button,
+  Modal,
+  Select,
+  App,
 } from "antd";
 import {
   ProjectOutlined,
@@ -34,7 +39,7 @@ import {
   BookOutlined,
   TruckOutlined,
 } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { pmService } from "../services/pmService";
 import { SkeletonPage } from "../../../components/SkeletonLoaders";
 import EmptyState from "../../../components/EmptyState";
@@ -58,6 +63,10 @@ const STATUS_COLORS: Record<string, string> = {
 export default function ProjectDetailHubPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const { message } = App.useApp();
+  const queryClient = useQueryClient();
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [newStatus, setNewStatus] = useState<string>("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -67,6 +76,25 @@ export default function ProjectDetailHubPage() {
 
   const project = data?.data;
   const base = `/pm/projects/${projectId}`;
+
+  // E-014.M1: Change project status
+  const statusMut = useMutation({
+    mutationFn: async (status: string) => {
+      const endpoint = status === "completed" ? "close" : status === "cancelled" ? "cancel" : null;
+      if (endpoint) {
+        const { data } = await import("../../../services/api").then((m) => m.default.put(`/pm/projects/${projectId}/${endpoint}`));
+        return data;
+      }
+      const { data: d } = await import("../../../services/api").then((m) => m.default.put(`/pm/projects/${projectId}`, { status }));
+      return d;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      message.success("Status proiect actualizat");
+      setStatusModalOpen(false);
+    },
+    onError: () => message.error("Eroare la schimbarea statusului"),
+  });
 
   if (isLoading) return <SkeletonPage />;
 
@@ -139,6 +167,9 @@ export default function ProjectDetailHubPage() {
             </Text>
           )}
         </div>
+        <Button onClick={() => { setNewStatus(project.status); setStatusModalOpen(true); }}>
+          Schimbă status
+        </Button>
       </div>
 
       {/* KPI Summary Cards */}
@@ -230,6 +261,38 @@ export default function ProjectDetailHubPage() {
           </Col>
         ))}
       </Row>
+
+      {/* E-014.M1: Modal schimbare status proiect */}
+      <Modal
+        title="Schimbare Status Proiect"
+        open={statusModalOpen}
+        onCancel={() => setStatusModalOpen(false)}
+        onOk={() => newStatus && statusMut.mutate(newStatus)}
+        confirmLoading={statusMut.isPending}
+        okText="Confirmă"
+        cancelText="Anulează"
+      >
+        <Space direction="vertical" style={{ width: "100%" }}>
+          <Select
+            value={newStatus}
+            onChange={setNewStatus}
+            style={{ width: "100%" }}
+            options={[
+              { label: "Planning", value: "planning" },
+              { label: "In Progress", value: "in_progress" },
+              { label: "On Hold", value: "on_hold" },
+              { label: "Completed", value: "completed" },
+              { label: "Cancelled", value: "cancelled" },
+            ]}
+          />
+          {newStatus === "cancelled" && (
+            <Tag color="red">Atenție: Proiectul va fi anulat definitiv.</Tag>
+          )}
+          {newStatus === "completed" && (
+            <Tag color="green">Proiectul va fi marcat ca finalizat.</Tag>
+          )}
+        </Space>
+      </Modal>
     </div>
   );
 }
