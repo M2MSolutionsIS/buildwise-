@@ -494,3 +494,30 @@ class SyncStatusOut(BaseModel):
     last_sync: datetime | None = None
     errors: list = []
     status: str = "ok"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GDPR — Data Export, Deletion, Audit Trail
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class GdprExportOut(BaseModel):
+    """GDPR: Exported personal data."""
+    user: dict
+    contacts_owned: list[dict] = []
+    opportunities_owned: list[dict] = []
+    audit_entries: list[dict] = []
+    exported_at: datetime
+
+
+class GdprDeleteOut(BaseModel):
+    """GDPR: Data deletion confirmation."""
+    anonymized_entities: dict
+    deleted_at: datetime
+    message: str
+
+
+class GdprAuditOut(BaseModel):
+    """GDPR: Audit trail of data access."""
+    entries: list[dict] = []
+    total: int = 0

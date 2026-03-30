@@ -36,6 +36,9 @@ from app.system.schemas import (
     ExchangeRateOut,
     FeatureFlagOut,
     FeatureFlagUpdate,
+    GdprAuditOut,
+    GdprDeleteOut,
+    GdprExportOut,
     HealthResponse,
     LoginRequest,
     Meta,
@@ -62,6 +65,9 @@ from app.system.schemas import (
     UserRoleAssign,
     UserUpdate,
 )
+
+# ─── GDPR router (auth required, no admin needed) ──────────────────────────
+gdpr_router = APIRouter(prefix="/api/v1/gdpr", tags=["GDPR"])
 
 # ─── Public routers (no auth) ────────────────────────────────────────────────
 
@@ -995,6 +1001,55 @@ async def get_sync_status(
     return ApiResponse(
         data=[SyncStatusOut(**d) for d in data],
         meta=Meta(total=len(data)),
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GDPR — Data Export, Deletion, Audit Trail
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@gdpr_router.get("/export-my-data", response_model=ApiResponse)
+async def gdpr_export(
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """GDPR: Export all personal data for the current user (data portability)."""
+    result = await service.gdpr_export_my_data(db, current_user)
+    return ApiResponse(data=GdprExportOut(**result))
+
+
+@gdpr_router.delete("/delete-my-data", response_model=ApiResponse)
+async def gdpr_delete(
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """GDPR: Delete/anonymize all personal data (right to erasure)."""
+    req_info = await get_request_info(request)
+    result = await service.gdpr_delete_my_data(
+        db, current_user,
+        ip_address=req_info["ip_address"],
+        user_agent=req_info["user_agent"],
+    )
+    return ApiResponse(data=GdprDeleteOut(**result))
+
+
+@gdpr_router.get("/audit-trail", response_model=ApiResponse)
+async def gdpr_audit(
+    page: int = 1,
+    per_page: int = 50,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """GDPR: View audit trail of all operations involving the user's data."""
+    entries, total = await service.gdpr_audit_trail(
+        db, current_user, page=page, per_page=per_page,
+    )
+    return ApiResponse(
+        data=GdprAuditOut(entries=entries, total=total),
+        meta=Meta(total=total, page=page, per_page=per_page),
     )
 
 
