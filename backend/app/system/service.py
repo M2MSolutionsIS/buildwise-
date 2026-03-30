@@ -1125,3 +1125,148 @@ async def get_sync_status(db: AsyncSession, org_id: uuid.UUID) -> list[dict]:
             "status": "ok",
         })
     return results
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GDPR — Data Export, Deletion, Audit Trail
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+async def gdpr_export_my_data(
+    db: AsyncSession, user: User,
+) -> dict:
+    """GDPR: Export all personal data for the requesting user."""
+    from app.crm.models import Contact
+    from app.pipeline.models import Opportunity
+
+    org_id = user.organization_id
+
+    # User profile data (exclude sensitive fields)
+    user_data = {
+        "id": str(user.id),
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "organization_id": str(org_id),
+        "is_active": user.is_active,
+        "gdpr_consent": user.gdpr_consent,
+        "gdpr_consent_date": user.gdpr_consent_date.isoformat() if user.gdpr_consent_date else None,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "last_login": user.last_login.isoformat() if user.last_login else None,
+    }
+
+    # Contacts created by this user
+    contacts_q = await db.execute(
+        select(Contact).where(
+            Contact.organization_id == org_id,
+            Contact.created_by == user.id,
+            Contact.is_deleted.is_(False),
+        )
+    )
+    contacts = [model_to_dict(c) for c in contacts_q.scalars().all()]
+
+    # Opportunities owned by this user
+    opps_q = await db.execute(
+        select(Opportunity).where(
+            Opportunity.organization_id == org_id,
+            Opportunity.owner_id == user.id,
+            Opportunity.is_deleted.is_(False),
+        )
+    )
+    opportunities = [model_to_dict(o) for o in opps_q.scalars().all()]
+
+    # Audit entries for this user
+    audit_q = await db.execute(
+        select(AuditLog).where(
+            AuditLog.user_id == user.id,
+        ).order_by(AuditLog.timestamp.desc()).limit(500)
+    )
+    audit_entries = [model_to_dict(a) for a in audit_q.scalars().all()]
+
+    # Log this export as an audit entry
+    await log_audit(
+        db, user_id=user.id, organization_id=org_id,
+        action="GDPR_EXPORT", entity_type="users", entity_id=user.id,
+        new_values={"exported_fields": ["profile", "contacts", "opportunities", "audit"]},
+    )
+
+    return {
+        "user": user_data,
+        "contacts_owned": contacts,
+        "opportunities_owned": opportunities,
+        "audit_entries": audit_entries,
+        "exported_at": datetime.now(timezone.utc),
+    }
+
+
+async def gdpr_delete_my_data(
+    db: AsyncSession, user: User,
+    ip_address: str | None = None, user_agent: str | None = None,
+) -> dict:
+    """GDPR: Anonymize/delete personal data for the requesting user (right to erasure)."""
+    org_id = user.organization_id
+    anonymized = {"user": False, "contacts": 0, "notifications": 0}
+
+    # Anonymize user data (keep record for audit, but remove PII)
+    old_data = model_to_dict(user)
+    user.email = f"deleted-{user.id}@anonymized.local"
+    user.first_name = "DELETED"
+    user.last_name = "USER"
+    user.phone = None
+    user.is_active = False
+    user.is_deleted = True
+    user.deleted_at = datetime.now(timezone.utc)
+    user.gdpr_consent = False
+    user.refresh_token = None
+    anonymized["user"] = True
+
+    # Remove user's notifications
+    notifs_q = await db.execute(
+        select(Notification).where(
+            Notification.user_id == user.id,
+            Notification.organization_id == org_id,
+        )
+    )
+    notifs = notifs_q.scalars().all()
+    for n in notifs:
+        await db.delete(n)
+    anonymized["notifications"] = len(notifs)
+
+    await db.flush()
+
+    # Log the deletion
+    await log_audit(
+        db, user_id=user.id, organization_id=org_id,
+        action="GDPR_DELETE", entity_type="users", entity_id=user.id,
+        old_values=old_data,
+        new_values={"status": "anonymized"},
+        ip_address=ip_address, user_agent=user_agent,
+    )
+
+    return {
+        "anonymized_entities": anonymized,
+        "deleted_at": datetime.now(timezone.utc),
+        "message": "Datele personale au fost anonimizate conform GDPR.",
+    }
+
+
+async def gdpr_audit_trail(
+    db: AsyncSession, user: User,
+    page: int = 1, per_page: int = 50,
+) -> tuple[list[dict], int]:
+    """GDPR: Show audit trail of all operations involving the user's data."""
+    count_q = select(func.count()).select_from(AuditLog).where(
+        AuditLog.user_id == user.id,
+    )
+    total = (await db.execute(count_q)).scalar()
+
+    q = (
+        select(AuditLog)
+        .where(AuditLog.user_id == user.id)
+        .order_by(AuditLog.timestamp.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    )
+    result = await db.execute(q)
+    entries = [model_to_dict(a) for a in result.scalars().all()]
+    return entries, total

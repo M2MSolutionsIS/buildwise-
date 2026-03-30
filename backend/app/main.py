@@ -94,7 +94,7 @@ from app.rm import models as rm_models  # noqa: F401, E402
 from app.bi import models as bi_models  # noqa: F401, E402
 
 # ─── Register routers ────────────────────────────────────────────────────────
-from app.system.router import auth_router, health_router, system_router, user_router  # noqa: E402
+from app.system.router import auth_router, gdpr_router, health_router, system_router, user_router  # noqa: E402
 from app.crm.router import crm_router  # noqa: E402
 from app.pipeline.router import pipeline_router  # noqa: E402
 from app.pm.router import pm_router  # noqa: E402
@@ -112,3 +112,4 @@ app.include_router(pm_router)
 app.include_router(rm_router)
 app.include_router(bi_router)
 app.include_router(search_router)
+app.include_router(gdpr_router)
