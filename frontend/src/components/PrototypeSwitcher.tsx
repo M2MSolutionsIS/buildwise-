@@ -1,10 +1,7 @@
 /**
- * Prototype Switcher — allows switching between P1/P2/P3 prototypes.
- * Shows in the header bar. Changes feature visibility across the app.
- *
- * P1 — BuildWise TRL5: Energy + AI
- * P2 — BAHM Operational: Construction + RM
- * P3 — M2M ERP Lite: SaaS multi-tenant
+ * Prototype Switcher — allows switching between allowed prototypes.
+ * If the organization has only one allowed prototype, shows a read-only Tag.
+ * Otherwise shows a Segmented control filtered to the allowed prototypes.
  */
 import { Segmented, Tooltip, Tag, Space } from "antd";
 import {
@@ -13,15 +10,17 @@ import {
   CloudOutlined,
 } from "@ant-design/icons";
 import { usePrototypeStore } from "../stores/prototypeStore";
+import { systemService } from "../modules/system/services/systemService";
 import type { Prototype } from "../types";
 
-const PROTOTYPES: { value: Prototype; label: React.ReactNode; icon: React.ReactNode; description: string; color: string }[] = [
+const PROTOTYPES: { value: Prototype; label: string; icon: React.ReactNode; description: string; color: string; featureCount: string }[] = [
   {
     value: "P1",
     label: "P1",
     icon: <ThunderboltOutlined />,
     description: "BuildWise TRL5 — Energy + AI",
     color: "#52c41a",
+    featureCount: "82F",
   },
   {
     value: "P2",
@@ -29,6 +28,7 @@ const PROTOTYPES: { value: Prototype; label: React.ReactNode; icon: React.ReactN
     icon: <ToolOutlined />,
     description: "BAHM Operational — Construcții + RM",
     color: "#1677ff",
+    featureCount: "103F",
   },
   {
     value: "P3",
@@ -36,21 +36,42 @@ const PROTOTYPES: { value: Prototype; label: React.ReactNode; icon: React.ReactN
     icon: <CloudOutlined />,
     description: "M2M ERP Lite — SaaS Multi-tenant",
     color: "#722ed1",
+    featureCount: "108F",
   },
 ];
 
 export default function PrototypeSwitcher() {
-  const { activePrototype, setPrototype } = usePrototypeStore();
+  const { activePrototype, allowedPrototypes, setPrototype } = usePrototypeStore();
 
   const current = PROTOTYPES.find((p) => p.value === activePrototype)!;
+  const visibleOptions = PROTOTYPES.filter((p) => allowedPrototypes.includes(p.value));
+
+  const handleChange = async (value: string | number) => {
+    const proto = value as Prototype;
+    const accepted = setPrototype(proto);
+    if (accepted) {
+      try { await systemService.setPrototype(proto); } catch { /* best effort */ }
+    }
+  };
+
+  if (visibleOptions.length <= 1) {
+    return (
+      <Tag color={current.color} style={{ margin: 0 }}>
+        <Space size={4}>
+          {current.icon}
+          <span>Plan: {current.label}</span>
+        </Space>
+      </Tag>
+    );
+  }
 
   return (
     <Space size={4}>
       <Segmented
         size="small"
         value={activePrototype}
-        onChange={(v) => setPrototype(v as Prototype)}
-        options={PROTOTYPES.map((p) => ({
+        onChange={handleChange}
+        options={visibleOptions.map((p) => ({
           value: p.value,
           label: (
             <Tooltip title={p.description}>
@@ -63,7 +84,7 @@ export default function PrototypeSwitcher() {
         }))}
       />
       <Tag color={current.color} style={{ margin: 0, fontSize: 10 }}>
-        {activePrototype === "P1" ? "82F" : activePrototype === "P2" ? "103F" : "108F"}
+        {current.featureCount}
       </Tag>
     </Space>
   );

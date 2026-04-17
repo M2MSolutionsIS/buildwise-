@@ -5,10 +5,8 @@
  * P2 — BAHM Operational: Construction + RM (82 common + 21 P2+P3)
  * P3 — M2M ERP Lite: SaaS multi-tenant (82 common + 21 P2+P3 + 5 P3-only)
  *
- * Feature visibility:
- * - 82 common: always visible
- * - 21 P2+P3: visible when prototype is P2 or P3
- * - 5 P3 only: visible only when prototype is P3
+ * Source of truth: server (Organization.active_prototype + allowed_prototypes).
+ * localStorage is used only as a cache until the server responds.
  */
 import { create } from "zustand";
 import type { Prototype } from "../types";
@@ -38,7 +36,13 @@ const P3_ONLY_ROUTES = [
 
 interface PrototypeState {
   activePrototype: Prototype;
-  setPrototype: (p: Prototype) => void;
+  allowedPrototypes: Prototype[];
+  /** True once the server has been queried and the store is initialized */
+  initialized: boolean;
+  /** Sync from server organization data */
+  syncFromOrganization: (active: Prototype, allowed: Prototype[]) => void;
+  /** Set prototype (validates against allowedPrototypes) */
+  setPrototype: (p: Prototype) => boolean;
   /** Check if a module key is visible for current prototype */
   isModuleVisible: (moduleKey: string) => boolean;
   /** Check if a route is visible for current prototype */
@@ -50,11 +54,21 @@ interface PrototypeState {
 }
 
 export const usePrototypeStore = create<PrototypeState>((set, get) => ({
-  activePrototype: (localStorage.getItem("buildwise_prototype") as Prototype) || "P3",
+  activePrototype: (localStorage.getItem("buildwise_prototype") as Prototype) || "P1",
+  allowedPrototypes: ["P1", "P2", "P3"],
+  initialized: false,
+
+  syncFromOrganization: (active, allowed) => {
+    localStorage.setItem("buildwise_prototype", active);
+    set({ activePrototype: active, allowedPrototypes: allowed, initialized: true });
+  },
 
   setPrototype: (p) => {
+    const { allowedPrototypes } = get();
+    if (!allowedPrototypes.includes(p)) return false;
     localStorage.setItem("buildwise_prototype", p);
     set({ activePrototype: p });
+    return true;
   },
 
   isModuleVisible: (moduleKey) => {
