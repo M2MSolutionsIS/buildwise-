@@ -262,7 +262,7 @@ export default function AppLayout() {
   const { token } = theme.useToken();
   const { user, setUser, logout } = useAuthStore();
   const { appName, logoUrl, whiteLabelEnabled, applyBranding } = useBrandingStore();
-  const { isRouteVisible } = usePrototypeStore();
+  const { isRouteVisible, syncFromOrganization } = usePrototypeStore();
   const t = useTranslation();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
@@ -279,7 +279,7 @@ export default function AppLayout() {
     retry: false,
   });
 
-  // Sync branding from backend Organization (F137)
+  // Sync branding + prototype from backend Organization (F137)
   useQuery({
     queryKey: ["organization-branding"],
     queryFn: async () => {
@@ -294,9 +294,13 @@ export default function AppLayout() {
         fontFamily: (org.custom_branding?.font_family as string) || "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
         borderRadius: (org.custom_branding?.border_radius as number) || 6,
       });
+      syncFromOrganization(
+        org.active_prototype,
+        org.allowed_prototypes || ["P1", "P2", "P3"],
+      );
       return org;
     },
-    staleTime: 5 * 60 * 1000, // 5 min — don't re-fetch too often
+    staleTime: 5 * 60 * 1000,
     retry: false,
   });
 

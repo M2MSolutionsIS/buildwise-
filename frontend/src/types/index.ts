@@ -49,6 +49,7 @@ export interface Organization {
   modules_enabled: string[];
   setup_completed: boolean;
   active_prototype: Prototype;
+  allowed_prototypes: Prototype[];
   is_p1: boolean;
   is_p2: boolean;
   is_p3: boolean;

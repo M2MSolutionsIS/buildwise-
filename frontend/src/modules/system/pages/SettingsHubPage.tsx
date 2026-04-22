@@ -37,6 +37,8 @@ import {
   FormatPainterOutlined,
   CheckOutlined,
   CloseOutlined,
+  ThunderboltOutlined,
+  CloudOutlined,
 } from "@ant-design/icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { systemService } from "../services/systemService";
@@ -99,6 +101,113 @@ const ROLE_DEFAULTS: Record<string, Record<string, string[]>> = {
     System: [],
   },
 };
+
+// ─── Prototype Settings Tab ─────────────────────────────────────────────────
+
+const PROTO_OPTIONS: { value: string; label: string; icon: React.ReactNode; desc: string; color: string }[] = [
+  { value: "P1", label: "P1 — BuildWise TRL5", icon: <ThunderboltOutlined />, desc: "Energy + AI (82 funcționalități)", color: "#52c41a" },
+  { value: "P2", label: "P2 — BAHM Operational", icon: <ToolOutlined />, desc: "Construcții + RM (103 funcționalități)", color: "#1677ff" },
+  { value: "P3", label: "P3 — M2M ERP Lite", icon: <CloudOutlined />, desc: "SaaS Multi-tenant (108 funcționalități)", color: "#722ed1" },
+];
+
+function PrototypeSettingsTab() {
+  const queryClient = useQueryClient();
+
+  const { data: orgData, isLoading } = useQuery({
+    queryKey: ["org-prototype-settings"],
+    queryFn: () => systemService.getOrganization(),
+  });
+
+  const org = orgData?.data;
+  const currentAllowed: string[] = org?.allowed_prototypes || ["P1", "P2", "P3"];
+  const currentActive: string = org?.active_prototype || "P1";
+
+  const updateMut = useMutation({
+    mutationFn: (allowed: string[]) => systemService.updateAllowedPrototypes(allowed),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["org-prototype-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["organization-branding"] });
+      toast.success("Prototipuri permise actualizate");
+    },
+    onError: () => toast.error("Eroare la actualizare"),
+  });
+
+  const handleToggle = (proto: string, checked: boolean) => {
+    let next: string[];
+    if (checked) {
+      next = [...currentAllowed, proto].sort();
+    } else {
+      next = currentAllowed.filter((p) => p !== proto);
+    }
+    if (next.length === 0) {
+      toast.error("Cel puțin un prototip trebuie să fie permis");
+      return;
+    }
+    updateMut.mutate(next);
+  };
+
+  return (
+    <div>
+      <Card
+        title="Prototipuri Permise"
+        size="small"
+        style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)", marginBottom: 16 }}
+        loading={isLoading}
+      >
+        <Text type="secondary" style={{ display: "block", marginBottom: 16 }}>
+          Selectează care prototipuri sunt disponibile pentru această organizație.
+          Utilizatorii vor putea comuta doar între prototipurile permise.
+        </Text>
+        <Row gutter={[16, 16]}>
+          {PROTO_OPTIONS.map((p) => {
+            const isAllowed = currentAllowed.includes(p.value);
+            const isActive = currentActive === p.value;
+            return (
+              <Col xs={24} sm={8} key={p.value}>
+                <Card
+                  size="small"
+                  style={{
+                    border: isAllowed ? `2px solid ${p.color}` : "1px solid rgba(255,255,255,0.1)",
+                    opacity: isAllowed ? 1 : 0.5,
+                  }}
+                >
+                  <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <Space>
+                        <span style={{ color: p.color, fontSize: 18 }}>{p.icon}</span>
+                        <Text strong>{p.label}</Text>
+                      </Space>
+                      <Switch
+                        checked={isAllowed}
+                        onChange={(checked) => handleToggle(p.value, checked)}
+                        loading={updateMut.isPending}
+                      />
+                    </div>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{p.desc}</Text>
+                    {isActive && <Tag color={p.color}>Activ</Tag>}
+                  </Space>
+                </Card>
+              </Col>
+            );
+          })}
+        </Row>
+      </Card>
+
+      <Card
+        title="Prototip Activ"
+        size="small"
+        style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
+          Prototipul activ curent: <Tag color={PROTO_OPTIONS.find((p) => p.value === currentActive)?.color}>{currentActive}</Tag>
+        </Text>
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          Prototipul activ poate fi schimbat din header-ul aplicației (dacă sunt permise mai multe prototipuri).
+        </Text>
+      </Card>
+    </div>
+  );
+}
 
 export default function SettingsHubPage() {
   const { message: msg } = App.useApp();
@@ -533,6 +642,11 @@ export default function SettingsHubPage() {
                 />
               </div>
             ),
+          },
+          {
+            key: "prototype",
+            label: <Space><ThunderboltOutlined /> Prototip</Space>,
+            children: <PrototypeSettingsTab />,
           },
         ]}
       />

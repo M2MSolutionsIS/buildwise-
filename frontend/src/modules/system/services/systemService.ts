@@ -33,6 +33,20 @@ export const systemService = {
     return data;
   },
 
+  setPrototype: async (
+    prototype: string
+  ): Promise<ApiResponse<Organization>> => {
+    const { data } = await api.patch(`${BASE}/organization/prototype`, { prototype });
+    return data;
+  },
+
+  updateAllowedPrototypes: async (
+    allowed_prototypes: string[]
+  ): Promise<ApiResponse<Organization>> => {
+    const { data } = await api.patch(`${BASE}/organization/allowed-prototypes`, { allowed_prototypes });
+    return data;
+  },
+
   // ─── Tenant Setup Wizard (F160) ───────────────────────────────────────────
 
   completeTenantSetup: async (

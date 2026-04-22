@@ -91,12 +91,21 @@ class OrganizationOut(BaseModel):
     name: str
     slug: str
     active_prototype: str
+    allowed_prototypes: list[str] = ["P1", "P2", "P3"]
+    logo_url: str | None = None
+    primary_color: str | None = None
+    secondary_color: str | None = None
+    custom_branding: dict | None = None
     default_language: str
     default_currency: str
     setup_completed: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class PrototypeUpdateRequest(BaseModel):
+    prototype: str = Field(..., pattern="^P[123]$")
 
 
 # ─── Audit Log Schemas ───────────────────────────────────────────────────────

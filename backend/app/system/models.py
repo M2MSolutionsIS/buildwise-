@@ -98,6 +98,9 @@ class Organization(Base, BasePKMixin, TimestampMixin, SoftDeleteMixin, Prototype
     active_prototype: Mapped[str] = mapped_column(
         Enum(PrototypeEnum), default=PrototypeEnum.P1, nullable=False
     )
+    allowed_prototypes: Mapped[list | None] = mapped_column(
+        JSON, default=["P1", "P2", "P3"], nullable=False
+    )
 
     # Branding — F137
     primary_color: Mapped[str | None] = mapped_column(String(7), nullable=True)

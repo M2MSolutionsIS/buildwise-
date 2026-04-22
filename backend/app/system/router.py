@@ -46,7 +46,9 @@ from app.system.schemas import (
     NotificationOut,
     NotificationTemplateCreate,
     NotificationTemplateOut,
+    OrganizationOut,
     PermissionOut,
+    PrototypeUpdateRequest,
     PipelineStageConfigCreate,
     PipelineStageConfigOut,
     PipelineStageConfigUpdate,
@@ -202,6 +204,81 @@ async def get_me(current_user=Depends(get_current_user)):
         created_at=current_user.created_at,
         roles=roles,
     ))
+
+
+# ─── Organization endpoints ─────────────────────────────────────────────────
+
+
+@system_router.get("/organization", response_model=ApiResponse)
+async def get_organization(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the current user's organization (prototype, branding, etc.)."""
+    from app.system.models import Organization
+    result = await db.execute(
+        select(Organization).where(Organization.id == current_user.organization_id)
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    return ApiResponse(data=OrganizationOut.model_validate(org))
+
+
+@system_router.patch("/organization/prototype", response_model=ApiResponse)
+async def update_prototype(
+    body: PrototypeUpdateRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Switch the active prototype — only if it's in allowed_prototypes."""
+    from app.system.models import Organization
+    result = await db.execute(
+        select(Organization).where(Organization.id == current_user.organization_id)
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    allowed = org.allowed_prototypes or ["P1", "P2", "P3"]
+    if body.prototype not in allowed:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Prototype {body.prototype} not allowed. Allowed: {allowed}",
+        )
+    org.active_prototype = body.prototype
+    await db.commit()
+    await db.refresh(org)
+    return ApiResponse(data=OrganizationOut.model_validate(org))
+
+
+@system_router.patch(
+    "/organization/allowed-prototypes",
+    response_model=ApiResponse,
+    dependencies=[Depends(require_role("admin"))],
+)
+async def update_allowed_prototypes(
+    body: dict,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin: update allowed_prototypes for the organization."""
+    from app.system.models import Organization
+    allowed = body.get("allowed_prototypes", [])
+    valid = {"P1", "P2", "P3"}
+    if not allowed or not all(p in valid for p in allowed):
+        raise HTTPException(status_code=422, detail="allowed_prototypes must be a non-empty subset of [P1, P2, P3]")
+    result = await db.execute(
+        select(Organization).where(Organization.id == current_user.organization_id)
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    org.allowed_prototypes = list(set(allowed))
+    if org.active_prototype not in org.allowed_prototypes:
+        org.active_prototype = org.allowed_prototypes[0]
+    await db.commit()
+    await db.refresh(org)
+    return ApiResponse(data=OrganizationOut.model_validate(org))
 
 
 # ─── System Admin endpoints ──────────────────────────────────────────────────
