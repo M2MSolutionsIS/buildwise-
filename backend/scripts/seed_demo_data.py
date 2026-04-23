@@ -658,14 +658,23 @@ def update_project_progress():
         "Renovare energetică Vila Popescu": {"percent_complete": 100.0, "status": "completed"},
     }
     projects = api("GET", "/api/v1/pm/projects?per_page=50")
+    print(f"    GET projects response type: {type(projects)}")
+    print(f"    GET projects response: {json.dumps(projects, indent=2, ensure_ascii=False) if projects else projects}")
     if not projects:
         print("    No projects found")
         return
+    print(f"    Found {len(projects)} projects")
     for p in projects:
-        update = progress_map.get(p.get("name", ""))
+        name = p.get("name", "")
+        pid = p.get("id", "?")
+        print(f"    Checking project: '{name}' (id={pid})")
+        update = progress_map.get(name)
         if update:
-            api("PUT", f"/api/v1/pm/projects/{p['id']}", update)
-            print(f"    {p['name']} → {update['percent_complete']}% ({update['status']})")
+            result = api("PUT", f"/api/v1/pm/projects/{pid}", update)
+            print(f"    PUT result: {json.dumps(result, indent=2, ensure_ascii=False) if result else result}")
+            print(f"    ✓ {name} → {update['percent_complete']}% ({update['status']})")
+        else:
+            print(f"    ✗ No match in progress_map for '{name}'")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
