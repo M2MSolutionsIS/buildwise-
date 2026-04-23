@@ -7,6 +7,7 @@ import urllib.request
 import json
 import sys
 from datetime import datetime, timedelta
+from time import sleep
 
 API = "https://confident-cooperation-production.up.railway.app"
 EMAIL = "buildwise2026x@gmail.com"
@@ -15,23 +16,28 @@ TOKEN = None
 
 
 def api(method, path, body=None):
-    data = json.dumps(body).encode() if body else None
-    req = urllib.request.Request(
-        f"{API}{path}",
-        data=data,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {TOKEN}",
-        },
-        method=method,
-    )
-    try:
-        resp = urllib.request.urlopen(req, timeout=30)
-        result = json.loads(resp.read().decode())
-        return result.get("data", result)
-    except urllib.error.HTTPError as e:
-        print(f"  ERROR {e.code} {method} {path}: {e.read().decode()[:200]}")
-        return None
+    for attempt in range(3):
+        data = json.dumps(body).encode() if body else None
+        req = urllib.request.Request(
+            f"{API}{path}",
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {TOKEN}",
+            },
+            method=method,
+        )
+        try:
+            resp = urllib.request.urlopen(req, timeout=30)
+            result = json.loads(resp.read().decode())
+            return result.get("data", result)
+        except urllib.error.HTTPError as e:
+            if e.code in (502, 503) and attempt < 2:
+                print(f"  RETRY {e.code} {method} {path} (attempt {attempt + 1}/3, waiting 5s...)")
+                sleep(5)
+                continue
+            print(f"  ERROR {e.code} {method} {path}: {e.read().decode()[:200]}")
+            return None
 
 
 def login():
@@ -1082,9 +1088,8 @@ def already_seeded():
 
 
 if __name__ == "__main__":
-    from time import sleep
-    print("Waiting 10s for uvicorn to start...")
-    sleep(10)
+    print("Waiting 30s for uvicorn to start...")
+    sleep(30)
 
     login()
 
