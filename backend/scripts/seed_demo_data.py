@@ -649,6 +649,27 @@ def seed_pm(crm, pipe):
     return {"project_ids": project_ids}
 
 
+def update_project_progress():
+    """Set percent_complete on each project based on task status."""
+    print("\n── update_project_progress ──")
+    progress_map = {
+        "Reabilitare termică Bloc A4 Iași": 44.0,
+        "Izolare termică Școala Nr. 5 Bacău": 0.0,
+        "Renovare energetică Vila Popescu": 100.0,
+    }
+    projects = api("GET", "/api/v1/pm/projects?per_page=50")
+    if not projects:
+        print("    No projects found")
+        return
+    for p in projects:
+        name = p.get("name", "")
+        pct = progress_map.get(name)
+        if pct is not None:
+            status = "completed" if pct == 100 else ("in_progress" if pct > 0 else "planning")
+            api("PUT", f"/api/v1/pm/projects/{p['id']}", {"percent_complete": pct, "status": status})
+            print(f"    {name} → {pct}% ({status})")
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # RM — 8 Employees, 5 Equipment, Materials, Allocations (P2+P3)
 # (F107-F121)
@@ -1103,6 +1124,7 @@ if __name__ == "__main__":
     print(f"✓ Pipeline done: {len(pipe['opp_ids'])} opportunities, {len(pipe['offer_ids'])} offers, {len(pipe['contract_ids'])} contracts, {len(pipe['act_ids'])} activities")
     pm = seed_pm(crm, pipe)
     print(f"✓ PM done: {len(pm['project_ids'])} projects with WBS, tasks, timesheets, energy impact")
+    update_project_progress()
     rm = seed_rm(pm)
     print(f"✓ RM done: {len(rm['emp_ids'])} employees, {len(rm['equip_ids'])} equipment, {len(rm['mat_ids'])} materials, {len(rm['alloc_ids'])} allocations")
     bi = seed_bi(pm)
