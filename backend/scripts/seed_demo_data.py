@@ -194,10 +194,464 @@ def seed_crm():
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# PIPELINE — 12 Opportunities, 8 Offers, 4 Contracts, 20 Activities
+# (F019, F026-F031, F042-F056)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def seed_pipeline(crm):
+    print("\n═══ PIPELINE ═══")
+    cids = crm["contact_ids"]
+    pids = crm["product_ids"]
+    prop_ids = crm["property_ids"]
+
+    now = datetime.utcnow()
+    d = lambda days: (now + timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+    past = lambda days: (now - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+
+    # ── 12 Opportunities in diverse Kanban stages ────────────────────────────
+
+    opps_data = [
+        {"contact_id": cids[1], "title": "Reabilitare termică Bloc A4 Iași — fațadă + acoperiș", "stage": "won", "estimated_value": 485000.0, "expected_close_date": past(10), "source": "referral", "tags": ["reabilitare", "bloc"], "is_qualified": True},
+        {"contact_id": cids[2], "title": "Izolare termică Școala Nr. 5 Bacău", "stage": "offering", "estimated_value": 320000.0, "expected_close_date": d(45), "source": "licitație", "tags": ["educație", "public"], "is_qualified": True},
+        {"contact_id": cids[3], "title": "Renovare energetică Vila Popescu Cluj", "stage": "won", "estimated_value": 67000.0, "expected_close_date": past(90), "source": "online", "tags": ["rezidențial", "vilă"], "is_qualified": True},
+        {"contact_id": cids[0], "title": "Termoizolare depozit industrial CUG Iași", "stage": "scoping", "estimated_value": 195000.0, "expected_close_date": d(60), "source": "direct", "tags": ["industrial"]},
+        {"contact_id": cids[7], "title": "Reabilitare fațadă Bloc C2 Bacău", "stage": "qualified", "estimated_value": 290000.0, "expected_close_date": d(90), "source": "referral", "tags": ["bloc", "fațadă"]},
+        {"contact_id": cids[6], "title": "Termoizolare ansamblu Tomis Nord Constanța", "stage": "new", "estimated_value": 720000.0, "expected_close_date": d(120), "source": "eveniment", "tags": ["bloc", "mare"]},
+        {"contact_id": cids[14], "title": "Eficientizare energetică Grădinița Nr. 12 Iași", "stage": "sent", "estimated_value": 145000.0, "expected_close_date": d(30), "source": "licitație", "tags": ["public", "grădiniță"], "is_qualified": True},
+        {"contact_id": cids[8], "title": "Renovare clădire birouri Centrul Vechi Brașov", "stage": "negotiation", "estimated_value": 210000.0, "expected_close_date": d(20), "source": "partener", "tags": ["birouri", "renovare"], "is_qualified": True},
+        {"contact_id": cids[10], "title": "Izolare termică bloc rezidențial Sibiu", "stage": "qualified", "estimated_value": 380000.0, "expected_close_date": d(75), "source": "online", "tags": ["rezidențial"]},
+        {"contact_id": cids[13], "title": "Automatizare HVAC clădire smart Oradea", "stage": "new", "estimated_value": 95000.0, "expected_close_date": d(100), "source": "online", "tags": ["smart", "HVAC"]},
+        {"contact_id": cids[12], "title": "Reabilitare hală industrială Galați", "stage": "lost", "estimated_value": 430000.0, "expected_close_date": past(30), "source": "licitație", "tags": ["industrial", "hală"]},
+        {"contact_id": cids[4], "title": "Instalare panouri solare + pompă căldură — pachet", "stage": "scoping", "estimated_value": 52000.0, "expected_close_date": d(55), "source": "partener", "tags": ["solar", "pompă căldură"]},
+    ]
+
+    opp_ids = []
+    for o in opps_data:
+        result = api("POST", "/api/v1/pipeline/opportunities", o)
+        if result:
+            oid = result.get("id", "?")
+            opp_ids.append(oid)
+            print(f"  Opportunity [{o['stage']}]: {o['title'][:50]}... → {oid}")
+        else:
+            opp_ids.append(None)
+
+    # ── 8 Offers (draft, sent, accepted, rejected) ──────────────────────────
+
+    offers_data = [
+        {"contact_id": cids[1], "opportunity_id": opp_ids[0], "property_id": prop_ids[0], "title": "Ofertă reabilitare termică Bloc A4 Iași — v2", "description": "Izolare fațadă EPS 15cm + înlocuire tâmplărie + izolare acoperiș", "validity_days": 30,
+         "line_items": [
+             {"description": "Termoizolație fațadă EPS 80 — 15cm", "quantity": 2800.0, "unit_price": 65.0, "unit_of_measure": "mp", "vat_rate": 0.19, "sort_order": 1},
+             {"description": "Înlocuire tâmplărie PVC 5 camere", "quantity": 120.0, "unit_price": 890.0, "unit_of_measure": "buc", "vat_rate": 0.19, "sort_order": 2},
+             {"description": "Termoizolație acoperiș vată minerală 20cm", "quantity": 480.0, "unit_price": 95.0, "unit_of_measure": "mp", "vat_rate": 0.19, "sort_order": 3},
+             {"description": "Manoperă montaj + schele", "quantity": 1.0, "unit_price": 148400.0, "unit_of_measure": "forfait", "vat_rate": 0.19, "sort_order": 4},
+         ]},
+        {"contact_id": cids[2], "opportunity_id": opp_ids[1], "property_id": prop_ids[1], "title": "Ofertă izolare Școala Nr. 5 Bacău", "description": "Izolare completă fațadă + acoperiș + ferestre", "validity_days": 45,
+         "line_items": [
+             {"description": "Termoizolație fațadă vată minerală 15cm", "quantity": 1400.0, "unit_price": 85.0, "unit_of_measure": "mp", "vat_rate": 0.19, "sort_order": 1},
+             {"description": "Înlocuire ferestre PVC tripan", "quantity": 65.0, "unit_price": 920.0, "unit_of_measure": "buc", "vat_rate": 0.19, "sort_order": 2},
+             {"description": "Izolare acoperiș tip terasă", "quantity": 750.0, "unit_price": 72.0, "unit_of_measure": "mp", "vat_rate": 0.19, "sort_order": 3},
+         ]},
+        {"contact_id": cids[3], "opportunity_id": opp_ids[2], "property_id": prop_ids[2], "title": "Ofertă renovare energetică Vila Popescu", "description": "Izolare fațadă + tâmplărie + certificat energetic", "validity_days": 30,
+         "line_items": [
+             {"description": "Izolare fațadă EPS 10cm", "quantity": 320.0, "unit_price": 55.0, "unit_of_measure": "mp", "vat_rate": 0.19, "sort_order": 1},
+             {"description": "Ferestre PVC 5 camere", "quantity": 12.0, "unit_price": 890.0, "unit_of_measure": "buc", "vat_rate": 0.19, "sort_order": 2},
+             {"description": "Certificat performanță energetică", "quantity": 1.0, "unit_price": 1200.0, "unit_of_measure": "buc", "vat_rate": 0.19, "sort_order": 3},
+         ]},
+        {"contact_id": cids[14], "opportunity_id": opp_ids[6], "property_id": prop_ids[6], "title": "Ofertă eficientizare Grădinița Nr. 12 Iași", "description": "Izolare completă + HVAC nou", "validity_days": 30,
+         "line_items": [
+             {"description": "Izolare fațadă vată bazaltică 12cm", "quantity": 420.0, "unit_price": 78.0, "unit_of_measure": "mp", "vat_rate": 0.19, "sort_order": 1},
+             {"description": "Centrală termică condensare 80kW", "quantity": 1.0, "unit_price": 18500.0, "unit_of_measure": "buc", "vat_rate": 0.19, "sort_order": 2},
+             {"description": "Manoperă instalare", "quantity": 1.0, "unit_price": 35000.0, "unit_of_measure": "forfait", "vat_rate": 0.19, "sort_order": 3},
+         ]},
+        {"contact_id": cids[8], "opportunity_id": opp_ids[7], "property_id": prop_ids[7], "title": "Ofertă renovare birouri Brașov — Centrul Vechi", "description": "Izolare interior + tâmplărie lemn stratificat + HVAC upgrade", "validity_days": 30,
+         "line_items": [
+             {"description": "Izolare interioară cu plăci PIR 8cm", "quantity": 600.0, "unit_price": 110.0, "unit_of_measure": "mp", "vat_rate": 0.19, "sort_order": 1},
+             {"description": "Tâmplărie lemn stratificat tripan", "quantity": 35.0, "unit_price": 1800.0, "unit_of_measure": "buc", "vat_rate": 0.19, "sort_order": 2},
+             {"description": "Upgrade VRV + automatizare BMS", "quantity": 1.0, "unit_price": 42000.0, "unit_of_measure": "forfait", "vat_rate": 0.19, "sort_order": 3},
+         ]},
+        {"contact_id": cids[0], "opportunity_id": opp_ids[3], "property_id": prop_ids[3], "title": "Ofertă termoizolare depozit CUG Iași", "description": "Panouri sandwich + acoperiș", "validity_days": 45,
+         "line_items": [
+             {"description": "Panouri sandwich 10cm fațadă", "quantity": 900.0, "unit_price": 120.0, "unit_of_measure": "mp", "vat_rate": 0.19, "sort_order": 1},
+             {"description": "Izolare acoperiș hală — vată minerală", "quantity": 1500.0, "unit_price": 65.0, "unit_of_measure": "mp", "vat_rate": 0.19, "sort_order": 2},
+         ]},
+        {"contact_id": cids[12], "opportunity_id": opp_ids[10], "title": "Ofertă reabilitare hală Galați — respinsă", "description": "Ofertă respinsă — preț prea mare vs. buget", "validity_days": 30,
+         "line_items": [
+             {"description": "Termoizolație completă hală", "quantity": 1.0, "unit_price": 430000.0, "unit_of_measure": "forfait", "vat_rate": 0.19, "sort_order": 1},
+         ]},
+        {"contact_id": cids[4], "opportunity_id": opp_ids[11], "title": "Ofertă panouri solare + pompă căldură", "description": "Pachet complet: 20 panouri + pompă căldură aer-apă", "validity_days": 30, "is_quick_quote": True,
+         "line_items": [
+             {"description": "Panouri fotovoltaice 450W monocristalin", "quantity": 20.0, "unit_price": 850.0, "unit_of_measure": "buc", "vat_rate": 0.19, "sort_order": 1},
+             {"description": "Pompă căldură aer-apă 12kW", "quantity": 1.0, "unit_price": 15200.0, "unit_of_measure": "buc", "vat_rate": 0.19, "sort_order": 2},
+             {"description": "Montaj + cablare + PIF", "quantity": 1.0, "unit_price": 8500.0, "unit_of_measure": "forfait", "vat_rate": 0.19, "sort_order": 3},
+         ]},
+    ]
+
+    offer_ids = []
+    for o in offers_data:
+        result = api("POST", "/api/v1/pipeline/offers", o)
+        if result:
+            oid = result.get("id", "?")
+            offer_ids.append(oid)
+            print(f"  Offer: {o['title'][:55]}... → {oid}")
+        else:
+            offer_ids.append(None)
+
+    # ── 4 Contracts (2 active, 1 signed, 1 completed) ───────────────────────
+
+    contracts_data = [
+        {"contact_id": cids[1], "offer_id": offer_ids[0], "opportunity_id": opp_ids[0], "title": "Contract reabilitare termică Bloc A4 Iași", "total_value": 485000.0, "start_date": past(60), "end_date": d(120), "terms_and_conditions": "Garanție 5 ani lucrări fațadă, 10 ani tâmplărie. Plata în 4 tranșe."},
+        {"contact_id": cids[3], "offer_id": offer_ids[2], "opportunity_id": opp_ids[2], "title": "Contract renovare energetică Vila Popescu", "total_value": 67000.0, "start_date": past(150), "end_date": past(30), "terms_and_conditions": "Garanție 3 ani. Plata 50% avans + 50% recepție."},
+        {"contact_id": cids[8], "offer_id": offer_ids[4], "opportunity_id": opp_ids[7], "title": "Contract renovare birouri Centrul Vechi Brașov", "total_value": 210000.0, "start_date": d(15), "end_date": d(180), "terms_and_conditions": "Lucrări conform autorizație ISC. Garanție 5 ani."},
+        {"contact_id": cids[14], "offer_id": offer_ids[3], "opportunity_id": opp_ids[6], "title": "Contract eficientizare Grădinița Nr. 12 Iași", "total_value": 145000.0, "start_date": d(30), "end_date": d(210), "terms_and_conditions": "Plata din fonduri publice — conform HG. Garanție 10 ani."},
+    ]
+
+    contract_ids = []
+    for c in contracts_data:
+        result = api("POST", "/api/v1/pipeline/contracts", c)
+        if result:
+            cid = result.get("id", "?")
+            contract_ids.append(cid)
+            print(f"  Contract: {c['title'][:55]}... → {cid}")
+        else:
+            contract_ids.append(None)
+
+    # Sign first 2 contracts (Bloc A4 = active, Vila Popescu = completed)
+    if contract_ids[0]:
+        api("POST", f"/api/v1/pipeline/contracts/{contract_ids[0]}/sign", {"signed_date": past(58)})
+        print(f"    Signed: Bloc A4 Iași")
+    if contract_ids[1]:
+        api("POST", f"/api/v1/pipeline/contracts/{contract_ids[1]}/sign", {"signed_date": past(148)})
+        print(f"    Signed: Vila Popescu")
+    if contract_ids[2]:
+        api("POST", f"/api/v1/pipeline/contracts/{contract_ids[2]}/sign", {"signed_date": past(2)})
+        print(f"    Signed: Birouri Brașov")
+
+    # ── 20 Activities (calls, visits, emails, meetings, follow-ups) ──────────
+
+    activities_data = [
+        {"activity_type": "call", "title": "Apel inițial — prezentare servicii", "contact_id": cids[1], "opportunity_id": opp_ids[0], "scheduled_date": past(180), "duration_minutes": 25, "call_duration_seconds": 1500, "call_outcome": "Interesat, solicită vizită tehnică", "notes": "Contact cald, are fonduri aprobate"},
+        {"activity_type": "technical_visit", "title": "Vizită tehnică Bloc A4 — măsurători fațadă", "contact_id": cids[1], "opportunity_id": opp_ids[0], "scheduled_date": past(170), "duration_minutes": 180, "visit_data": {"location": "Str. Păcurari 50, Iași", "attendees": ["Andrei Popescu", "Tehnician BAHM"]}, "measurements": {"facade_sqm": 2800, "windows_count": 120, "roof_sqm": 480}, "notes": "Stare avansată de degradare fațadă nord"},
+        {"activity_type": "email", "title": "Trimitere ofertă Bloc A4 — v2 finală", "contact_id": cids[1], "opportunity_id": opp_ids[0], "scheduled_date": past(120), "duration_minutes": 10, "email_subject": "Ofertă reabilitare termică Bloc A4 — versiune finală", "email_tracked": True},
+        {"activity_type": "meeting", "title": "Întâlnire negociere Bloc A4 — Asociație", "contact_id": cids[1], "opportunity_id": opp_ids[0], "scheduled_date": past(90), "duration_minutes": 90, "notes": "Negociere preț final, reducere 3% acceptată. Semnare săptămâna viitoare."},
+        {"activity_type": "call", "title": "Apel Primăria Bacău — Școala Nr. 5", "contact_id": cids[2], "opportunity_id": opp_ids[1], "scheduled_date": past(45), "duration_minutes": 35, "call_duration_seconds": 2100, "call_outcome": "Solicită ofertă detaliată, au buget aprobat"},
+        {"activity_type": "technical_visit", "title": "Vizită tehnică Școala Nr. 5 Bacău", "contact_id": cids[2], "opportunity_id": opp_ids[1], "scheduled_date": past(35), "duration_minutes": 240, "visit_data": {"location": "Str. Mărășești 12, Bacău", "attendees": ["Ion Munteanu", "Echipa BAHM"]}, "measurements": {"facade_sqm": 1400, "windows_count": 65, "roof_sqm": 750}},
+        {"activity_type": "email", "title": "Trimitere ofertă Școala Bacău", "contact_id": cids[2], "opportunity_id": opp_ids[1], "scheduled_date": past(20), "duration_minutes": 15, "email_subject": "Ofertă eficientizare energetică Școala Nr. 5 Bacău", "email_tracked": True},
+        {"activity_type": "follow_up", "title": "Follow-up ofertă Școala — așteptăm răspuns", "contact_id": cids[2], "opportunity_id": opp_ids[1], "scheduled_date": past(7), "duration_minutes": 10, "notes": "Comisia analizează, răspuns în 2 săptămâni"},
+        {"activity_type": "call", "title": "Apel Vila Popescu — confirmare finalizare", "contact_id": cids[3], "opportunity_id": opp_ids[2], "scheduled_date": past(35), "duration_minutes": 15, "call_duration_seconds": 900, "call_outcome": "Lucrări finalizate, programare recepție"},
+        {"activity_type": "meeting", "title": "Recepție finală Vila Popescu", "contact_id": cids[3], "opportunity_id": opp_ids[2], "scheduled_date": past(28), "duration_minutes": 120, "notes": "Recepție fără observații. Client foarte mulțumit, solicită certificat energetic."},
+        {"activity_type": "call", "title": "Apel depozit CUG — evaluare preliminară", "contact_id": cids[0], "opportunity_id": opp_ids[3], "scheduled_date": past(15), "duration_minutes": 20, "call_duration_seconds": 1200, "call_outcome": "Interesat, programare vizită"},
+        {"activity_type": "technical_visit", "title": "Vizită tehnică depozit CUG Iași", "contact_id": cids[0], "opportunity_id": opp_ids[3], "scheduled_date": past(8), "duration_minutes": 150, "visit_data": {"location": "Zona CUG, Iași", "attendees": ["Andrei Popescu (ThermoConstruct)", "Echipa BAHM"]}, "measurements": {"facade_sqm": 900, "roof_sqm": 1500}},
+        {"activity_type": "call", "title": "Apel Bloc C2 Bacău — calificare", "contact_id": cids[7], "opportunity_id": opp_ids[4], "scheduled_date": past(25), "duration_minutes": 30, "call_duration_seconds": 1800, "call_outcome": "Asociație interesată, buget limitat"},
+        {"activity_type": "email", "title": "Email informativ Tomis Nord Constanța", "contact_id": cids[6], "opportunity_id": opp_ids[5], "scheduled_date": past(5), "duration_minutes": 20, "email_subject": "Prezentare servicii reabilitare termică — BAHM", "email_tracked": True},
+        {"activity_type": "follow_up", "title": "Follow-up birouri Brașov — negociere finală", "contact_id": cids[8], "opportunity_id": opp_ids[7], "scheduled_date": past(5), "duration_minutes": 45, "notes": "Negociere finalizată, se pregătește contractul"},
+        {"activity_type": "call", "title": "Apel Grădinița Nr. 12 — clarificări ofertă", "contact_id": cids[14], "opportunity_id": opp_ids[6], "scheduled_date": past(12), "duration_minutes": 20, "call_duration_seconds": 1200, "call_outcome": "Solicită detalii HVAC, trimitem specificații"},
+        {"activity_type": "email", "title": "Trimitere specificații HVAC Grădinița 12", "contact_id": cids[14], "opportunity_id": opp_ids[6], "scheduled_date": past(10), "duration_minutes": 30, "email_subject": "Specificații tehnice centrală termică condensare 80kW", "email_tracked": True},
+        {"activity_type": "call", "title": "Apel Smart Building Oradea — prospect nou", "contact_id": cids[13], "opportunity_id": opp_ids[9], "scheduled_date": past(3), "duration_minutes": 25, "call_duration_seconds": 1500, "call_outcome": "Interesat de automatizare HVAC, solicită prezentare"},
+        {"activity_type": "follow_up", "title": "Follow-up panouri solare EcoInstal", "contact_id": cids[4], "opportunity_id": opp_ids[11], "scheduled_date": d(3), "duration_minutes": 15, "notes": "De trimis ofertă finală cu specificații panouri monocristalin"},
+        {"activity_type": "meeting", "title": "Întâlnire planificare Q2 — review pipeline", "scheduled_date": d(7), "duration_minutes": 60, "notes": "Review pipeline Q2: 12 oportunități active, forecast 2.4M RON"},
+    ]
+
+    act_ids = []
+    for a in activities_data:
+        result = api("POST", "/api/v1/pipeline/activities", a)
+        if result:
+            aid = result.get("id", "?")
+            act_ids.append(aid)
+            print(f"  Activity [{a['activity_type']}]: {a['title'][:50]}...")
+        else:
+            act_ids.append(None)
+
+    return {
+        "opp_ids": opp_ids,
+        "offer_ids": offer_ids,
+        "contract_ids": contract_ids,
+        "act_ids": act_ids,
+    }
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# PM — 3 Projects, WBS, Tasks, Timesheets, Energy Impact (F063-F088)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def seed_pm(crm, pipe):
+    print("\n═══ PM ═══")
+    cids = crm["contact_ids"]
+    prop_ids = crm["property_ids"]
+    contract_ids = pipe["contract_ids"]
+
+    now = datetime.utcnow()
+    d = lambda days: (now + timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+    past = lambda days: (now - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+
+    # ── 3 Projects ───────────────────────────────────────────────────────────
+
+    projects_data = [
+        {
+            "project_number": "PRJ-2025-001",
+            "name": "Reabilitare termică Bloc A4 Iași",
+            "description": "Reabilitare completă: fațadă EPS 15cm, tâmplărie PVC, acoperiș vată minerală. PRE: 180 kWh/m²/an → POST target: 65 kWh/m²/an",
+            "project_type": "client",
+            "contact_id": cids[1],
+            "contract_id": contract_ids[0],
+            "planned_start_date": past(55),
+            "planned_end_date": d(120),
+            "budget_allocated": 485000.0,
+            "tags": ["reabilitare", "bloc", "energie"],
+        },
+        {
+            "project_number": "PRJ-2025-002",
+            "name": "Izolare termică Școala Nr. 5 Bacău",
+            "description": "Izolare fațadă vată minerală 15cm + ferestre PVC + acoperiș. Faza de planificare.",
+            "project_type": "client",
+            "contact_id": cids[2],
+            "planned_start_date": d(30),
+            "planned_end_date": d(210),
+            "budget_allocated": 320000.0,
+            "tags": ["educație", "public", "planificare"],
+        },
+        {
+            "project_number": "PRJ-2024-015",
+            "name": "Renovare energetică Vila Popescu",
+            "description": "Izolare fațadă EPS 10cm + tâmplărie PVC + certificat energetic. Proiect finalizat cu succes.",
+            "project_type": "client",
+            "contact_id": cids[3],
+            "contract_id": contract_ids[1],
+            "planned_start_date": past(150),
+            "planned_end_date": past(30),
+            "budget_allocated": 67000.0,
+            "tags": ["rezidențial", "vilă", "finalizat"],
+        },
+    ]
+
+    project_ids = []
+    for p in projects_data:
+        result = api("POST", "/api/v1/pm/projects", p)
+        if result:
+            pid = result.get("id", "?")
+            project_ids.append(pid)
+            print(f"  Project: {p['name']} → {pid}")
+        else:
+            project_ids.append(None)
+
+    # ── WBS for Project 1: Bloc A4 Iași (in execution) ───────────────────────
+
+    wbs_bloc = [
+        {"code": "C01", "name": "Pregătire și organizare șantier", "node_type": "chapter", "sort_order": 1, "level": 0, "budget_allocated": 28000.0},
+        {"code": "C02", "name": "Termoizolație fațadă", "node_type": "chapter", "sort_order": 2, "level": 0, "budget_allocated": 210000.0},
+        {"code": "C02.1", "name": "Montaj schelă fațadă", "node_type": "subchapter", "sort_order": 1, "level": 1, "budget_allocated": 35000.0},
+        {"code": "C02.2", "name": "Aplicare EPS 15cm + tencuială", "node_type": "subchapter", "sort_order": 2, "level": 1, "budget_allocated": 140000.0},
+        {"code": "C02.3", "name": "Finisaje fațadă siliconică", "node_type": "subchapter", "sort_order": 3, "level": 1, "budget_allocated": 35000.0},
+        {"code": "C03", "name": "Înlocuire tâmplărie PVC", "node_type": "chapter", "sort_order": 3, "level": 0, "budget_allocated": 106800.0},
+        {"code": "C04", "name": "Termoizolație acoperiș", "node_type": "chapter", "sort_order": 4, "level": 0, "budget_allocated": 45600.0},
+        {"code": "C05", "name": "Recepție și predare", "node_type": "chapter", "sort_order": 5, "level": 0, "budget_allocated": 12000.0},
+    ]
+
+    wbs_ids_bloc = []
+    if project_ids[0]:
+        parent_map = {}
+        for w in wbs_bloc:
+            result = api("POST", f"/api/v1/pm/projects/{project_ids[0]}/wbs", w)
+            if result:
+                wid = result.get("id")
+                wbs_ids_bloc.append(wid)
+                parent_map[w["code"]] = wid
+                print(f"    WBS [{w['code']}]: {w['name']}")
+            else:
+                wbs_ids_bloc.append(None)
+
+        # Link subchapters to parent C02
+        c02_id = parent_map.get("C02")
+        for sub_code in ["C02.1", "C02.2", "C02.3"]:
+            sub_id = parent_map.get(sub_code)
+            if sub_id and c02_id:
+                api("PUT", f"/api/v1/pm/wbs/{sub_id}", {"parent_id": c02_id})
+
+    # ── Tasks for Project 1 ──────────────────────────────────────────────────
+
+    tasks_bloc = [
+        {"title": "Instalare garduri protecție și semnalizare", "planned_start": past(55), "planned_end": past(50), "estimated_hours": 40, "status": "done", "wbs_node_id": wbs_ids_bloc[0] if wbs_ids_bloc else None},
+        {"title": "Montaj schelă metalică fațadă nord + est", "planned_start": past(50), "planned_end": past(40), "estimated_hours": 120, "status": "done", "wbs_node_id": wbs_ids_bloc[2] if len(wbs_ids_bloc) > 2 else None},
+        {"title": "Curățare și grunduire fațadă nord", "planned_start": past(40), "planned_end": past(35), "estimated_hours": 80, "status": "done", "wbs_node_id": wbs_ids_bloc[3] if len(wbs_ids_bloc) > 3 else None},
+        {"title": "Lipire plăci EPS 15cm — fațadă nord", "planned_start": past(35), "planned_end": past(20), "estimated_hours": 200, "status": "done", "wbs_node_id": wbs_ids_bloc[3] if len(wbs_ids_bloc) > 3 else None},
+        {"title": "Lipire plăci EPS 15cm — fațadă est", "planned_start": past(20), "planned_end": past(5), "estimated_hours": 180, "status": "in_progress", "wbs_node_id": wbs_ids_bloc[3] if len(wbs_ids_bloc) > 3 else None},
+        {"title": "Aplicare tencuială decorativă siliconică", "planned_start": d(5), "planned_end": d(25), "estimated_hours": 160, "status": "todo", "wbs_node_id": wbs_ids_bloc[4] if len(wbs_ids_bloc) > 4 else None},
+        {"title": "Demontare ferestre vechi + montaj PVC", "planned_start": past(15), "planned_end": d(30), "estimated_hours": 320, "status": "in_progress", "wbs_node_id": wbs_ids_bloc[5] if len(wbs_ids_bloc) > 5 else None},
+        {"title": "Termoizolație acoperiș — vată minerală 20cm", "planned_start": d(20), "planned_end": d(50), "estimated_hours": 140, "status": "todo", "wbs_node_id": wbs_ids_bloc[6] if len(wbs_ids_bloc) > 6 else None},
+        {"title": "Verificări finale și recepție", "planned_start": d(100), "planned_end": d(115), "estimated_hours": 60, "status": "todo", "is_milestone": True, "wbs_node_id": wbs_ids_bloc[7] if len(wbs_ids_bloc) > 7 else None},
+    ]
+
+    task_ids_bloc = []
+    if project_ids[0]:
+        for t in tasks_bloc:
+            body = {k: v for k, v in t.items() if v is not None}
+            result = api("POST", f"/api/v1/pm/projects/{project_ids[0]}/tasks", body)
+            if result:
+                tid = result.get("id")
+                task_ids_bloc.append(tid)
+                print(f"    Task [{t.get('status','todo')}]: {t['title'][:50]}...")
+            else:
+                task_ids_bloc.append(None)
+
+    # ── WBS for Project 2: Școala Bacău (planning) ───────────────────────────
+
+    wbs_scoala = [
+        {"code": "S01", "name": "Proiectare și avize", "node_type": "chapter", "sort_order": 1, "level": 0, "budget_allocated": 25000.0},
+        {"code": "S02", "name": "Izolare fațadă", "node_type": "chapter", "sort_order": 2, "level": 0, "budget_allocated": 135000.0},
+        {"code": "S03", "name": "Înlocuire ferestre", "node_type": "chapter", "sort_order": 3, "level": 0, "budget_allocated": 65000.0},
+        {"code": "S04", "name": "Izolare acoperiș terasă", "node_type": "chapter", "sort_order": 4, "level": 0, "budget_allocated": 60000.0},
+        {"code": "S05", "name": "Recepție și certificare", "node_type": "chapter", "sort_order": 5, "level": 0, "budget_allocated": 15000.0},
+    ]
+
+    if project_ids[1]:
+        for w in wbs_scoala:
+            result = api("POST", f"/api/v1/pm/projects/{project_ids[1]}/wbs", w)
+            if result:
+                print(f"    WBS [{w['code']}]: {w['name']}")
+
+        tasks_scoala = [
+            {"title": "Elaborare proiect tehnic", "planned_start": d(30), "planned_end": d(60), "estimated_hours": 120, "status": "todo"},
+            {"title": "Obținere autorizație ISC", "planned_start": d(60), "planned_end": d(80), "estimated_hours": 40, "status": "todo"},
+            {"title": "Licitație materiale izolare", "planned_start": d(70), "planned_end": d(85), "estimated_hours": 30, "status": "todo"},
+        ]
+        for t in tasks_scoala:
+            api("POST", f"/api/v1/pm/projects/{project_ids[1]}/tasks", t)
+            print(f"    Task [todo]: {t['title']}")
+
+    # ── WBS for Project 3: Vila Popescu (completed) ──────────────────────────
+
+    wbs_vila = [
+        {"code": "V01", "name": "Izolare fațadă EPS 10cm", "node_type": "chapter", "sort_order": 1, "level": 0, "budget_allocated": 20000.0},
+        {"code": "V02", "name": "Înlocuire tâmplărie", "node_type": "chapter", "sort_order": 2, "level": 0, "budget_allocated": 12000.0},
+        {"code": "V03", "name": "Certificare energetică", "node_type": "chapter", "sort_order": 3, "level": 0, "budget_allocated": 1500.0},
+    ]
+
+    if project_ids[2]:
+        for w in wbs_vila:
+            api("POST", f"/api/v1/pm/projects/{project_ids[2]}/wbs", w)
+            print(f"    WBS [{w['code']}]: {w['name']}")
+
+        tasks_vila = [
+            {"title": "Montaj EPS 10cm fațadă completă", "planned_start": past(140), "planned_end": past(100), "estimated_hours": 80, "status": "done"},
+            {"title": "Montaj ferestre PVC 5 camere", "planned_start": past(100), "planned_end": past(80), "estimated_hours": 48, "status": "done"},
+            {"title": "Tencuială decorativă", "planned_start": past(80), "planned_end": past(60), "estimated_hours": 40, "status": "done"},
+            {"title": "Emitere certificat energetic", "planned_start": past(50), "planned_end": past(40), "estimated_hours": 16, "status": "done"},
+        ]
+        for t in tasks_vila:
+            api("POST", f"/api/v1/pm/projects/{project_ids[2]}/tasks", t)
+            print(f"    Task [done]: {t['title']}")
+
+    # ── Timesheets for Project 1 (Bloc A4 — in execution) ────────────────────
+
+    if project_ids[0] and task_ids_bloc:
+        timesheets = [
+            {"task_id": task_ids_bloc[0], "work_date": past(53), "hours": 8.0, "description": "Instalare gard perimetral nord"},
+            {"task_id": task_ids_bloc[0], "work_date": past(52), "hours": 8.0, "description": "Instalare gard est + semnalizare"},
+            {"task_id": task_ids_bloc[1], "work_date": past(48), "hours": 10.0, "description": "Montaj schelă etaj 1-3 fațadă nord"},
+            {"task_id": task_ids_bloc[1], "work_date": past(47), "hours": 10.0, "description": "Montaj schelă etaj 4-7 fațadă nord"},
+            {"task_id": task_ids_bloc[1], "work_date": past(46), "hours": 10.0, "description": "Montaj schelă etaj 8-10 + plase protecție"},
+            {"task_id": task_ids_bloc[2], "work_date": past(39), "hours": 8.0, "description": "Curățare fațadă nord — hidrosablare"},
+            {"task_id": task_ids_bloc[2], "work_date": past(38), "hours": 8.0, "description": "Grunduire fațadă nord completă"},
+            {"task_id": task_ids_bloc[3], "work_date": past(33), "hours": 10.0, "description": "Lipire EPS zona parter + etaj 1"},
+            {"task_id": task_ids_bloc[3], "work_date": past(30), "hours": 10.0, "description": "Lipire EPS etaj 2-4"},
+            {"task_id": task_ids_bloc[3], "work_date": past(27), "hours": 10.0, "description": "Lipire EPS etaj 5-7"},
+            {"task_id": task_ids_bloc[3], "work_date": past(24), "hours": 10.0, "description": "Lipire EPS etaj 8-10 + armare plasă"},
+            {"task_id": task_ids_bloc[4], "work_date": past(18), "hours": 10.0, "description": "Lipire EPS fațadă est — parter-etaj 3"},
+            {"task_id": task_ids_bloc[4], "work_date": past(15), "hours": 10.0, "description": "Lipire EPS fațadă est — etaj 4-7"},
+            {"task_id": task_ids_bloc[6], "work_date": past(12), "hours": 8.0, "description": "Demontare ferestre vechi etaj 1-2"},
+            {"task_id": task_ids_bloc[6], "work_date": past(10), "hours": 8.0, "description": "Montaj ferestre PVC etaj 1-2"},
+        ]
+        for ts in timesheets:
+            if ts["task_id"]:
+                api("POST", f"/api/v1/pm/projects/{project_ids[0]}/timesheets", ts)
+        print(f"    Timesheets: {len(timesheets)} entries logged")
+
+    # ── Energy Impact — all 3 projects ───────────────────────────────────────
+
+    energy_impacts = [
+        {
+            "project_id": project_ids[0],
+            "property_id": prop_ids[0],
+            "pre_kwh_annual": 864000.0,
+            "pre_co2_kg_annual": 172800.0,
+            "pre_u_value_avg": 1.8,
+            "post_kwh_annual": 312000.0,
+            "post_co2_kg_annual": 62400.0,
+            "post_u_value_avg": 0.45,
+            "estimated_kwh_savings": 552000.0,
+            "estimated_co2_reduction": 110400.0,
+            "total_area_sqm": 4800.0,
+            "treated_area_sqm": 3280.0,
+            "total_project_cost": 485000.0,
+            "duration_days": 175,
+            "materials_summary": {"eps_15cm_mp": 2800, "vata_minerala_mp": 480, "ferestre_pvc_buc": 120, "tencuiala_siliconica_mp": 2800},
+        },
+        {
+            "project_id": project_ids[1],
+            "property_id": prop_ids[1],
+            "pre_kwh_annual": 396000.0,
+            "pre_co2_kg_annual": 79200.0,
+            "pre_u_value_avg": 2.2,
+            "estimated_kwh_savings": 237600.0,
+            "estimated_co2_reduction": 47520.0,
+            "total_area_sqm": 2200.0,
+            "treated_area_sqm": 2150.0,
+            "total_project_cost": 320000.0,
+            "duration_days": 180,
+        },
+        {
+            "project_id": project_ids[2],
+            "property_id": prop_ids[2],
+            "pre_kwh_annual": 18200.0,
+            "pre_co2_kg_annual": 3640.0,
+            "pre_u_value_avg": 1.2,
+            "post_kwh_annual": 7280.0,
+            "post_co2_kg_annual": 1456.0,
+            "post_u_value_avg": 0.38,
+            "estimated_kwh_savings": 10920.0,
+            "estimated_co2_reduction": 2184.0,
+            "actual_kwh_savings": 11200.0,
+            "actual_co2_reduction": 2240.0,
+            "total_area_sqm": 280.0,
+            "treated_area_sqm": 320.0,
+            "total_project_cost": 67000.0,
+            "duration_days": 120,
+            "materials_summary": {"eps_10cm_mp": 320, "ferestre_pvc_buc": 12, "tencuiala_mp": 320},
+        },
+    ]
+
+    for ei in energy_impacts:
+        pid = ei.pop("project_id")
+        if pid:
+            result = api("PUT", f"/api/v1/pm/projects/{pid}/energy-impact", ei)
+            if result:
+                print(f"    Energy Impact: PRE {ei.get('pre_kwh_annual', '?')} → POST {ei.get('post_kwh_annual', 'TBD')} kWh/an")
+
+    # ── Daily Reports for Project 1 ──────────────────────────────────────────
+
+    if project_ids[0]:
+        daily_reports = [
+            {"report_date": past(50), "weather": "Însorit, 18°C", "temperature_min": 12.0, "temperature_max": 18.0, "activities_summary": "Montaj schelă fațadă nord etaj 1-3. Livrare plăci EPS.", "personnel_present": {"muncitori": 8, "inginer_șantier": 1}, "equipment_used": {"macara": 1, "schelă_secțiuni": 12}},
+            {"report_date": past(35), "weather": "Parțial noros, 22°C", "temperature_min": 16.0, "temperature_max": 22.0, "activities_summary": "Lipire plăci EPS 15cm pe fațadă nord parter+etaj1. Consum 180mp EPS.", "personnel_present": {"izolatori": 6, "muncitori": 4, "inginer_șantier": 1}, "equipment_used": {"lift_materiale": 1}, "observations": "Calitate lipire bună, aderență verificată"},
+            {"report_date": past(15), "weather": "Ploaie ușoară, 14°C", "temperature_min": 10.0, "temperature_max": 14.0, "activities_summary": "Lipire EPS fațadă est etaj 4-7. Oprire la 13:00 din cauza ploii.", "personnel_present": {"izolatori": 6, "muncitori": 3}, "issues": "Oprire lucrări de izolare la 13:00 — umiditate peste limită. Continuare a doua zi."},
+        ]
+        for dr in daily_reports:
+            api("POST", f"/api/v1/pm/projects/{project_ids[0]}/daily-reports", dr)
+        print(f"    Daily Reports: {len(daily_reports)} entries")
+
+    return {"project_ids": project_ids}
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ═════════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
     login()
-    ids = seed_crm()
-    print(f"\n✓ CRM done: {len(ids['contact_ids'])} contacts, {len(ids['product_ids'])} products, {len(ids['property_ids'])} properties")
+    crm = seed_crm()
+    print(f"\n✓ CRM done: {len(crm['contact_ids'])} contacts, {len(crm['product_ids'])} products, {len(crm['property_ids'])} properties")
+    pipe = seed_pipeline(crm)
+    print(f"✓ Pipeline done: {len(pipe['opp_ids'])} opportunities, {len(pipe['offer_ids'])} offers, {len(pipe['contract_ids'])} contracts, {len(pipe['act_ids'])} activities")
+    pm = seed_pm(crm, pipe)
+    print(f"✓ PM done: {len(pm['project_ids'])} projects with WBS, tasks, timesheets, energy impact")
