@@ -1064,9 +1064,9 @@ def seed_bi(pm_data):
 # ═════════════════════════════════════════════════════════════════════════════
 
 def already_seeded():
-    """Check if seed data already exists by querying contacts."""
+    """Check if seed data already exists by querying opportunities."""
     req = urllib.request.Request(
-        f"{API}/api/v1/crm/contacts?per_page=1",
+        f"{API}/api/v1/pipeline/opportunities?per_page=1",
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {TOKEN}",
@@ -1082,6 +1082,10 @@ def already_seeded():
 
 
 if __name__ == "__main__":
+    from time import sleep
+    print("Waiting 10s for uvicorn to start...")
+    sleep(10)
+
     login()
 
     if already_seeded():
