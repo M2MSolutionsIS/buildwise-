@@ -1063,8 +1063,31 @@ def seed_bi(pm_data):
 # MAIN
 # ═════════════════════════════════════════════════════════════════════════════
 
+def already_seeded():
+    """Check if seed data already exists by querying contacts."""
+    req = urllib.request.Request(
+        f"{API}/api/v1/crm/contacts?per_page=1",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {TOKEN}",
+        },
+    )
+    try:
+        resp = urllib.request.urlopen(req, timeout=15)
+        result = json.loads(resp.read().decode())
+        total = result.get("meta", {}).get("total", 0)
+        return total > 0
+    except urllib.error.HTTPError:
+        return False
+
+
 if __name__ == "__main__":
     login()
+
+    if already_seeded():
+        print("Date deja existente, skip.")
+        sys.exit(0)
+
     crm = seed_crm()
     print(f"\n✓ CRM done: {len(crm['contact_ids'])} contacts, {len(crm['product_ids'])} products, {len(crm['property_ids'])} properties")
     pipe = seed_pipeline(crm)
