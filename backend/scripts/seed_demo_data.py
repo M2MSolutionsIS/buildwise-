@@ -650,24 +650,22 @@ def seed_pm(crm, pipe):
 
 
 def update_project_progress():
-    """Set percent_complete on each project based on task status."""
+    """Set percent_complete and status on each project."""
     print("\n── update_project_progress ──")
     progress_map = {
-        "Reabilitare termică Bloc A4 Iași": 44.0,
-        "Izolare termică Școala Nr. 5 Bacău": 0.0,
-        "Renovare energetică Vila Popescu": 100.0,
+        "Reabilitare termică Bloc A4 Iași": {"percent_complete": 44.0, "status": "in_progress"},
+        "Izolare termică Școala Nr. 5 Bacău": {"percent_complete": 0.0, "status": "planning"},
+        "Renovare energetică Vila Popescu": {"percent_complete": 100.0, "status": "completed"},
     }
     projects = api("GET", "/api/v1/pm/projects?per_page=50")
     if not projects:
         print("    No projects found")
         return
     for p in projects:
-        name = p.get("name", "")
-        pct = progress_map.get(name)
-        if pct is not None:
-            status = "completed" if pct == 100 else ("in_progress" if pct > 0 else "planning")
-            api("PUT", f"/api/v1/pm/projects/{p['id']}", {"percent_complete": pct, "status": status})
-            print(f"    {name} → {pct}% ({status})")
+        update = progress_map.get(p.get("name", ""))
+        if update:
+            api("PUT", f"/api/v1/pm/projects/{p['id']}", update)
+            print(f"    {p['name']} → {update['percent_complete']}% ({update['status']})")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
