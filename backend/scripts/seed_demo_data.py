@@ -644,6 +644,422 @@ def seed_pm(crm, pipe):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# RM — 8 Employees, 5 Equipment, Materials, Allocations (P2+P3)
+# (F107-F121)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def seed_rm(pm_data):
+    print("\n═══ RM ═══")
+    project_ids = pm_data["project_ids"]
+
+    now = datetime.utcnow()
+    d = lambda days: (now + timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+    past = lambda days: (now - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+
+    # ── 8 Employees ──────────────────────────────────────────────────────────
+
+    employees_data = [
+        {"first_name": "Marian", "last_name": "Ciobanu", "email": "marian.ciobanu@bahm.ro", "phone": "0745110110", "employee_number": "EMP-001", "position": "Șef Șantier", "department": "Execuție", "cost_center": "CC-EXEC", "contract_type": "full_time", "hire_date": past(1200), "gross_salary": 8500.0, "net_salary": 5100.0, "hourly_rate": 50.6, "skills": ["management șantier", "citire planuri", "coordonare echipe"], "qualifications": ["Inginer construcții civile"], "certifications": ["Responsabil tehnic execuție (RTE)", "SSM nivel mediu"]},
+        {"first_name": "Gheorghe", "last_name": "Lupu", "email": "gheorghe.lupu@bahm.ro", "phone": "0745220220", "employee_number": "EMP-002", "position": "Izolator Termic Senior", "department": "Execuție", "cost_center": "CC-EXEC", "contract_type": "full_time", "hire_date": past(900), "gross_salary": 6200.0, "net_salary": 3720.0, "hourly_rate": 36.9, "skills": ["montaj EPS", "montaj vată minerală", "tencuieli decorative", "hidroizolații"], "qualifications": ["Calificare izolator termic"], "certifications": ["Lucru la înălțime"]},
+        {"first_name": "Vasile", "last_name": "Rotaru", "email": "vasile.rotaru@bahm.ro", "phone": "0745330330", "employee_number": "EMP-003", "position": "Tâmplar PVC/Aluminiu", "department": "Execuție", "cost_center": "CC-EXEC", "contract_type": "full_time", "hire_date": past(700), "gross_salary": 5800.0, "net_salary": 3480.0, "hourly_rate": 34.5, "skills": ["montaj ferestre PVC", "montaj uși", "reglaje tâmplărie", "etanșare"], "qualifications": ["Tâmplar aluminium și PVC"]},
+        {"first_name": "Ion", "last_name": "Cazacu", "email": "ion.cazacu@bahm.ro", "phone": "0745440440", "employee_number": "EMP-004", "position": "Instalator HVAC", "department": "Instalații", "cost_center": "CC-INST", "contract_type": "full_time", "hire_date": past(500), "gross_salary": 7000.0, "net_salary": 4200.0, "hourly_rate": 41.7, "skills": ["instalare centrale termice", "montaj radiatoare", "țevi cupru/PPR", "automatizări"], "qualifications": ["Instalator sanitar și termic autorizat ISCIR"], "certifications": ["Autorizare ANRE", "Sudură PPR"]},
+        {"first_name": "Petru", "last_name": "Sandu", "email": "petru.sandu@bahm.ro", "phone": "0745550550", "employee_number": "EMP-005", "position": "Zugrav-Finiseur", "department": "Execuție", "cost_center": "CC-EXEC", "contract_type": "full_time", "hire_date": past(400), "gross_salary": 5200.0, "net_salary": 3120.0, "hourly_rate": 31.0, "skills": ["tencuieli mecanizate", "finisaje decorative", "vopsitorii", "gleturi"]},
+        {"first_name": "Alexandru", "last_name": "Mircea", "email": "alex.mircea@bahm.ro", "phone": "0745660660", "employee_number": "EMP-006", "position": "Inginer Energetician", "department": "Proiectare", "cost_center": "CC-PROJ", "contract_type": "full_time", "hire_date": past(600), "gross_salary": 9000.0, "net_salary": 5400.0, "hourly_rate": 53.6, "skills": ["audit energetic", "certificare energetică", "calcul coeficient U", "simulări termice"], "qualifications": ["Inginer instalații", "Auditor energetic gradul I"], "certifications": ["Auditor energetic MDLPA", "Certificator energetic"]},
+        {"first_name": "Cosmin", "last_name": "Diaconu", "email": "cosmin.diaconu@bahm.ro", "phone": "0745770770", "employee_number": "EMP-007", "position": "Muncitor Necalificat", "department": "Execuție", "cost_center": "CC-EXEC", "contract_type": "full_time", "hire_date": past(200), "gross_salary": 4200.0, "net_salary": 2520.0, "hourly_rate": 25.0, "skills": ["transport materiale", "curățenie șantier", "ajutor montaj"]},
+        {"first_name": "Dragoș", "last_name": "Enache", "email": "dragos.enache@extern.ro", "phone": "0745880880", "employee_number": "EXT-001", "position": "Consultant Structural", "department": "Extern", "cost_center": "CC-EXT", "contract_type": "contract", "hire_date": past(100), "hourly_rate": 75.0, "is_external": True, "external_company": "StructPro Engineering SRL", "external_contract_ref": "CTR-EXT-2025-01", "external_daily_rate": 600.0, "skills": ["analiză structurală", "expertize tehnice", "consolidări"], "qualifications": ["Inginer structurist"], "certifications": ["Expert tehnic atestat MDLPA"]},
+    ]
+
+    emp_ids = []
+    for e in employees_data:
+        result = api("POST", "/api/v1/rm/employees", e)
+        if result:
+            eid = result.get("id", "?")
+            emp_ids.append(eid)
+            ext = " [EXTERN]" if e.get("is_external") else ""
+            print(f"  Employee: {e['first_name']} {e['last_name']} — {e['position']}{ext} → {eid}")
+        else:
+            emp_ids.append(None)
+
+    # ── 5 Equipment ──────────────────────────────────────────────────────────
+
+    equipment_data = [
+        {"name": "Schelă metalică tubulară 200mp", "code": "EQ-SCH-01", "category": "Acces înălțime", "description": "Schelă tubulară certificată H=30m, S=200mp fațadă", "manufacturer": "Layher", "model": "Allround TG60", "serial_number": "LAY-2021-4455", "purchase_date": past(800), "purchase_cost": 42000.0, "daily_rate": 120.0, "location": "Depozit CUG Iași"},
+        {"name": "Betonieră 250L", "code": "EQ-BET-01", "category": "Preparare", "description": "Betonieră electrică 250 litri, 230V", "manufacturer": "Imer", "model": "Syntesi 250", "serial_number": "IMR-2022-1122", "purchase_date": past(600), "purchase_cost": 4500.0, "daily_rate": 45.0, "location": "Depozit CUG Iași"},
+        {"name": "Lift materiale 200kg", "code": "EQ-LFT-01", "category": "Transport vertical", "description": "Lift electric materiale, capacitate 200kg, H max 30m", "manufacturer": "Geda", "model": "200Z", "serial_number": "GDA-2023-7788", "purchase_date": past(400), "purchase_cost": 18000.0, "daily_rate": 85.0, "location": "Șantier Bloc A4 Iași"},
+        {"name": "Mașină tencuit mecanizat", "code": "EQ-TNC-01", "category": "Finisaje", "description": "Stație tencuit mecanizat, debit 25L/min", "manufacturer": "PFT", "model": "G4", "serial_number": "PFT-2020-3344", "purchase_date": past(1000), "purchase_cost": 28000.0, "daily_rate": 150.0, "location": "Depozit CUG Iași"},
+        {"name": "Autoplatformă 12m", "code": "EQ-APL-01", "category": "Acces înălțime", "description": "Autoplatformă articulată, H max 12m, 230kg", "manufacturer": "Haulotte", "model": "Star 12", "serial_number": "HLT-2019-9900", "purchase_date": past(1500), "purchase_cost": 85000.0, "daily_rate": 250.0, "location": "Depozit CUG Iași"},
+    ]
+
+    equip_ids = []
+    for eq in equipment_data:
+        result = api("POST", "/api/v1/rm/equipment", eq)
+        if result:
+            eqid = result.get("id", "?")
+            equip_ids.append(eqid)
+            print(f"  Equipment: {eq['name']} → {eqid}")
+        else:
+            equip_ids.append(None)
+
+    # ── Material Stocks ──────────────────────────────────────────────────────
+
+    materials_data = [
+        {"name": "Polistiren expandat EPS 80 — 15cm", "code": "STK-EPS15", "unit_of_measure": "mp", "current_quantity": 1200.0, "minimum_quantity": 200.0, "location": "Depozit CUG", "warehouse": "Hala A", "unit_cost": 52.0},
+        {"name": "Polistiren expandat EPS 80 — 10cm", "code": "STK-EPS10", "unit_of_measure": "mp", "current_quantity": 450.0, "minimum_quantity": 100.0, "location": "Depozit CUG", "warehouse": "Hala A", "unit_cost": 38.0},
+        {"name": "Vată minerală bazaltică 15cm", "code": "STK-VMB15", "unit_of_measure": "mp", "current_quantity": 600.0, "minimum_quantity": 100.0, "location": "Depozit CUG", "warehouse": "Hala A", "unit_cost": 72.0},
+        {"name": "Adeziv polistiren — saci 25kg", "code": "STK-ADZ25", "unit_of_measure": "buc", "current_quantity": 180.0, "minimum_quantity": 50.0, "location": "Depozit CUG", "warehouse": "Hala B", "unit_cost": 42.0},
+        {"name": "Plasă armătură fibră 160g/mp", "code": "STK-PLA160", "unit_of_measure": "mp", "current_quantity": 2000.0, "minimum_quantity": 300.0, "location": "Depozit CUG", "warehouse": "Hala A", "unit_cost": 8.5},
+        {"name": "Tencuială decorativă siliconică 25kg", "code": "STK-TDS25", "unit_of_measure": "buc", "current_quantity": 85.0, "minimum_quantity": 20.0, "location": "Depozit CUG", "warehouse": "Hala B", "unit_cost": 185.0},
+        {"name": "Dibluri termoizolație 10x160mm", "code": "STK-DIB160", "unit_of_measure": "buc", "current_quantity": 5000.0, "minimum_quantity": 1000.0, "location": "Depozit CUG", "warehouse": "Hala C", "unit_cost": 1.2},
+        {"name": "Profil PVC fereastră 5 camere — 6m", "code": "STK-PVC5C", "unit_of_measure": "buc", "current_quantity": 60.0, "minimum_quantity": 10.0, "location": "Depozit CUG", "warehouse": "Hala D", "unit_cost": 145.0},
+        {"name": "Geam termoizolant tripan 4-16-4-16-4", "code": "STK-GT3", "unit_of_measure": "mp", "current_quantity": 120.0, "minimum_quantity": 20.0, "location": "Depozit CUG", "warehouse": "Hala D", "unit_cost": 210.0},
+        {"name": "Spumă poliuretanică montaj — 750ml", "code": "STK-SPM750", "unit_of_measure": "buc", "current_quantity": 200.0, "minimum_quantity": 50.0, "location": "Depozit CUG", "warehouse": "Hala C", "unit_cost": 18.0},
+    ]
+
+    mat_ids = []
+    for m in materials_data:
+        result = api("POST", "/api/v1/rm/materials", m)
+        if result:
+            mid = result.get("id", "?")
+            mat_ids.append(mid)
+            print(f"  Material: {m['name'][:45]}... qty={m['current_quantity']}")
+        else:
+            mat_ids.append(None)
+
+    # ── Resource Allocations on Projects ─────────────────────────────────────
+
+    allocations_data = []
+
+    # Project 1 — Bloc A4 (in execution): 5 employees + 2 equipment
+    if project_ids[0]:
+        allocations_data += [
+            {"resource_type": "employee", "employee_id": emp_ids[0], "project_id": project_ids[0], "start_date": past(55), "end_date": d(120), "allocated_hours": 800.0, "planned_cost": 40480.0, "allocation_percent": 100.0},
+            {"resource_type": "employee", "employee_id": emp_ids[1], "project_id": project_ids[0], "start_date": past(50), "end_date": d(60), "allocated_hours": 600.0, "planned_cost": 22140.0, "allocation_percent": 100.0},
+            {"resource_type": "employee", "employee_id": emp_ids[2], "project_id": project_ids[0], "start_date": past(15), "end_date": d(30), "allocated_hours": 320.0, "planned_cost": 11040.0, "allocation_percent": 100.0},
+            {"resource_type": "employee", "employee_id": emp_ids[4], "project_id": project_ids[0], "start_date": d(5), "end_date": d(50), "allocated_hours": 280.0, "planned_cost": 8680.0, "allocation_percent": 80.0},
+            {"resource_type": "employee", "employee_id": emp_ids[6], "project_id": project_ids[0], "start_date": past(55), "end_date": d(60), "allocated_hours": 500.0, "planned_cost": 12500.0, "allocation_percent": 100.0},
+            {"resource_type": "equipment", "equipment_id": equip_ids[0], "project_id": project_ids[0], "start_date": past(50), "end_date": d(30), "planned_cost": 9600.0},
+            {"resource_type": "equipment", "equipment_id": equip_ids[2], "project_id": project_ids[0], "start_date": past(40), "end_date": d(60), "planned_cost": 8500.0},
+        ]
+
+    # Project 2 — Școala Bacău (planning): 2 employees planned
+    if project_ids[1]:
+        allocations_data += [
+            {"resource_type": "employee", "employee_id": emp_ids[5], "project_id": project_ids[1], "start_date": d(30), "end_date": d(60), "allocated_hours": 120.0, "planned_cost": 6432.0, "allocation_percent": 50.0},
+            {"resource_type": "employee", "employee_id": emp_ids[7], "project_id": project_ids[1], "start_date": d(35), "end_date": d(50), "allocated_hours": 60.0, "planned_cost": 4500.0, "allocation_percent": 30.0},
+        ]
+
+    # Project 3 — Vila Popescu (completed): 2 employees historical
+    if project_ids[2]:
+        allocations_data += [
+            {"resource_type": "employee", "employee_id": emp_ids[1], "project_id": project_ids[2], "start_date": past(140), "end_date": past(60), "allocated_hours": 160.0, "planned_cost": 5904.0, "allocation_percent": 50.0},
+            {"resource_type": "employee", "employee_id": emp_ids[2], "project_id": project_ids[2], "start_date": past(100), "end_date": past(80), "allocated_hours": 48.0, "planned_cost": 1656.0, "allocation_percent": 100.0},
+        ]
+
+    alloc_ids = []
+    for a in allocations_data:
+        clean = {k: v for k, v in a.items() if v is not None}
+        result = api("POST", "/api/v1/rm/allocations", clean)
+        if result:
+            alloc_ids.append(result.get("id"))
+            rtype = a["resource_type"]
+            print(f"    Allocation [{rtype}]: project {str(a['project_id'])[:8]}...")
+        else:
+            alloc_ids.append(None)
+
+    return {
+        "emp_ids": emp_ids,
+        "equip_ids": equip_ids,
+        "mat_ids": mat_ids,
+        "alloc_ids": alloc_ids,
+    }
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 5. BI — KPI definitions, dashboards, reports (P3)
+# ═════════════════════════════════════════════════════════════════════════════
+
+def seed_bi(pm_data):
+    """F132, F133, F135, F148, F152 — KPIs, dashboards, reports."""
+    print("\n── seed_bi ──")
+    project_ids = pm_data.get("project_ids", [])
+
+    # ── 8 KPI definitions ──────────────────────────────────────────────────
+    kpis = [
+        {
+            "name": "Rata conversie oportunități",
+            "code": "KPI_CONV_RATE",
+            "description": "Procentul de oportunități câștigate din totalul închise",
+            "module": "pipeline",
+            "formula": {"type": "ratio", "numerator": "opportunities_won", "denominator": "opportunities_closed"},
+            "formula_text": "won / (won + lost) * 100",
+            "unit": "%",
+            "display_type": "gauge",
+            "thresholds": [{"color": "red", "min": 0, "max": 30}, {"color": "yellow", "min": 30, "max": 60}, {"color": "green", "min": 60, "max": 100}],
+            "assigned_roles": ["admin", "manager_vanzari"],
+            "sort_order": 1,
+        },
+        {
+            "name": "Valoare medie contract",
+            "code": "KPI_AVG_CONTRACT",
+            "description": "Valoarea medie a contractelor semnate",
+            "module": "pipeline",
+            "formula": {"type": "average", "field": "contract_value", "source": "contracts_signed"},
+            "formula_text": "SUM(contract_value) / COUNT(contracts)",
+            "unit": "RON",
+            "display_type": "number",
+            "thresholds": [{"color": "red", "min": 0, "max": 50000}, {"color": "yellow", "min": 50000, "max": 150000}, {"color": "green", "min": 150000, "max": 999999}],
+            "assigned_roles": ["admin", "manager_vanzari"],
+            "sort_order": 2,
+        },
+        {
+            "name": "CPI — Cost Performance Index",
+            "code": "KPI_CPI",
+            "description": "Earned Value / Actual Cost — eficiență costuri proiect",
+            "module": "pm",
+            "formula": {"type": "evm", "metric": "CPI", "numerator": "earned_value", "denominator": "actual_cost"},
+            "formula_text": "EV / AC",
+            "unit": "",
+            "display_type": "gauge",
+            "thresholds": [{"color": "red", "min": 0, "max": 0.9}, {"color": "yellow", "min": 0.9, "max": 1.0}, {"color": "green", "min": 1.0, "max": 2.0}],
+            "assigned_roles": ["admin", "manager_vanzari", "tehnician"],
+            "sort_order": 3,
+        },
+        {
+            "name": "SPI — Schedule Performance Index",
+            "code": "KPI_SPI",
+            "description": "Earned Value / Planned Value — eficiență program",
+            "module": "pm",
+            "formula": {"type": "evm", "metric": "SPI", "numerator": "earned_value", "denominator": "planned_value"},
+            "formula_text": "EV / PV",
+            "unit": "",
+            "display_type": "gauge",
+            "thresholds": [{"color": "red", "min": 0, "max": 0.9}, {"color": "yellow", "min": 0.9, "max": 1.0}, {"color": "green", "min": 1.0, "max": 2.0}],
+            "assigned_roles": ["admin", "tehnician"],
+            "sort_order": 4,
+        },
+        {
+            "name": "Economie energetică totală",
+            "code": "KPI_ENERGY_SAVE",
+            "description": "Total kWh/an economisiți prin reabilitări finalizate",
+            "module": "pm",
+            "formula": {"type": "sum", "field": "actual_kwh_savings", "source": "energy_impacts_completed"},
+            "formula_text": "SUM(pre_kwh - post_kwh) WHERE status=completed",
+            "unit": "kWh/an",
+            "display_type": "number",
+            "thresholds": [{"color": "yellow", "min": 0, "max": 100000}, {"color": "green", "min": 100000, "max": 9999999}],
+            "assigned_roles": ["admin"],
+            "sort_order": 5,
+        },
+        {
+            "name": "Reducere emisii CO₂",
+            "code": "KPI_CO2_REDUCE",
+            "description": "Tone CO₂/an reduse prin proiecte finalizate",
+            "module": "pm",
+            "formula": {"type": "sum", "field": "co2_reduction_tons", "source": "energy_impacts_completed"},
+            "formula_text": "SUM(co2_reduction_tons)",
+            "unit": "t CO₂/an",
+            "display_type": "number",
+            "thresholds": [{"color": "yellow", "min": 0, "max": 50}, {"color": "green", "min": 50, "max": 99999}],
+            "assigned_roles": ["admin"],
+            "sort_order": 6,
+        },
+        {
+            "name": "Utilizare resurse umane",
+            "code": "KPI_HR_UTIL",
+            "description": "Procentul mediu de alocare a angajaților activi",
+            "module": "rm",
+            "formula": {"type": "average", "field": "allocation_percent", "source": "active_allocations_employee"},
+            "formula_text": "AVG(allocation_percent) WHERE resource_type=employee",
+            "unit": "%",
+            "display_type": "gauge",
+            "thresholds": [{"color": "red", "min": 0, "max": 50}, {"color": "yellow", "min": 50, "max": 80}, {"color": "green", "min": 80, "max": 100}],
+            "assigned_roles": ["admin"],
+            "sort_order": 7,
+        },
+        {
+            "name": "Nr. contacte noi / lună",
+            "code": "KPI_NEW_CONTACTS",
+            "description": "Contacte CRM create în ultima lună",
+            "module": "crm",
+            "formula": {"type": "count", "source": "contacts", "period": "month"},
+            "formula_text": "COUNT(contacts WHERE created_at > NOW()-30d)",
+            "unit": "",
+            "display_type": "number",
+            "thresholds": [{"color": "red", "min": 0, "max": 5}, {"color": "yellow", "min": 5, "max": 15}, {"color": "green", "min": 15, "max": 999}],
+            "assigned_roles": ["admin", "manager_vanzari", "agent_comercial"],
+            "sort_order": 8,
+        },
+    ]
+
+    kpi_ids = []
+    for k in kpis:
+        result = api("POST", "/api/v1/bi/kpis", k)
+        if result:
+            kpi_ids.append(result["id"])
+            print(f"    KPI: {k['code']} — {k['name']}")
+        else:
+            kpi_ids.append(None)
+
+    # ── KPI values (sample measurements) ───────────────────────────────────
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    kpi_values = [
+        {"kpi_definition_id": kpi_ids[0], "value": 66.7, "threshold_color": "green", "period_start": (now - timedelta(days=30)).isoformat(), "period_end": now.isoformat()},
+        {"kpi_definition_id": kpi_ids[1], "value": 187500.0, "threshold_color": "green", "period_start": (now - timedelta(days=30)).isoformat(), "period_end": now.isoformat()},
+        {"kpi_definition_id": kpi_ids[2], "value": 1.05, "threshold_color": "green", "period_start": (now - timedelta(days=7)).isoformat(), "period_end": now.isoformat()},
+        {"kpi_definition_id": kpi_ids[3], "value": 0.92, "threshold_color": "yellow", "period_start": (now - timedelta(days=7)).isoformat(), "period_end": now.isoformat()},
+        {"kpi_definition_id": kpi_ids[4], "value": 595200.0, "threshold_color": "green", "period_start": (now - timedelta(days=90)).isoformat(), "period_end": now.isoformat()},
+        {"kpi_definition_id": kpi_ids[5], "value": 142.8, "threshold_color": "green", "period_start": (now - timedelta(days=90)).isoformat(), "period_end": now.isoformat()},
+        {"kpi_definition_id": kpi_ids[6], "value": 75.0, "threshold_color": "yellow", "period_start": (now - timedelta(days=7)).isoformat(), "period_end": now.isoformat()},
+        {"kpi_definition_id": kpi_ids[7], "value": 15.0, "threshold_color": "green", "period_start": (now - timedelta(days=30)).isoformat(), "period_end": now.isoformat()},
+    ]
+
+    # Add project_id for project-level KPIs
+    if project_ids and project_ids[0]:
+        kpi_values[2]["project_id"] = project_ids[0]
+        kpi_values[3]["project_id"] = project_ids[0]
+
+    val_count = 0
+    for v in kpi_values:
+        if v["kpi_definition_id"] is None:
+            continue
+        kid = v["kpi_definition_id"]
+        result = api("POST", f"/api/v1/bi/kpis/{kid}/values", v)
+        if result:
+            val_count += 1
+
+    print(f"    KPI values recorded: {val_count}")
+
+    # ── 3 Dashboards with widgets ──────────────────────────────────────────
+    dashboards = [
+        {
+            "name": "Executive Overview",
+            "description": "Dashboard executiv — KPIs cross-module, pipeline, energie",
+            "dashboard_type": "executive",
+            "is_default": True,
+            "layout_config": {"columns": 4, "row_height": 120},
+            "visible_roles": ["admin", "manager_vanzari"],
+            "widgets": [
+                {"widget_type": "kpi_card", "title": "Rata Conversie", "config": {"color": "blue"}, "data_source": {"kpi_code": "KPI_CONV_RATE"}, "position_x": 0, "position_y": 0, "width": 1, "height": 1, "sort_order": 1, "kpi_definition_id": kpi_ids[0] if kpi_ids[0] else None},
+                {"widget_type": "kpi_card", "title": "Val. Medie Contract", "config": {"color": "green", "format": "currency"}, "data_source": {"kpi_code": "KPI_AVG_CONTRACT"}, "position_x": 1, "position_y": 0, "width": 1, "height": 1, "sort_order": 2, "kpi_definition_id": kpi_ids[1] if kpi_ids[1] else None},
+                {"widget_type": "kpi_card", "title": "Economie Energetică", "config": {"color": "orange"}, "data_source": {"kpi_code": "KPI_ENERGY_SAVE"}, "position_x": 2, "position_y": 0, "width": 1, "height": 1, "sort_order": 3, "kpi_definition_id": kpi_ids[4] if kpi_ids[4] else None},
+                {"widget_type": "kpi_card", "title": "Contacte Noi", "config": {"color": "purple"}, "data_source": {"kpi_code": "KPI_NEW_CONTACTS"}, "position_x": 3, "position_y": 0, "width": 1, "height": 1, "sort_order": 4, "kpi_definition_id": kpi_ids[7] if kpi_ids[7] else None},
+                {"widget_type": "chart", "title": "Pipeline per Etapă", "config": {"chart_type": "bar", "colors": ["#1890ff", "#52c41a", "#faad14", "#f5222d"]}, "data_source": {"type": "pipeline_by_stage"}, "position_x": 0, "position_y": 1, "width": 2, "height": 2, "sort_order": 5},
+                {"widget_type": "chart", "title": "Proiecte — CPI vs SPI", "config": {"chart_type": "scatter", "x_axis": "CPI", "y_axis": "SPI"}, "data_source": {"type": "projects_evm"}, "position_x": 2, "position_y": 1, "width": 2, "height": 2, "sort_order": 6},
+            ],
+        },
+        {
+            "name": "Energie & Sustenabilitate",
+            "description": "Dashboard P1 — indicatori energetici, CO₂, clase energetice",
+            "dashboard_type": "energy",
+            "is_default": False,
+            "layout_config": {"columns": 3, "row_height": 140},
+            "visible_roles": ["admin", "tehnician"],
+            "widgets": [
+                {"widget_type": "kpi_card", "title": "kWh Economisiți", "config": {"color": "green", "icon": "thunderbolt"}, "data_source": {"kpi_code": "KPI_ENERGY_SAVE"}, "position_x": 0, "position_y": 0, "width": 1, "height": 1, "sort_order": 1, "kpi_definition_id": kpi_ids[4] if kpi_ids[4] else None},
+                {"widget_type": "kpi_card", "title": "CO₂ Redus", "config": {"color": "cyan", "icon": "cloud"}, "data_source": {"kpi_code": "KPI_CO2_REDUCE"}, "position_x": 1, "position_y": 0, "width": 1, "height": 1, "sort_order": 2, "kpi_definition_id": kpi_ids[5] if kpi_ids[5] else None},
+                {"widget_type": "kpi_card", "title": "CPI Proiect", "config": {"color": "blue"}, "data_source": {"kpi_code": "KPI_CPI"}, "position_x": 2, "position_y": 0, "width": 1, "height": 1, "sort_order": 3, "kpi_definition_id": kpi_ids[2] if kpi_ids[2] else None},
+                {"widget_type": "chart", "title": "Consum PRE vs POST (kWh/an)", "config": {"chart_type": "grouped_bar", "series": ["pre_kwh", "post_kwh"]}, "data_source": {"type": "energy_impact_comparison"}, "position_x": 0, "position_y": 1, "width": 2, "height": 2, "sort_order": 4},
+                {"widget_type": "table", "title": "Proiecte — Impact Energetic", "config": {"columns": ["project", "pre_kwh", "post_kwh", "savings_pct", "co2_tons"]}, "data_source": {"type": "energy_impact_list"}, "position_x": 2, "position_y": 1, "width": 1, "height": 2, "sort_order": 5},
+            ],
+        },
+        {
+            "name": "Resurse & Operațional",
+            "description": "Dashboard P2 — utilizare personal, echipamente, stocuri",
+            "dashboard_type": "operational",
+            "is_default": False,
+            "layout_config": {"columns": 3, "row_height": 130},
+            "visible_roles": ["admin"],
+            "widgets": [
+                {"widget_type": "kpi_card", "title": "Utilizare HR", "config": {"color": "violet"}, "data_source": {"kpi_code": "KPI_HR_UTIL"}, "position_x": 0, "position_y": 0, "width": 1, "height": 1, "sort_order": 1, "kpi_definition_id": kpi_ids[6] if kpi_ids[6] else None},
+                {"widget_type": "kpi_card", "title": "SPI Proiect", "config": {"color": "gold"}, "data_source": {"kpi_code": "KPI_SPI"}, "position_x": 1, "position_y": 0, "width": 1, "height": 1, "sort_order": 2, "kpi_definition_id": kpi_ids[3] if kpi_ids[3] else None},
+                {"widget_type": "chart", "title": "Alocare pe Proiecte", "config": {"chart_type": "stacked_bar"}, "data_source": {"type": "allocations_by_project"}, "position_x": 0, "position_y": 1, "width": 2, "height": 2, "sort_order": 3},
+                {"widget_type": "table", "title": "Stocuri Critice", "config": {"columns": ["material", "quantity", "min_stock", "status"]}, "data_source": {"type": "material_stocks_low"}, "position_x": 2, "position_y": 0, "width": 1, "height": 3, "sort_order": 4},
+            ],
+        },
+    ]
+
+    dash_ids = []
+    for d in dashboards:
+        widgets = d.pop("widgets", [])
+        clean_widgets = []
+        for w in widgets:
+            cw = {k: v for k, v in w.items() if v is not None}
+            clean_widgets.append(cw)
+        d["widgets"] = clean_widgets
+        result = api("POST", "/api/v1/bi/dashboards", d)
+        if result:
+            dash_ids.append(result["id"])
+            wcount = len(result.get("widgets", []))
+            print(f"    Dashboard: {result['name']} ({wcount} widgets)")
+        else:
+            dash_ids.append(None)
+
+    # ── 4 Report definitions ───────────────────────────────────────────────
+    reports = [
+        {
+            "name": "Raport Pipeline Lunar",
+            "description": "Oportunități create, câștigate, pierdute + valoare pipeline",
+            "report_type": "scheduled",
+            "module": "pipeline",
+            "query_config": {"source": "opportunities", "period": "month", "group_by": "stage"},
+            "columns_config": [{"field": "stage", "label": "Etapă"}, {"field": "count", "label": "Nr."}, {"field": "total_value", "label": "Valoare (RON)"}],
+            "filters_config": [{"field": "created_at", "operator": "last_n_days", "value": 30}],
+            "chart_config": {"type": "funnel", "value_field": "total_value"},
+            "is_scheduled": True,
+            "schedule_cron": "0 8 1 * *",
+            "recipients": ["admin", "manager_vanzari"],
+        },
+        {
+            "name": "Raport Eficiență Energetică",
+            "description": "Sinteză economii kWh și CO₂ pe proiecte finalizate",
+            "report_type": "custom",
+            "module": "pm",
+            "query_config": {"source": "energy_impacts", "filter": {"status": "completed"}},
+            "columns_config": [{"field": "project_name", "label": "Proiect"}, {"field": "pre_kwh", "label": "Pre (kWh)"}, {"field": "post_kwh", "label": "Post (kWh)"}, {"field": "savings_pct", "label": "Economie %"}, {"field": "co2_tons", "label": "CO₂ (t)"}],
+            "grouping_config": {"group_by": "energy_class_after"},
+        },
+        {
+            "name": "Raport Utilizare Resurse",
+            "description": "Grad de ocupare angajați și echipamente pe proiecte",
+            "report_type": "custom",
+            "module": "rm",
+            "query_config": {"source": "resource_allocations", "group_by": "resource_type"},
+            "columns_config": [{"field": "resource_name", "label": "Resursă"}, {"field": "project_name", "label": "Proiect"}, {"field": "allocation_percent", "label": "Alocare %"}, {"field": "planned_cost", "label": "Cost Planificat"}],
+            "filters_config": [{"field": "end_date", "operator": "gte", "value": "today"}],
+        },
+        {
+            "name": "Raport Contacte și Conversii",
+            "description": "Contacte noi, rata de conversie lead→opportunity, top clienți",
+            "report_type": "scheduled",
+            "module": "crm",
+            "query_config": {"source": "contacts", "join": "opportunities", "period": "quarter"},
+            "columns_config": [{"field": "contact_name", "label": "Contact"}, {"field": "type", "label": "Tip"}, {"field": "opp_count", "label": "Oportunități"}, {"field": "total_value", "label": "Valoare Totală"}],
+            "chart_config": {"type": "pie", "value_field": "total_value", "label_field": "type"},
+            "is_scheduled": True,
+            "schedule_cron": "0 9 1 1,4,7,10 *",
+            "recipients": ["admin", "manager_vanzari", "agent_comercial"],
+        },
+    ]
+
+    report_ids = []
+    for r in reports:
+        result = api("POST", "/api/v1/bi/reports", r)
+        if result:
+            report_ids.append(result["id"])
+            print(f"    Report: {r['name']}")
+        else:
+            report_ids.append(None)
+
+    return {
+        "kpi_ids": kpi_ids,
+        "dash_ids": dash_ids,
+        "report_ids": report_ids,
+    }
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -655,3 +1071,8 @@ if __name__ == "__main__":
     print(f"✓ Pipeline done: {len(pipe['opp_ids'])} opportunities, {len(pipe['offer_ids'])} offers, {len(pipe['contract_ids'])} contracts, {len(pipe['act_ids'])} activities")
     pm = seed_pm(crm, pipe)
     print(f"✓ PM done: {len(pm['project_ids'])} projects with WBS, tasks, timesheets, energy impact")
+    rm = seed_rm(pm)
+    print(f"✓ RM done: {len(rm['emp_ids'])} employees, {len(rm['equip_ids'])} equipment, {len(rm['mat_ids'])} materials, {len(rm['alloc_ids'])} allocations")
+    bi = seed_bi(pm)
+    print(f"✓ BI done: {len(bi['kpi_ids'])} KPIs, {len(bi['dash_ids'])} dashboards, {len(bi['report_ids'])} reports")
+    print("\n══ SEED COMPLETE ══")
