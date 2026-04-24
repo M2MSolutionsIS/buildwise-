@@ -432,14 +432,21 @@ def seed_pm(crm, pipe):
     ]
 
     project_ids = []
+    existing = api("GET", "/api/v1/pm/projects?per_page=50")
+    existing_names = {p["name"]: p["id"] for p in (existing or [])}
     for p in projects_data:
-        result = api("POST", "/api/v1/pm/projects", p)
-        if result:
-            pid = result.get("id", "?")
+        if p["name"] in existing_names:
+            pid = existing_names[p["name"]]
             project_ids.append(pid)
-            print(f"  Project: {p['name']} → {pid}")
+            print(f"  Project exists, skip: {p['name']} → {pid}")
         else:
-            project_ids.append(None)
+            result = api("POST", "/api/v1/pm/projects", p)
+            if result:
+                pid = result.get("id", "?")
+                project_ids.append(pid)
+                print(f"  Project: {p['name']} → {pid}")
+            else:
+                project_ids.append(None)
 
     # ── WBS for Project 1: Bloc A4 Iași (in execution) ───────────────────────
 
