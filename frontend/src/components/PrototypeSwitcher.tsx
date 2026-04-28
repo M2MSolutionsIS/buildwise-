@@ -30,14 +30,6 @@ const PROTOTYPES: { value: Prototype; label: string; icon: React.ReactNode; desc
     color: "#1677ff",
     featureCount: "103F",
   },
-  {
-    value: "P3",
-    label: "P3",
-    icon: <CloudOutlined />,
-    description: "M2M ERP Lite — SaaS Multi-tenant",
-    color: "#722ed1",
-    featureCount: "108F",
-  },
 ];
 
 export default function PrototypeSwitcher() {
