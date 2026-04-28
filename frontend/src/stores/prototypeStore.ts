@@ -54,8 +54,8 @@ interface PrototypeState {
 }
 
 export const usePrototypeStore = create<PrototypeState>((set, get) => ({
-  activePrototype: (localStorage.getItem("buildwise_prototype") as Prototype) || "P1",
-  allowedPrototypes: ["P1", "P2", "P3"],
+  activePrototype: (localStorage.getItem("buildwise_prototype") as Prototype) || "P2",
+  allowedPrototypes: ["P1", "P2"],
   initialized: false,
 
   syncFromOrganization: (active, allowed) => {

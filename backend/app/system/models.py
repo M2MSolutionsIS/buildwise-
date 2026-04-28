@@ -96,10 +96,10 @@ class Organization(Base, BasePKMixin, TimestampMixin, SoftDeleteMixin, Prototype
 
     # Prototype config — which prototype is active for this org
     active_prototype: Mapped[str] = mapped_column(
-        Enum(PrototypeEnum), default=PrototypeEnum.P1, nullable=False
+        Enum(PrototypeEnum), default=PrototypeEnum.P2, nullable=False
     )
     allowed_prototypes: Mapped[list | None] = mapped_column(
-        JSON, default=["P1", "P2", "P3"], nullable=False
+        JSON, default=["P1", "P2"], nullable=False
     )
 
     # Branding — F137

@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = "re_CHANGE_ME"
 
     # Prototype
-    DEFAULT_PROTOTYPE: Literal["P1", "P2", "P3"] = "P1"
+    DEFAULT_PROTOTYPE: Literal["P1", "P2", "P3"] = "P2"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
